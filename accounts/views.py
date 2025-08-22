@@ -35,4 +35,5 @@ def logout_view(request):
 
 
 def home_view(request):
-    return render(request, "home.html")
+    context = {"page": "home"}
+    return render(request, "home.html", context)

@@ -8,7 +8,8 @@ from .forms import CultureForm
 def culture_list(request):
     cultures = Culture.objects.all()
     form = CultureForm()
-    return render(request, "directory/culture_list.html", {"cultures": cultures, "form": form})
+    context = {"cultures": cultures, "form": form, "page": "cultures"}
+    return render(request, "directory/culture_list.html", context)
 
 
 @login_required

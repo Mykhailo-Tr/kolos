@@ -1,19 +1,33 @@
 <div class="sidebar d-flex flex-column p-3">
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
-            <a href="/" class="nav-link active">🏠 Home</a>
+            <a href="/" class="nav-link" id="home">🏠 Home</a>
         </li>
         <li>
-            <a href="/drivers" class="nav-link">🚚 Водії</a>
+            <a href="/drivers" class="nav-link" id="drivers">🚚 Водії</a>
         </li>
         <li>
-            <a href="/cars" class="nav-link">🚛 Автомобілі</a>
+            <a href="/cars" class="nav-link" id="cars">🚛 Автомобілі</a>
         </li>
         <li>
-            <a href="{% url 'culture_list' %}" class="nav-link">🌾 Культури</a>
+            <a href="{% url 'culture_list' %}" class="nav-link" id="cultures">🌾 Культури</a>
         </li>
         <li>
-            <a href="/reports" class="nav-link">📊 Звіти</a>
+            <a href="/reports" class="nav-link" id="reports">📊 Звіти</a>
         </li>
     </ul>
 </div>
+<div id="page" data-page="{{ page }}"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const currentPage = document.getElementById("page").getAttribute("data-page");
+        console.log("Current page:", currentPage);
+        if (currentPage) {
+            const activeLink = document.getElementById(currentPage);
+            if (activeLink) {
+                activeLink.classList.add("active");
+            }
+        }
+    });
+</script>

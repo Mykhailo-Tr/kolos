@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import cultures_views, drivers_views
+from .views import cultures_views, drivers_views, cars_views
 
 urlpatterns = [
     # ========== Cultures URLs ==========
@@ -13,4 +13,10 @@ urlpatterns = [
     path("drivers/add/", drivers_views.driver_create, name="driver_add"),
     path("drivers/<int:pk>/edit/", drivers_views.driver_update, name="driver_edit"),
     path("drivers/<int:pk>/delete/", drivers_views.driver_delete, name="driver_delete"),
+
+    # ========== Cars URLs ==========
+    path("cars/", cars_views.car_list, name="car_list"),
+    path("cars/add/", cars_views.car_create, name="car_add"),
+    path("cars/<int:pk>/edit/", cars_views.car_update, name="car_edit"),
+    path("cars/<int:pk>/delete/", cars_views.car_delete, name="car_delete"),
 ]

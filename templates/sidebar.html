@@ -1,13 +1,13 @@
 <div class="sidebar d-flex flex-column p-3">
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
-            <a href="/" class="nav-link" id="home">🏠 Home</a>
+            <a href="{% url 'home' %}" class="nav-link" id="home">🏠 Home</a>
         </li>
         <li>
             <a href="{% url 'driver_list' %}" class="nav-link" id="drivers">🚚 Водії</a>
         </li>
         <li>
-            <a href="/cars" class="nav-link" id="cars">🚛 Автомобілі</a>
+            <a href="{% url 'car_list' %}" class="nav-link" id="cars">🚛 Автомобілі</a>
         </li>
         <li>
             <a href="{% url 'culture_list' %}" class="nav-link" id="cultures">🌾 Культури</a>

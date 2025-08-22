@@ -35,3 +35,19 @@ class DriverForm(forms.ModelForm):
         if phone and not re.match(pattern, phone):
             raise forms.ValidationError("Введіть коректний номер телефону.")
         return
+    
+    
+class CarForm(forms.ModelForm):
+    class Meta:
+        model = Car
+        fields = ["number", "comment"]
+        widgets = {
+            "number": forms.TextInput(attrs={"class": "form-control", "placeholder": "Номер авто"}),
+            "comment": forms.TextInput(attrs={"class": "form-control", "placeholder": "Коментар"}),
+        }
+        
+    def clean_number(self):
+        number = self.cleaned_data.get("number")
+        if not number:
+            raise forms.ValidationError("Номер авто є обов'язковим.")
+        return number

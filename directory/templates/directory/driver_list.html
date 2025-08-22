@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Водії</h2>
+  
+    <!-- Кнопка виклику модалки для додавання -->
+    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addModal">
+        Додати водія
+    </button>
+
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>ПІБ</th>
+            <th>Телефон</th>
+            <th>Компанія</th>
+            <th>Дії</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for driver in drivers %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ driver.full_name }}</td>
+            <td>{{ driver.phone }}</td>
+            <td>{{ driver.company }}</td>
+            <td>
+            <!-- Редагування -->
+            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ driver.id }}">
+                Редагувати
+            </button>
+            <!-- Видалення -->
+            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ driver.id }}">
+                Видалити
+            </button>
+            </td>
+        </tr>
+
+        <!-- Modal Edit -->
+        <div class="modal fade" id="editModal{{ driver.id }}" tabindex="-1">
+            <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'driver_edit' driver.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Редагувати інформацію про водія</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" name="name" value="{{ driver.name }}" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" class="btn btn-primary">Зберегти</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+
+        <!-- Modal Delete -->
+        <div class="modal fade" id="deleteModal{{ driver.id }}" tabindex="-1">
+            <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'driver_delete' driver.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Підтвердження видалення</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Ви впевнені, що хочете видалити <b>{{ driver.name }}</b>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                    <button type="submit" class="btn btn-danger">Видалити</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Add -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'driver_add' %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Новий водій</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          {% for field in form %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}
+                <div class="text-danger">
+                  {{ field.errors }}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+          <button type="submit" class="btn btn-primary">Зберегти</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

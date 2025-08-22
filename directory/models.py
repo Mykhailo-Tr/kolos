@@ -13,11 +13,18 @@ class Driver(models.Model):
 
 class Car(models.Model):
     number = models.CharField(max_length=20, verbose_name="Номер авто")
-    trailer = models.CharField(max_length=20, blank=True, null=True, verbose_name="Причеп")
-    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Водій")
-
+    comment = models.CharField(max_length=100, blank=True, null=True, verbose_name="Коментар")
+    
     def __str__(self):
-        return f"{self.number}" + (f" / {self.trailer}" if self.trailer else "")
+        return f"{self.number}"
+    
+
+class Trailer(models.Model):
+    number = models.CharField(max_length=20, verbose_name="Номер причепа")
+    comment = models.CharField(max_length=100, blank=True, null=True, verbose_name="Коментар")
+    
+    def __str__(self):
+        return self.number
 
 
 class Culture(models.Model):

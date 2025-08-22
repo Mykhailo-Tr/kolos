@@ -10,9 +10,8 @@ class DriverAdmin(admin.ModelAdmin):
 
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
-    list_display = ("number", "trailer", "driver")
-    search_fields = ("number", "trailer")
-    list_filter = ("driver",)
+    list_display = ("number", "comment")
+    search_fields = ("number", "comment")
 
 
 @admin.register(Culture)

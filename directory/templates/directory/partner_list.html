@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Відправники / Отримувачі</h2>
+
+    <!-- Кнопка на окрему сторінку -->
+    <a href="{% url 'partner_add' %}" class="btn btn-primary mb-3">Додати партнера</a>
+
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>ПІБ</th>
+            <th>Телефон</th>
+            <th>Email</th>
+            <th>Тип</th>
+            <th>Дії</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for partner in partners %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ partner.full_name }}</td>
+            <td>{{ partner.phone }}</td>
+            <td>{{ partner.email }}</td>
+            <td>{{ partner.get_partner_type_display }}</td>
+            <td>
+                <a href="{% url 'partner_edit' partner.id %}" class="btn btn-sm btn-warning">Редагувати</a>
+                <!-- Видалення через модалку -->
+                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ partner.id }}">
+                    Видалити
+                </button>
+            </td>
+        </tr>
+
+        <!-- Modal Delete -->
+        <div class="modal fade" id="deleteModal{{ partner.id }}" tabindex="-1">
+            <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'partner_delete' partner.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Підтвердження видалення</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Ви впевнені, що хочете видалити <b>{{ partner.full_name }}</b>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                    <button type="submit" class="btn btn-danger">Видалити</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import cultures_views, drivers_views, cars_views, trailers_views
+from .views import (cultures_views, drivers_views, cars_views, 
+                    trailers_views, partners_views)
 
 urlpatterns = [
     # ========== Cultures URLs ==========
@@ -25,4 +26,10 @@ urlpatterns = [
     path("trailers/add/", trailers_views.trailer_create, name="trailer_add"),
     path("trailers/<int:pk>/edit/", trailers_views.trailer_update, name="trailer_edit"),
     path("trailers/<int:pk>/delete/", trailers_views.trailer_delete, name="trailer_delete"),
+    
+    # ========== Partners URLs ==========
+    path("partners/", partners_views.partner_list, name="partner_list"),
+    path("partners/add/", partners_views.partner_create, name="partner_add"),
+    path("partners/<int:pk>/edit/", partners_views.partner_update, name="partner_edit"),
+    path("partners/<int:pk>/delete/", partners_views.partner_delete, name="partner_delete"),
 ]

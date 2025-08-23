@@ -32,3 +32,43 @@ class Culture(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class UnloadingPlace(models.Model):
+    name = models.CharField(max_length=150, verbose_name="Назва місця")
+    address = models.CharField(max_length=255, blank=True, null=True, verbose_name="Адреса")
+    place_type = models.CharField(
+        max_length=50,
+        choices=[
+            ("elevator", "Елеватор"),
+            ("warehouse", "Склад"),
+            ("factory", "Завод"),
+            ("other", "Інше"),
+        ],
+        default="elevator",
+        verbose_name="Тип місця"
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.get_place_type_display()})"
+    
+
+class Partner(models.Model):
+    """Відправники / Отримувачі"""
+    name = models.CharField(max_length=150, verbose_name="Назва")
+    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Телефон")
+    email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    partner_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("sender", "Відправник"),
+            ("receiver", "Отримувач"),
+            ("both", "Відправник та отримувач"),
+        ],
+        default="sender",
+        verbose_name="Тип партнера"
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.get_partner_type_display()})"
+

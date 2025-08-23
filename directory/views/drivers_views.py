@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.contrib import messages
 from ..models import Driver
 from ..forms import DriverForm
 
 
 def driver_list(request):
     drivers = Driver.objects.all()
-    return render(request, "directory/driver_list.html", {"drivers": drivers})
+    context = {"drivers": drivers, "page": "drivers"}
+    return render(request, "directory/driver_list.html", context)
 
 
 def driver_create(request):
@@ -14,10 +16,13 @@ def driver_create(request):
         form = DriverForm(request.POST)
         if form.is_valid():
             form.save()
+            messages.success(request, "Водія успішно додано ✅")
             return redirect("driver_list")
     else:
         form = DriverForm()
-    return render(request, "directory/form.html", {"form": form, "title": "Додати водія", "back_url": reverse("driver_list")})
+    
+    context = {"form": form, "title": "Додати водія", "back_url": reverse("driver_list")}
+    return render(request, "directory/form.html", context)
 
 
 def driver_update(request, pk):
@@ -26,17 +31,18 @@ def driver_update(request, pk):
         form = DriverForm(request.POST, instance=driver)
         if form.is_valid():
             form.save()
+            messages.success(request, "Водія оновлено ✅")
             return redirect("driver_list")
-        else:
-            print(form.errors)
     else:
         form = DriverForm(instance=driver)
-    return render(request, "directory/form.html", {"form": form, "title": "Редагувати водія", "back_url": reverse("driver_list")})
+        
+    context = {"form": form, "title": "Редагувати водія", "back_url": reverse("driver_list")}
+    return render(request, "directory/form.html", context)
 
 
 def driver_delete(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
     if request.method == "POST":
         driver.delete()
-        return redirect("driver_list")
+        messages.success(request, "Водія видалено ✅")
     return redirect("driver_list")

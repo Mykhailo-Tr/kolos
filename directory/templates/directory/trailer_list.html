@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Машини{% endblock %}
+{% block title %}Причепи{% endblock %}
 {% block content %}
 <div class="container mt-4">
-  <h2>Машини</h2>
+  <h2>Причепи</h2>
   
   <!-- Кнопка виклику модалки для додавання -->
-  <a href="{% url 'car_add' %}" class="btn btn-primary mb-3">Додати машину</a>
+  <a href="{% url 'trailer_add' %}" class="btn btn-primary mb-3">Додати причіп</a>
 
   <table class="table table-striped">
     <thead>
@@ -18,33 +18,33 @@
       </tr>
     </thead>
     <tbody>
-      {% for car in cars %}
+      {% for trailer in trailers %}
       <tr>
         <td>{{ forloop.counter }}</td>
-        <td>{{ car.number }}</td>
-        <td>{{ car.comment }}</td>
+        <td>{{ trailer.number }}</td>
+        <td>{{ trailer.comment }}</td>
         <td>
           <!-- Редагування -->
-          <a href="{% url 'car_edit' car.id %}" class="btn btn-sm btn-warning">Редагувати</a>
+          <a href="{% url 'trailer_edit' trailer.id %}" class="btn btn-sm btn-warning">Редагувати</a>
           <!-- Видалення -->
-          <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ car.id }}">
+          <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ trailer.id }}">
             Видалити
           </button>
         </td>
       </tr>
 
       <!-- Modal Delete -->
-      <div class="modal fade" id="deleteModal{{ car.id }}" tabindex="-1">
+      <div class="modal fade" id="deleteModal{{ trailer.id }}" tabindex="-1">
         <div class="modal-dialog">
           <div class="modal-content">
-            <form method="post" action="{% url 'car_delete' car.id %}">
+            <form method="post" action="{% url 'trailer_delete' trailer.id %}">
               {% csrf_token %}
               <div class="modal-header">
                 <h5 class="modal-title">Підтвердження видалення</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
-                Ви впевнені, що хочете видалити <b>{{ car.number }}</b>?
+                Ви впевнені, що хочете видалити <b>{{ trailer.number }}</b>?
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>

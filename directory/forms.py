@@ -51,3 +51,19 @@ class CarForm(forms.ModelForm):
         if not number:
             raise forms.ValidationError("Номер авто є обов'язковим.")
         return number
+    
+
+class TrailerForm(forms.ModelForm):
+    class Meta:
+        model = Trailer
+        fields = ["number", "comment"]
+        widgets = {
+            "number": forms.TextInput(attrs={"class": "form-control", "placeholder": "Номер причепа"}),
+            "comment": forms.TextInput(attrs={"class": "form-control", "placeholder": "Коментар"}),
+        }
+        
+    def clean_number(self):
+        number = self.cleaned_data.get("number")
+        if not number:
+            raise forms.ValidationError("Номер причепа є обов'язковим.")
+        return number

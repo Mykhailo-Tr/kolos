@@ -1,5 +1,5 @@
 from django import forms
-from .models import Culture, Driver, Car, Trailer
+from .models import Culture, Driver, Car, Trailer, UnloadingPlace, Partner
 
 class CultureForm(forms.ModelForm):
     class Meta:
@@ -67,3 +67,47 @@ class TrailerForm(forms.ModelForm):
         if not number:
             raise forms.ValidationError("Номер причепа є обов'язковим.")
         return number
+    
+
+class UnloadingPlaceForm(forms.ModelForm):
+    class Meta:
+        model = UnloadingPlace
+        fields = ["name", "address", "place_type"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Назва місця"}),
+            "address": forms.TextInput(attrs={"class": "form-control", "placeholder": "Адреса"}),
+            "place_type": forms.Select(attrs={"class": "form-select"}),
+        }
+        
+    def clean_name(self):
+        name = self.cleaned_data.get("name")
+        if not name:
+            raise forms.ValidationError("Назва місця є обов'язковою.")
+        return name
+    
+
+class PartnerForm(forms.ModelForm):
+    class Meta:
+        model = Partner
+        fields = ["name", "phone", "email", "partner_type"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Назва партнера"}),
+            "phone": forms.TextInput(attrs={"class": "form-control", "placeholder": "Телефон"}),
+            "email": forms.EmailInput(attrs={"class": "form-control", "placeholder": "Email"}),
+            "partner_type": forms.Select(attrs={"class": "form-select"}),
+        }
+        
+    def clean_name(self):
+        name = self.cleaned_data.get("name")
+        if not name:
+            raise forms.ValidationError("Назва партнера є обов'язковою.")
+        return name
+    
+    def clean_phone(self):
+        phone = self.cleaned_data.get("phone")
+        import re
+        # Accepts international numbers with +, spaces, dashes, parentheses, and digits
+        pattern = r"^\+?[\d\s\-\(\)]{7,20}$"
+        if phone and not re.match(pattern, phone):
+            raise forms.ValidationError("Введіть коректний номер телефону.")
+        return phone

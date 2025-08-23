@@ -6,9 +6,7 @@
   <h2>Культури</h2>
   
   <!-- Кнопка виклику модалки для додавання -->
-  <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addModal">
-    Додати культуру
-  </button>
+  <a href="{% url 'culture_add' %}" class="btn btn-primary mb-3">Додати культуру</a>
 
   <table class="table table-striped">
     <thead>
@@ -25,37 +23,13 @@
         <td>{{ culture.name }}</td>
         <td>
           <!-- Редагування -->
-          <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ culture.id }}">
-            Редагувати
-          </button>
+          <a href="{% url 'culture_edit' culture.id %}" class="btn btn-sm btn-warning">Редагувати</a>
           <!-- Видалення -->
           <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ culture.id }}">
             Видалити
           </button>
         </td>
       </tr>
-
-      <!-- Modal Edit -->
-      <div class="modal fade" id="editModal{{ culture.id }}" tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <form method="post" action="{% url 'culture_edit' culture.id %}">
-              {% csrf_token %}
-              <div class="modal-header">
-                <h5 class="modal-title">Редагувати культуру</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                <input type="text" name="name" value="{{ culture.name }}" class="form-control" required>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
-                <button type="submit" class="btn btn-primary">Зберегти</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
 
       <!-- Modal Delete -->
       <div class="modal fade" id="deleteModal{{ culture.id }}" tabindex="-1">
@@ -82,27 +56,5 @@
       {% endfor %}
     </tbody>
   </table>
-</div>
-
-<!-- Modal Add -->
-<div class="modal fade" id="addModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post" action="{% url 'culture_add' %}">
-        {% csrf_token %}
-        <div class="modal-header">
-          <h5 class="modal-title">Нова культура</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          {{ form.name }}
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
-          <button type="submit" class="btn btn-primary">Зберегти</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>
 {% endblock %}

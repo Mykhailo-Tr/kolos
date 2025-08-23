@@ -1,5 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from django.contrib import messages
 from ..models import Culture
 from ..forms import CultureForm
 
@@ -18,7 +20,13 @@ def culture_create(request):
         form = CultureForm(request.POST)
         if form.is_valid():
             form.save()
-    return redirect("culture_list")
+            messages.success(request, "Культуру успішно додано ✅")
+            return redirect("culture_list")
+    else:
+        form = CultureForm()
+        
+    context = {"form": form, "title": "Додати культуру", "back_url": reverse("culture_list")}
+    return render(request, "directory/form.html", context)
 
 
 @login_required
@@ -28,12 +36,19 @@ def culture_update(request, pk):
         form = CultureForm(request.POST, instance=culture)
         if form.is_valid():
             form.save()
-    return redirect("culture_list")
+            messages.success(request, "Культуру оновлено ✅")
+            return redirect("culture_list")
+    else:
+        form = CultureForm(instance=culture)
+        
+    context = {"form": form, "title": "Редагувати культуру", "back_url": reverse("culture_list")}
+    return render(request, "directory/form.html", context)
 
 
 @login_required
 def culture_delete(request, pk):
     culture = get_object_or_404(Culture, pk=pk)
     if request.method == "POST":
+        messages.success(request, "Культуру видалено ✅")
         culture.delete()
     return redirect("culture_list")

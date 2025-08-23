@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (cultures_views, drivers_views, cars_views, 
-                    trailers_views, partners_views)
+                    trailers_views, partners_views, places_views)
 
 urlpatterns = [
     # ========== Cultures URLs ==========
@@ -32,4 +32,11 @@ urlpatterns = [
     path("partners/add/", partners_views.partner_create, name="partner_add"),
     path("partners/<int:pk>/edit/", partners_views.partner_update, name="partner_edit"),
     path("partners/<int:pk>/delete/", partners_views.partner_delete, name="partner_delete"),
+    
+    # ========== Places URLs ==========
+    path("places/", places_views.place_list, name="place_list"),
+    path("places/add/", places_views.place_create, name="place_add"),
+    path("places/<int:pk>/edit/", places_views.place_update, name="place_edit"),
+    path("places/<int:pk>/delete/", places_views.place_delete, name="place_delete"),
+
 ]

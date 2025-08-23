@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.urls import reverse
 from ..models import Car
 from ..forms import CarForm
 
@@ -10,7 +11,7 @@ def car_list(request):
     cars = Car.objects.all()
     form = CarForm()
     context = {"cars": cars, "form": form, "page": "cars"}
-    return render(request, "directory/cars_list.html", context)
+    return render(request, "directory/car_list.html", context)
 
 
 @login_required
@@ -21,10 +22,10 @@ def car_create(request):
             form.save()
             messages.success(request, "Авто успішно додане ✅")
             return redirect("car_list")
-        else:
-            cars = Car.objects.all()
-            return render(request, "directory/cars_list.html", {"cars": cars, "form": form})
-    return redirect("car_list")
+    else:
+        form = CarForm()
+    context = {"form": form, "title": "Додати авто", "back_url": reverse("car_list")}
+    return render(request, "directory/form.html", context)
 
 
 @login_required
@@ -36,10 +37,11 @@ def car_update(request, pk):
             form.save()
             messages.success(request, "Авто оновлене ✅")
             return redirect("car_list")
-        else:
-            cars = Car.objects.all()
-            return render(request, "directory/cars_list.html", {"cars": cars, "form": CarForm(), "edit_form": form, "edit_id": pk})
-    return redirect("car_list")
+    else:
+        form = CarForm(instance=car)
+        
+    context = {"form": form, "title": "Редагувати авто", "back_url": reverse("car_list")}
+    return render(request, "directory/form.html", context)
 
 
 @login_required
@@ -47,4 +49,5 @@ def car_delete(request, pk):
     car = get_object_or_404(Car, pk=pk)
     if request.method == "POST":
         car.delete()
+        messages.success(request, "Авто видалене ✅")
     return redirect("car_list")

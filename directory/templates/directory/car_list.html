@@ -6,9 +6,7 @@
   <h2>Машини</h2>
   
   <!-- Кнопка виклику модалки для додавання -->
-  <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addModal">
-    Додати машину
-  </button>
+  <a href="{% url 'car_add' %}" class="btn btn-primary mb-3">Додати машину</a>
 
   <table class="table table-striped">
     <thead>
@@ -27,38 +25,13 @@
         <td>{{ car.comment }}</td>
         <td>
           <!-- Редагування -->
-          <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ car.id }}">
-            Редагувати
-          </button>
+          <a href="{% url 'car_edit' car.id %}" class="btn btn-sm btn-warning">Редагувати</a>
           <!-- Видалення -->
           <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ car.id }}">
             Видалити
           </button>
         </td>
       </tr>
-
-      <!-- Modal Edit -->
-      <div class="modal fade" id="editModal{{ car.id }}" tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <form method="post" action="{% url 'car_edit' car.id %}">
-              {% csrf_token %}
-              <div class="modal-header">
-                <h5 class="modal-title">Редагувати інформацію про машину</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-                <div class="modal-body">
-                  <input type="text" name="name" value="{{ car.number }}" class="form-control mb-2" placeholder="Назва" required>
-                  <input type="text" name="comment" value="{{ car.comment }}" class="form-control" placeholder="Коментар">
-                </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
-                <button type="submit" class="btn btn-primary">Зберегти</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
 
       <!-- Modal Delete -->
       <div class="modal fade" id="deleteModal{{ car.id }}" tabindex="-1">
@@ -85,27 +58,5 @@
       {% endfor %}
     </tbody>
   </table>
-</div>
-
-<!-- Modal Add -->
-<div class="modal fade" id="addModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post" action="{% url 'car_add' %}">
-        {% csrf_token %}
-        <div class="modal-header">
-          <h5 class="modal-title">Нова машина</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          {{ form.as_p }}
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
-          <button type="submit" class="btn btn-primary">Зберегти</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>
 {% endblock %}

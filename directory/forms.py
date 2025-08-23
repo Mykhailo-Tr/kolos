@@ -34,7 +34,7 @@ class DriverForm(forms.ModelForm):
         pattern = r"^\+?[\d\s\-\(\)]{7,20}$"
         if phone and not re.match(pattern, phone):
             raise forms.ValidationError("Введіть коректний номер телефону.")
-        return
+        return phone
     
     
 class CarForm(forms.ModelForm):

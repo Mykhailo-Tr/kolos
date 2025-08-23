@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from ..models import Driver
 from ..forms import DriverForm
 
@@ -16,7 +17,7 @@ def driver_create(request):
             return redirect("driver_list")
     else:
         form = DriverForm()
-    return render(request, "directory/forms/driver_form.html", {"form": form, "title": "Додати водія"})
+    return render(request, "directory/form.html", {"form": form, "title": "Додати водія", "back_url": reverse("driver_list")})
 
 
 def driver_update(request, pk):
@@ -26,9 +27,11 @@ def driver_update(request, pk):
         if form.is_valid():
             form.save()
             return redirect("driver_list")
+        else:
+            print(form.errors)
     else:
         form = DriverForm(instance=driver)
-    return render(request, "directory/forms/driver_form.html", {"form": form, "title": "Редагувати водія"})
+    return render(request, "directory/form.html", {"form": form, "title": "Редагувати водія", "back_url": reverse("driver_list")})
 
 
 def driver_delete(request, pk):

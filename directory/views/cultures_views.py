@@ -25,7 +25,7 @@ def culture_create(request):
     else:
         form = CultureForm()
         
-    context = {"form": form, "title": "Додати культуру", "back_url": reverse("culture_list")}
+    context = {"form": form, "title": "Додати культуру", "page": "cultures", "back_url": reverse("culture_list")}
     return render(request, "directory/form.html", context)
 
 
@@ -41,7 +41,7 @@ def culture_update(request, pk):
     else:
         form = CultureForm(instance=culture)
         
-    context = {"form": form, "title": "Редагувати культуру", "back_url": reverse("culture_list")}
+    context = {"form": form, "title": "Редагувати культуру", "page": "cultures", "back_url": reverse("culture_list")}
     return render(request, "directory/form.html", context)
 
 

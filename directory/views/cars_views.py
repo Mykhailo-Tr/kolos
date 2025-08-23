@@ -24,7 +24,7 @@ def car_create(request):
             return redirect("car_list")
     else:
         form = CarForm()
-    context = {"form": form, "title": "Додати авто", "back_url": reverse("car_list")}
+    context = {"form": form, "title": "Додати авто", "page": "cars", "back_url": reverse("car_list")}
     return render(request, "directory/form.html", context)
 
 
@@ -40,7 +40,7 @@ def car_update(request, pk):
     else:
         form = CarForm(instance=car)
         
-    context = {"form": form, "title": "Редагувати авто", "back_url": reverse("car_list")}
+    context = {"form": form, "title": "Редагувати авто", "page": "cars", "back_url": reverse("car_list")}
     return render(request, "directory/form.html", context)
 
 

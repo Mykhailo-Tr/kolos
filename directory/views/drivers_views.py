@@ -21,7 +21,7 @@ def driver_create(request):
     else:
         form = DriverForm()
     
-    context = {"form": form, "title": "Додати водія", "back_url": reverse("driver_list")}
+    context = {"form": form, "title": "Додати водія", "page": "drivers", "back_url": reverse("driver_list")}
     return render(request, "directory/form.html", context)
 
 
@@ -36,7 +36,7 @@ def driver_update(request, pk):
     else:
         form = DriverForm(instance=driver)
         
-    context = {"form": form, "title": "Редагувати водія", "back_url": reverse("driver_list")}
+    context = {"form": form, "title": "Редагувати водія", "page": "drivers", "back_url": reverse("driver_list")}
     return render(request, "directory/form.html", context)
 
 

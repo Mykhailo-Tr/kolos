@@ -11,7 +11,7 @@
       <!-- Ліве меню -->
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a href="{% url 'trip_list' %}" class="nav-link" id="trips">📋 Trips</a>
+          <a href="{% url 'trip_list' %}" class="nav-link  bg-opacity-25 rounded" id="trips">📋 Облік рейсів</a>
         </li>
       </ul>
 
@@ -41,6 +41,8 @@
       const activeLink = document.getElementById(currentPage);
       if (activeLink) {
         activeLink.classList.add("active");
+        activeLink.classList.add("bg-secondary");
+
       }
     }
   });

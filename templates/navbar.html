@@ -1,27 +1,47 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
   <div class="container-fluid">
+    <!-- Ліва частина -->
     <a class="navbar-brand" href="{% url 'home' %}">🌾 Kolos</a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-      <ul class="navbar-nav">
-          {% comment %} <li class="nav-item">
-            <a class="nav-link" href="/profile">👤 Профіль</a>
-          </li> {% endcomment %}
-        {% if request.user.is_authenticated %}
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'logout' %}">🚪 Вийти</a>
-            </li>
-        {% else %}
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'login' %}">🔑 Логін</a>
-            </li>
-        {% endif %}
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- Ліве меню -->
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a href="{% url 'trip_list' %}" class="nav-link" id="trips">📋 Trips</a>
+        </li>
+      </ul>
 
+      <!-- Праве меню -->
+      <ul class="navbar-nav ms-auto">
+        {% if request.user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">🚪 Вийти</a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'login' %}">🔑 Логін</a>
+          </li>
+        {% endif %}
       </ul>
     </div>
   </div>
 </nav>
+
+<!-- Додаємо data-page -->
+<div id="page" data-page="{{ page }}"></div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const currentPage = document.getElementById("page").getAttribute("data-page");
+    if (currentPage) {
+      const activeLink = document.getElementById(currentPage);
+      if (activeLink) {
+        activeLink.classList.add("active");
+      }
+    }
+  });
+</script>

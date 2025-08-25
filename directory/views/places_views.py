@@ -16,31 +16,41 @@ def place_list(request):
 
 @login_required
 def place_create(request):
+    next_url = request.GET.get("next") or request.POST.get("next")
     if request.method == "POST":
         form = UnloadingPlaceForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Місце розвантаження успішно додане ✅")
-            return redirect("place_list")
+            return redirect(next_url or "place_list")
     else:
         form = UnloadingPlaceForm()
-    context = {"form": form, "title": "Додати місце розвантаження", "page": "places", "back_url": reverse("place_list")}
+        
+    context = {"form": form, 
+               "title": "Додати місце розвантаження", 
+               "page": "places", 
+               "back_url": next_url or reverse("place_list")}
     return render(request, "directory/form.html", context)
 
 
 @login_required
 def place_update(request, pk):
+    next_url = request.GET.get("next") or request.POST.get("next")
     place = get_object_or_404(UnloadingPlace, pk=pk)
     if request.method == "POST":
         form = UnloadingPlaceForm(request.POST, instance=place)
         if form.is_valid():
             form.save()
             messages.success(request, "Місце розвантаження оновлене ✅")
-            return redirect("place_list")
+            return redirect(next_url or "place_list")
     else:
         form = UnloadingPlaceForm(instance=place)
         
-    context = {"form": form, "title": "Редагувати місце розвантаження", "page": "places", "back_url": reverse("place_list")}
+    context = {"form": form, 
+               "title": "Редагувати місце розвантаження", 
+               "page": "places", 
+               "back_url": next_url or reverse("place_list")}
+    
     return render(request, "directory/form.html", context)
 
 
@@ -50,4 +60,5 @@ def place_delete(request, pk):
     if request.method == "POST":
         place.delete()
         messages.success(request, "Місце розвантаження видалене ✅")
+        
     return redirect("place_list")

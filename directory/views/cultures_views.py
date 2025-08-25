@@ -16,32 +16,40 @@ def culture_list(request):
 
 @login_required
 def culture_create(request):
+    next_url = request.GET.get("next") or request.POST.get("next")
     if request.method == "POST":
         form = CultureForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Культуру успішно додано ✅")
-            return redirect("culture_list")
+            return redirect(next_url or "culture_list")
     else:
         form = CultureForm()
         
-    context = {"form": form, "title": "Додати культуру", "page": "cultures", "back_url": reverse("culture_list")}
+    context = {"form": form, 
+               "title": "Додати культуру", 
+               "page": "cultures", 
+               "back_url": next_url or reverse("culture_list")}
     return render(request, "directory/form.html", context)
 
 
 @login_required
 def culture_update(request, pk):
+    next_url = request.GET.get("next") or request.POST.get("next")
     culture = get_object_or_404(Culture, pk=pk)
     if request.method == "POST":
         form = CultureForm(request.POST, instance=culture)
         if form.is_valid():
             form.save()
             messages.success(request, "Культуру оновлено ✅")
-            return redirect("culture_list")
+            return redirect(next_url or "culture_list")
     else:
         form = CultureForm(instance=culture)
         
-    context = {"form": form, "title": "Редагувати культуру", "page": "cultures", "back_url": reverse("culture_list")}
+    context = {"form": form, 
+               "title": "Редагувати культуру", 
+               "page": "cultures", 
+               "back_url": next_url or reverse("culture_list")}
     return render(request, "directory/form.html", context)
 
 

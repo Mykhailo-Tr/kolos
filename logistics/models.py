@@ -1,10 +1,11 @@
 from django.db import models
+from django.utils import timezone
 from directory.models import Car, Trailer, Driver, Culture, Partner, UnloadingPlace
 
 
 class Trip(models.Model):
     document_number = models.CharField(max_length=50, verbose_name="№ документа / накладної")
-    date_time = models.DateTimeField(auto_now_add=True, verbose_name="Дата і час")
+    date_time = models.DateTimeField(default=timezone.now, verbose_name="Дата і час")  # ✅ тепер редаговане поле
     
     sender = models.ForeignKey(
         Partner,
@@ -36,7 +37,7 @@ class Trip(models.Model):
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
 
     def save(self, *args, **kwargs):
-        # Автоматично розраховує нетто = брутто - тара
+        # Автоматично рахуємо нетто = брутто - тара
         self.weight_net = self.weight_gross - self.weight_tare
         super().save(*args, **kwargs)
 

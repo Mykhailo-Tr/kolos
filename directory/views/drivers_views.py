@@ -12,31 +12,39 @@ def driver_list(request):
 
 
 def driver_create(request):
+    next_url = request.GET.get("next") or request.POST.get("next")
     if request.method == "POST":
         form = DriverForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Водія успішно додано ✅")
-            return redirect("driver_list")
+            return redirect(next_url or "driver_list")
     else:
         form = DriverForm()
     
-    context = {"form": form, "title": "Додати водія", "page": "drivers", "back_url": reverse("driver_list")}
+    context = {"form": form, 
+               "title": "Додати водія", 
+               "page": "drivers", 
+               "back_url": next_url or reverse("driver_list")}
     return render(request, "directory/form.html", context)
 
 
 def driver_update(request, pk):
+    next_url = request.GET.get("next") or request.POST.get("next")
     driver = get_object_or_404(Driver, pk=pk)
     if request.method == "POST":
         form = DriverForm(request.POST, instance=driver)
         if form.is_valid():
             form.save()
             messages.success(request, "Водія оновлено ✅")
-            return redirect("driver_list")
+            return redirect(next_url or "driver_list")
     else:
         form = DriverForm(instance=driver)
         
-    context = {"form": form, "title": "Редагувати водія", "page": "drivers", "back_url": reverse("driver_list")}
+    context = {"form": form, 
+               "title": "Редагувати водія", 
+               "page": "drivers", 
+               "back_url": next_url or reverse("driver_list")}
     return render(request, "directory/form.html", context)
 
 

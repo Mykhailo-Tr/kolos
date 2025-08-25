@@ -16,38 +16,40 @@ def partner_list(request):
 
 @login_required
 def partner_create(request):
+    next_url = request.GET.get("next") or request.POST.get("next")
     if request.method == "POST":
         form = PartnerForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Партнера успішно додано ✅")
-            return redirect("partner_list")
+            return redirect(next_url or "partner_list")
     else:
         form = PartnerForm()
         
     context = {"form": form, 
                "title": "Додати партнера",
                "page": "partners", 
-               "back_url": reverse("partner_list")}
+               "back_url": next_url or reverse("partner_list")}
     return render(request, "directory/form.html", context)
 
 
 @login_required
 def partner_update(request, pk):
+    next_url = request.GET.get("next") or request.POST.get("next")
     partner = get_object_or_404(Partner, pk=pk)
     if request.method == "POST":
         form = PartnerForm(request.POST, instance=partner)
         if form.is_valid():
             form.save()
             messages.success(request, "Партнера оновлено ✅")
-            return redirect("partner_list")
+            return redirect(next_url or "partner_list")
     else:
         form = PartnerForm(instance=partner)
         
     context = {"form": form, 
                "title": "Редагувати партнера", 
                "page": "partners", 
-               "back_url": reverse("partner_list")}
+               "back_url": next_url or reverse("partner_list")}
     return render(request, "directory/form.html", context)
 
 

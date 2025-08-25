@@ -16,31 +16,39 @@ def car_list(request):
 
 @login_required
 def car_create(request):
+    next_url = request.GET.get("next") or request.POST.get("next")
     if request.method == "POST":
         form = CarForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Авто успішно додане ✅")
-            return redirect("car_list")
+            return redirect(next_url or "car_list")
     else:
         form = CarForm()
-    context = {"form": form, "title": "Додати авто", "page": "cars", "back_url": reverse("car_list")}
+    context = {"form": form, 
+               "title": "Додати авто", 
+               "page": "cars", 
+               "back_url": next_url or reverse("car_list")}
     return render(request, "directory/form.html", context)
 
 
 @login_required
 def car_update(request, pk):
+    next_url = request.GET.get("next") or request.POST.get("next")
     car = get_object_or_404(Car, pk=pk)
     if request.method == "POST":
         form = CarForm(request.POST, instance=car)
         if form.is_valid():
             form.save()
             messages.success(request, "Авто оновлене ✅")
-            return redirect("car_list")
+            return redirect(next_url or "car_list")
     else:
         form = CarForm(instance=car)
         
-    context = {"form": form, "title": "Редагувати авто", "page": "cars", "back_url": reverse("car_list")}
+    context = {"form": form, 
+               "title": "Редагувати авто", 
+               "page": "cars", 
+               "back_url": next_url or reverse("car_list")}
     return render(request, "directory/form.html", context)
 
 

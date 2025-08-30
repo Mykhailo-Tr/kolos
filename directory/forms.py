@@ -40,11 +40,14 @@ class DriverForm(forms.ModelForm):
 class CarForm(forms.ModelForm):
     class Meta:
         model = Car
-        fields = ["number", "comment"]
+        fields = ["number", "comment", "default_driver"]
         widgets = {
             "number": forms.TextInput(attrs={"class": "form-control", "placeholder": "Номер авто"}),
             "comment": forms.TextInput(attrs={"class": "form-control", "placeholder": "Коментар"}),
+            "default_driver": forms.Select(attrs={"class": "form-select"}),
         }
+        required_fields = ["number"]
+
         
     def clean_number(self):
         number = self.cleaned_data.get("number")

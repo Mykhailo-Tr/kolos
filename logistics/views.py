@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Trip
+from .models import Trip, Car
 from .forms import TripForm
 
 
@@ -8,7 +8,10 @@ def trip_list(request):
     return render(request, "logistics/trip_list.html", {"trips": trips, "page": "trips"})
 
 
+
 def trip_create(request):
+    car_driver_map = {str(car.id): car.default_driver_id for car in Car.objects.filter(default_driver__isnull=False)}
+    
     if request.method == "POST":
         form = TripForm(request.POST)
         if form.is_valid():
@@ -16,7 +19,11 @@ def trip_create(request):
             return redirect("trip_list")
     else:
         form = TripForm()
-    return render(request, "logistics/trip_form.html", {"form": form, "page": "trips"})
+    return render(request, "logistics/trip_form.html", {
+        "form": form,
+        "page": "trips",
+        "car_driver_map": car_driver_map
+    })
 
 
 def trip_update(request, pk):

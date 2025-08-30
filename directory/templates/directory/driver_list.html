@@ -9,53 +9,39 @@
 
     <table class="table table-striped">
         <thead>
-        <tr>
-            <th>#</th>
-            <th>ПІБ</th>
-            <th>Телефон</th>
-            <th>Компанія</th>
-            <th>Дії</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for driver in drivers %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>{{ driver.full_name }}</td>
-            <td>{{ driver.phone }}</td>
-            <td>{{ driver.company }}</td>
-            <td>
-                <a href="{% url 'driver_edit' driver.id %}" class="btn btn-sm btn-warning">Редагувати</a>
-                <!-- Видалення через модалку -->
-                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ driver.id }}">
-                    Видалити
-                </button>
-            </td>
-        </tr>
+<tr>
+    <th>#</th>
+    <th>ПІБ</th>
+    <th>Телефон</th>
+    <th>Компанія</th>
+    <th>Закріплені машини</th>
+    <th>Дії</th>
+</tr>
+</thead>
+<tbody>
+{% for driver in drivers %}
+<tr>
+    <td>{{ forloop.counter }}</td>
+    <td>{{ driver.full_name }}</td>
+    <td>{{ driver.phone }}</td>
+    <td>{{ driver.company }}</td>
+    <td>
+      {% if driver.cars.all %}
+        {{ driver.cars.all|join:", " }}
+      {% else %}
+        —
+      {% endif %}
+    </td>
+    <td>
+        <a href="{% url 'driver_edit' driver.id %}" class="btn btn-sm btn-warning">Редагувати</a>
+        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ driver.id }}">
+            Видалити
+        </button>
+    </td>
+</tr>
+{% endfor %}
+</tbody>
 
-        <!-- Modal Delete -->
-        <div class="modal fade" id="deleteModal{{ driver.id }}" tabindex="-1">
-            <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="post" action="{% url 'driver_delete' driver.id %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title">Підтвердження видалення</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    Ви впевнені, що хочете видалити <b>{{ driver.full_name }}</b>?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
-                    <button type="submit" class="btn btn-danger">Видалити</button>
-                </div>
-                </form>
-            </div>
-            </div>
-        </div>
-        {% endfor %}
-        </tbody>
     </table>
 </div>
 {% endblock %}

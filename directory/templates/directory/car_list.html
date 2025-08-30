@@ -8,55 +8,32 @@
   <!-- Кнопка виклику модалки для додавання -->
   <a href="{% url 'car_add' %}" class="btn btn-primary mb-3">Додати машину</a>
 
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Номер</th>
-        <th>Коментар</th>
-        <th>Дії</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for car in cars %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ car.number }}</td>
-        <td>{{ car.comment }}</td>
-        <td>
-          <!-- Редагування -->
-          <a href="{% url 'car_edit' car.id %}" class="btn btn-sm btn-warning">Редагувати</a>
-          <!-- Видалення -->
-          <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ car.id }}">
-            Видалити
-          </button>
-        </td>
-      </tr>
-
-      <!-- Modal Delete -->
-      <div class="modal fade" id="deleteModal{{ car.id }}" tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <form method="post" action="{% url 'car_delete' car.id %}">
-              {% csrf_token %}
-              <div class="modal-header">
-                <h5 class="modal-title">Підтвердження видалення</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                Ви впевнені, що хочете видалити <b>{{ car.number }}</b>?
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
-                <button type="submit" class="btn btn-danger">Видалити</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {% endfor %}
-    </tbody>
-  </table>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Номер</th>
+      <th>Коментар</th>
+      <th>Закріплений водій</th>
+      <th>Дії</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for car in cars %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ car.number }}</td>
+      <td>{{ car.comment }}</td>
+      <td>{{ car.default_driver.full_name|default:"—" }}</td>
+      <td>
+        <a href="{% url 'car_edit' car.id %}" class="btn btn-sm btn-warning">Редагувати</a>
+        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ car.id }}">
+          Видалити
+        </button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 </div>
 {% endblock %}

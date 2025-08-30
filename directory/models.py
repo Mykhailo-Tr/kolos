@@ -14,10 +14,18 @@ class Driver(models.Model):
 class Car(models.Model):
     number = models.CharField(max_length=20, verbose_name="Номер авто")
     comment = models.CharField(max_length=100, blank=True, null=True, verbose_name="Коментар")
+    default_driver = models.ForeignKey(
+        "Driver",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="cars",
+        verbose_name="Закріплений водій"
+    )
     
     def __str__(self):
         return f"{self.number}"
-    
+
 
 class Trailer(models.Model):
     number = models.CharField(max_length=20, verbose_name="Номер причепа")

@@ -37,7 +37,6 @@ class Trip(models.Model):
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
 
     def save(self, *args, **kwargs):
-        # Автоматично рахуємо нетто = брутто - тара
         self.weight_net = self.weight_gross - self.weight_tare
         super().save(*args, **kwargs)
 

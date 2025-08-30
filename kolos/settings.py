@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'accounts',
     'directory',
     'logistics',
+    'reports',
 ]
 
 MIDDLEWARE = [

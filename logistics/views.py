@@ -1,12 +1,36 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from .models import Driver, Culture, Partner
 from .models import Trip, Car
 from .forms import TripForm
 
 
 def trip_list(request):
     trips = Trip.objects.all().order_by("-date_time")
-    return render(request, "logistics/trip_list.html", {"trips": trips, "page": "trips"})
 
+    # фільтрація
+    if request.GET.get("car"):
+        trips = trips.filter(car_id=request.GET["car"])
+    if request.GET.get("driver"):
+        trips = trips.filter(driver_id=request.GET["driver"])
+    if request.GET.get("culture"):
+        trips = trips.filter(culture_id=request.GET["culture"])
+    if request.GET.get("sender"):
+        trips = trips.filter(sender_id=request.GET["sender"])
+    if request.GET.get("receiver"):
+        trips = trips.filter(receiver_id=request.GET["receiver"])
+    if request.GET.get("q"):
+        trips = trips.filter(document_number__icontains=request.GET["q"])
+
+    context = {
+        "trips": trips,
+        "cars": Car.objects.all(),
+        "drivers": Driver.objects.all(),
+        "cultures": Culture.objects.all(),
+        "senders": Partner.objects.all(),
+        "receivers": Partner.objects.all(),
+        "page": "trips",
+    }
+    return render(request, "logistics/trip_list.html", context)
 
 
 def trip_create(request):

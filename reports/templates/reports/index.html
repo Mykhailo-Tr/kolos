@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Звіти{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">Звіти</h2>
+
+  <div class="list-group">
+    <a href="{% url 'reports:culture_report' %}" class="list-group-item list-group-item-action">
+      📊 Загальна кількість зерна по культурах
+    </a>
+    <a href="{% url 'reports:warehouse_report' %}" class="list-group-item list-group-item-action">
+      🏭 Розвантаження по складах
+    </a>
+    <a href="{% url 'reports:driver_report' %}" class="list-group-item list-group-item-action">
+      🚚 Робота кожного авто / водія
+    </a>
+    <a href="{% url 'reports:balance_report' %}" class="list-group-item list-group-item-action">
+      ⚖️ Баланс: завезено / вивезено / залишки
+    </a>
+  </div>
+
+  <hr class="my-4">
+
+  <p class="text-muted">
+    Використовуйте фільтри (дата, культура, авто, відправник), щоб деталізувати звіти.
+  </p>
+</div>
+{% endblock %}

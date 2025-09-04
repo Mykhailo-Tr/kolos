@@ -1,68 +1,43 @@
-from django.views.generic import TemplateView
-from logistics.models import Trip
+from django.shortcuts import render
 from django.db.models import Sum, F
-from .filters import TripFilter
-
-class ReportsIndexView(TemplateView):
-    template_name = "reports/index.html"
-
-
-from django_filters.views import FilterView
-from .filters import TripFilter
-
-class CultureReportView(FilterView):
-    template_name = "reports/culture_report.html"
-    filterset_class = TripFilter
-    queryset = Trip.objects.all()
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["report"] = (
-            self.object_list.values("culture__name")
-            .annotate(total_net=Sum("weight_net"))
-            .order_by("culture__name")
-        )
-        return ctx
+from django.utils.timezone import now
+from .forms import TripReportForm
+from logistics.models import Trip
 
 
-class WarehouseReportView(TemplateView):
-    template_name = "reports/warehouse_report.html"
+def trip_report(request):
+    form = TripReportForm(request.GET or None)
+    trips = Trip.objects.all()
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["report"] = (
-            Trip.objects.values("unloading_place__name")
-            .annotate(total_net=Sum("weight_net"))
-            .order_by("unloading_place__name")
-        )
-        return ctx
+    if form.is_valid():
+        if form.cleaned_data.get("date_from"):
+            trips = trips.filter(date_time__gte=form.cleaned_data["date_from"])
+        if form.cleaned_data.get("date_to"):
+            trips = trips.filter(date_time__lte=form.cleaned_data["date_to"])
+        if form.cleaned_data.get("driver"):
+            trips = trips.filter(driver=form.cleaned_data["driver"])
+        if form.cleaned_data.get("car"):
+            trips = trips.filter(car=form.cleaned_data["car"])
+        if form.cleaned_data.get("trailer"):
+            trips = trips.filter(trailer=form.cleaned_data["trailer"])
+        if form.cleaned_data.get("culture"):
+            trips = trips.filter(culture=form.cleaned_data["culture"])
 
+    # агрегації для графіків
+    by_driver = list(trips.values("driver__full_name").annotate(
+        total_net=Sum(F("weight_gross") - F("weight_tare"))
+    ))
 
-class DriverReportView(TemplateView):
-    template_name = "reports/driver_report.html"
+    by_culture = list(trips.values("culture__name").annotate(
+        total_net=Sum(F("weight_gross") - F("weight_tare"))
+    ))
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["report"] = (
-            Trip.objects.values("driver__full_name", "car__number")
-            .annotate(total_net=Sum("weight_net"))
-            .order_by("driver__full_name")
-        )
-        return ctx
-
-
-class BalanceReportView(TemplateView):
-    template_name = "reports/balance_report.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        # завезено (відправник → елеватор/склад)
-        total_in = Trip.objects.aggregate(total=Sum("weight_net"))["total"] or 0
-        # TODO: якщо треба "вивезено" окремо (наприклад, коли receiver != склад)
-        # поки що простий баланс = завезено
-        ctx["balance"] = {
-            "in": total_in,
-            "out": 0,
-            "remain": total_in
-        }
-        return ctx
+    context = {
+        "form": form,
+        "trips": trips,
+        "driver_labels": [d["driver__full_name"] or "Без водія" for d in by_driver],
+        "driver_values": [d["total_net"] or 0 for d in by_driver],
+        "culture_labels": [c["culture__name"] or "Без культури" for c in by_culture],
+        "culture_values": [c["total_net"] or 0 for c in by_culture],
+    }
+    return render(request, "reports/trip_report.html", context)

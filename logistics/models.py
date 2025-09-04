@@ -42,3 +42,9 @@ class Trip(models.Model):
 
     def __str__(self):
         return f"Рейс {self.document_number} ({self.culture.name})"
+    
+    @property
+    def net_weight(self):
+        if self.weight_gross and self.weight_tare:
+            return self.weight_gross - self.weight_tare
+        return None

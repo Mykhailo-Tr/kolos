@@ -22,7 +22,7 @@
         {% for partner in partners %}
         <tr>
             <td>{{ forloop.counter }}</td>
-            <td>{{ partner.full_name }}</td>
+            <td>{{ partner.name }}</td>
             <td>{{ partner.phone }}</td>
             <td>{{ partner.email }}</td>
             <td>{{ partner.get_partner_type_display }}</td>

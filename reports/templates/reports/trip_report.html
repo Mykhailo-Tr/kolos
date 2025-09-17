@@ -2,58 +2,32 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Звіт по рейсам</h2>
+<div class="container-fluid mt-4">
+    <h2 class="mb-3">📊 Звіт по рейсам</h2>
 
-    <form method="get" class="mb-4">
-        <div class="row g-2 align-items-end">
-            <div class="col-auto">
-                {{ form.start_date.label_tag }}
-                {{ form.start_date }}
-            </div>
-            <div class="col-auto">
-                {{ form.end_date.label_tag }}
-                {{ form.end_date }}
-            </div>
-            <div class="col-auto">
-                {{ form.driver.label_tag }}
-                {{ form.driver }}
-            </div>
-            <div class="col-auto">
-                {{ form.car.label_tag }}
-                {{ form.car }}
-            </div>
-            <div class="col-auto">
-                {{ form.trailer.label_tag }}
-                {{ form.trailer }}
-            </div>
-            <div class="col-auto">
-                {{ form.culture.label_tag }}
-                {{ form.culture }}
-            </div>
-            <div class="col-auto">
-                {{ form.sender.label_tag }}
-                {{ form.sender }}
-            </div>
-            <div class="col-auto">
-                {{ form.receiver.label_tag }}
-                {{ form.receiver }}
-            </div>
-            <div class="col-auto">
-                {{ form.unloading_place.label_tag }}
-                {{ form.unloading_place }}
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary">Фільтрувати</button>
+    <!-- Фільтри -->
+    <form method="get" class="mb-3">
+        <div class="row row-cols-auto g-2 align-items-end">
+            <div class="col">{{ form.start_date.label_tag }} {{ form.start_date }}</div>
+            <div class="col">{{ form.end_date.label_tag }} {{ form.end_date }}</div>
+            <div class="col">{{ form.driver.label_tag }} {{ form.driver }}</div>
+            <div class="col">{{ form.car.label_tag }} {{ form.car }}</div>
+            <div class="col">{{ form.trailer.label_tag }} {{ form.trailer }}</div>
+            <div class="col">{{ form.culture.label_tag }} {{ form.culture }}</div>
+            <div class="col">{{ form.sender.label_tag }} {{ form.sender }}</div>
+            <div class="col">{{ form.receiver.label_tag }} {{ form.receiver }}</div>
+            <div class="col">{{ form.unloading_place.label_tag }} {{ form.unloading_place }}</div>
+            <div class="col">
+                <button type="submit" class="btn btn-primary">🔎 Фільтрувати</button>
             </div>
         </div>
     </form>
 
     <hr>
 
-    <!-- твоя таблиця з результатами -->
-    <div class="table-responsive">
-        <table class="table table-striped table-bordered">
+    <!-- Таблиця -->
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover table-striped align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>№ документа</th>
@@ -71,7 +45,7 @@
             </thead>
             <tbody>
                 {% for trip in trips %}
-                <tr>
+                <tr class="clickable-row" data-bs-toggle="collapse" data-bs-target="#trip{{ trip.id }}">
                     <td>{{ trip.document_number }}</td>
                     <td>{{ trip.date_time|date:"d.m.Y H:i" }}</td>
                     <td>{{ trip.sender }}</td>
@@ -84,6 +58,19 @@
                     <td>{{ trip.weight_tare }}</td>
                     <td>{{ trip.net_weight }}</td>
                 </tr>
+                <tr class="collapse bg-light" id="trip{{ trip.id }}">
+                    <td colspan="11">
+                        <div class="p-2">
+                            <strong>Додаткова інформація:</strong><br>
+                            📍 Місце розвантаження: {{ trip.unloading_place }}<br>
+                            🏢 Відправник: {{ trip.sender }}<br>
+                            🚛 Автомобіль: {{ trip.car }} / {{ trip.trailer }}<br>
+                            👨‍✈️ Водій: {{ trip.driver }}<br>
+                            🌾 Культура: {{ trip.culture }}<br>
+                            📝 Дата створення: {{ trip.date_time|date:"d.m.Y H:i" }}
+                        </div>
+                    </td>
+                </tr>
                 {% empty %}
                 <tr><td colspan="11" class="text-center">Немає даних</td></tr>
                 {% endfor %}
@@ -91,49 +78,96 @@
         </table>
     </div>
 
-    <!-- графіки -->
-    <div class="row mt-4">
+    <!-- Графіки -->
+    <div class="row mt-5 g-4">
         <div class="col-md-6">
-            <canvas id="barChart"></canvas>
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">📊 Розподіл по культурах</div>
+                <div class="card-body">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
         </div>
         <div class="col-md-6">
-            <canvas id="pieChart"></canvas>
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">🥧 Частки культур</div>
+                <div class="card-body">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const barCtx = document.getElementById('barChart').getContext('2d');
-    new Chart(barCtx, {
+    const colors = [
+        'rgba(255, 99, 132, 0.6)',
+        'rgba(54, 162, 235, 0.6)',
+        'rgba(255, 206, 86, 0.6)',
+        'rgba(75, 192, 192, 0.6)',
+        'rgba(153, 102, 255, 0.6)',
+        'rgba(255, 159, 64, 0.6)',
+    ];
+
+    // Дані для графіків (агреговані)
+    const labels = {{ culture_labels|safe }};
+    const values = {{ culture_values|safe }};
+
+    // Бар-чарт
+    new Chart(document.getElementById('barChart'), {
         type: 'bar',
         data: {
-            labels: [{% for trip in trips %}"{{ trip.culture }}",{% endfor %}],
+            labels: labels,
             datasets: [{
-                label: 'Вага нетто',
-                data: [{% for trip in trips %}{{ trip.net_weight }},{% endfor %}],
-                backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                label: 'Вага нетто (кг)',
+                data: values,
+                backgroundColor: colors,
             }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: { enabled: true },
+                legend: { display: false }
+            },
+            animation: { duration: 1200, easing: 'easeOutBounce' }
         }
     });
 
-    const pieCtx = document.getElementById('pieChart').getContext('2d');
-    new Chart(pieCtx, {
+    // Pie chart
+    new Chart(document.getElementById('pieChart'), {
         type: 'pie',
         data: {
-            labels: [{% for trip in trips %}"{{ trip.culture }}",{% endfor %}],
+            labels: labels,
             datasets: [{
-                data: [{% for trip in trips %}{{ trip.net_weight }},{% endfor %}],
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.6)',
-                    'rgba(54, 162, 235, 0.6)',
-                    'rgba(255, 206, 86, 0.6)',
-                    'rgba(75, 192, 192, 0.6)',
-                    'rgba(153, 102, 255, 0.6)',
-                    'rgba(255, 159, 64, 0.6)'
-                ]
+                data: values,
+                backgroundColor: colors,
+                hoverOffset: 15
             }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            let label = ctx.label || '';
+                            let value = ctx.raw || 0;
+                            return `${label}: ${value} кг`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: { usePointStyle: true }
+                }
+            }
         }
     });
 </script>
+
+<!-- Bootstrap collapse -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

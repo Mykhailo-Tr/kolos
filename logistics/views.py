@@ -37,12 +37,19 @@ def trip_create(request):
     car_driver_map = {str(car.id): car.default_driver_id for car in Car.objects.filter(default_driver__isnull=False)}
     
     if request.method == "POST":
+        print(request.POST)
+        # show all available fields in the POST data
+
+        print(request.POST.dict()) 
         form = TripForm(request.POST)
         if form.is_valid():
             form.save()
             return redirect("trip_list")
+        else:
+            print(form.errors)  # Додано для виведення помилок форми в консоль
     else:
         form = TripForm()
+
     return render(request, "logistics/trip_form.html", {
         "form": form,
         "page": "trips",

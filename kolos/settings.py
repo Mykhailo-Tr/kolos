@@ -27,8 +27,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    "widget_tweaks",
-
+    'widget_tweaks',
+    'dal',
+    'dal_select2',
+    
     'accounts',
     'directory',
     'logistics',

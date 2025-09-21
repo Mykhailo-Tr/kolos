@@ -33,7 +33,6 @@ class Trip(models.Model):
     weight_net = models.DecimalField(max_digits=10, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
 
     unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")
-    driver_signature = models.CharField(max_length=255, blank=True, null=True, verbose_name="Підпис водія (електронний)")
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
 
     def save(self, *args, **kwargs):

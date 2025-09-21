@@ -10,8 +10,7 @@ class TripForm(forms.ModelForm):
         fields = [
             "document_number", "date_time", "sender", "receiver",
             "car", "driver", "trailer", "culture",
-            "weight_gross", "weight_tare", "unloading_place",
-            "driver_signature", "note"
+            "weight_gross", "weight_tare", "unloading_place", "note"
         ]
 
         widgets = {
@@ -86,7 +85,6 @@ class TripForm(forms.ModelForm):
                 }
             ),
 
-            "driver_signature": forms.TextInput(attrs={"class": "form-control"}),
             "note": forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
         }
 

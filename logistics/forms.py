@@ -1,3 +1,4 @@
+# forms.py
 from django import forms
 from dal import autocomplete
 from django.utils.timezone import now
@@ -12,72 +13,79 @@ class TripForm(forms.ModelForm):
             "weight_gross", "weight_tare", "unloading_place",
             "driver_signature", "note"
         ]
+
         widgets = {
             "document_number": forms.TextInput(attrs={"class": "form-control"}),
             "date_time": forms.DateTimeInput(
                 attrs={"class": "form-control", "type": "datetime-local"},
                 format="%Y-%m-%dT%H:%M"
             ),
-            # For each autocomplete field, set placeholder and min input length.
-            # Removed data-tags since inline creation is handled via the "+" buttons.
+
+            # sender / receiver: searchable, but NO inline creation
             "sender": autocomplete.ModelSelect2(
                 url='sender-autocomplete',
                 attrs={
-                    "data-placeholder": "Оберіть відправника",
+                    "data-placeholder": "Введіть або оберіть відправника",
                     "data-minimum-input-length": 0,
-                    "data-allow-clear": "true"
+                    "class": "form-control ajax-no-tags"
                 }
             ),
             "receiver": autocomplete.ModelSelect2(
                 url='receiver-autocomplete',
                 attrs={
-                    "data-placeholder": "Оберіть отримувача",
+                    "data-placeholder": "Введіть або оберіть отримувача",
                     "data-minimum-input-length": 0,
-                    "data-allow-clear": "true"
+                    "class": "form-control ajax-no-tags"
                 }
             ),
+
+            # car, driver, trailer, culture: searchable + allow typing new values (tags)
+            # We will init these selects on client side with select2(tags: true)
             "car": autocomplete.ModelSelect2(
                 url='car-autocomplete',
                 attrs={
-                    "data-placeholder": "Оберіть автомобіль",
+                    "data-placeholder": "Введіть або оберіть авто",
                     "data-minimum-input-length": 0,
-                    "data-allow-clear": "true"
+                    "class": "form-control ajax-tags"
                 }
             ),
             "driver": autocomplete.ModelSelect2(
                 url='driver-autocomplete',
                 attrs={
-                    "data-placeholder": "Оберіть водія",
+                    "data-placeholder": "Введіть або оберіть водія",
                     "data-minimum-input-length": 0,
-                    "data-allow-clear": "true"
+                    "class": "form-control ajax-tags"
                 }
             ),
             "trailer": autocomplete.ModelSelect2(
                 url='trailer-autocomplete',
                 attrs={
-                    "data-placeholder": "Оберіть причіп",
+                    "data-placeholder": "Введіть або оберіть причіп",
                     "data-minimum-input-length": 0,
-                    "data-allow-clear": "true"
+                    "class": "form-control ajax-tags"
                 }
             ),
             "culture": autocomplete.ModelSelect2(
                 url='culture-autocomplete',
                 attrs={
-                    "data-placeholder": "Оберіть культуру",
+                    "data-placeholder": "Введіть або оберіть культуру",
                     "data-minimum-input-length": 0,
-                    "data-allow-clear": "true"
+                    "class": "form-control ajax-tags"
                 }
             ),
-            "weight_gross": forms.NumberInput(attrs={"class": "form-control", "step": "1"}),
-            "weight_tare": forms.NumberInput(attrs={"class": "form-control", "step": "1"}),
+
+            "weight_gross": forms.NumberInput(attrs={"class": "form-control", "step": "1", "id": "id_weight_gross"}),
+            "weight_tare": forms.NumberInput(attrs={"class": "form-control", "step": "1", "id": "id_weight_tare"}),
+
             "unloading_place": autocomplete.ModelSelect2(
                 url='unloading-autocomplete',
                 attrs={
-                    "data-placeholder": "Оберіть місце розвантаження",
+                    "data-placeholder": "Введіть або оберіть місце розвантаження",
                     "data-minimum-input-length": 0,
-                    "data-allow-clear": "true"
+                    "class": "form-control ajax-no-tags"
                 }
             ),
+
             "driver_signature": forms.TextInput(attrs={"class": "form-control"}),
             "note": forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
         }

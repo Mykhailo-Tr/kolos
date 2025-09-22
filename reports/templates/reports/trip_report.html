@@ -44,30 +44,30 @@
                 </tr>
             </thead>
             <tbody>
-                {% for trip in trips %}
-                <tr class="clickable-row" data-bs-toggle="collapse" data-bs-target="#trip{{ trip.id }}">
-                    <td>{{ trip.document_number }}</td>
-                    <td>{{ trip.date_time|date:"d.m.Y H:i" }}</td>
-                    <td>{{ trip.sender }}</td>
-                    <td>{{ trip.receiver }}</td>
-                    <td>{{ trip.car }}</td>
-                    <td>{{ trip.driver }}</td>
-                    <td>{{ trip.trailer }}</td>
-                    <td>{{ trip.culture }}</td>
-                    <td>{{ trip.weight_gross }}</td>
-                    <td>{{ trip.weight_tare }}</td>
-                    <td>{{ trip.net_weight }}</td>
+                {% for entry in entrys %}
+                <tr class="clickable-row" data-bs-toggle="collapse" data-bs-target="#entry{{ entry.id }}">
+                    <td>{{ entry.document_number }}</td>
+                    <td>{{ entry.date_time|date:"d.m.Y H:i" }}</td>
+                    <td>{{ entry.sender }}</td>
+                    <td>{{ entry.receiver }}</td>
+                    <td>{{ entry.car }}</td>
+                    <td>{{ entry.driver }}</td>
+                    <td>{{ entry.trailer }}</td>
+                    <td>{{ entry.culture }}</td>
+                    <td>{{ entry.weight_gross }}</td>
+                    <td>{{ entry.weight_tare }}</td>
+                    <td>{{ entry.net_weight }}</td>
                 </tr>
-                <tr class="collapse bg-light" id="trip{{ trip.id }}">
+                <tr class="collapse bg-light" id="entry{{ entry.id }}">
                     <td colspan="11">
                         <div class="p-2">
                             <strong>Додаткова інформація:</strong><br>
-                            📍 Місце розвантаження: {{ trip.unloading_place }}<br>
-                            🏢 Відправник: {{ trip.sender }}<br>
-                            🚛 Автомобіль: {{ trip.car }} / {{ trip.trailer }}<br>
-                            👨‍✈️ Водій: {{ trip.driver }}<br>
-                            🌾 Культура: {{ trip.culture }}<br>
-                            📝 Дата створення: {{ trip.date_time|date:"d.m.Y H:i" }}
+                            📍 Місце розвантаження: {{ entry.unloading_place }}<br>
+                            🏢 Відправник: {{ entry.sender }}<br>
+                            🚛 Автомобіль: {{ entry.car }} / {{ entry.trailer }}<br>
+                            👨‍✈️ Водій: {{ entry.driver }}<br>
+                            🌾 Культура: {{ entry.culture }}<br>
+                            📝 Дата створення: {{ entry.date_time|date:"d.m.Y H:i" }}
                         </div>
                     </td>
                 </tr>

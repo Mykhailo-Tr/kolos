@@ -3,7 +3,7 @@ from django.utils import timezone
 from directory.models import Car, Trailer, Driver, Culture, Partner, UnloadingPlace
 
 
-class Trip(models.Model):
+class WeigherJournal(models.Model):
     document_number = models.CharField(max_length=50, verbose_name="№ документа / накладної")
     date_time = models.DateTimeField(default=timezone.now, verbose_name="Дата і час")  # ✅ тепер редаговане поле
     

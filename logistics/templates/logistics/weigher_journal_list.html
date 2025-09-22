@@ -66,13 +66,13 @@
 
             <div class="col-12 text-end mt-2">
                 <button type="submit" class="btn btn-sm btn-primary">🔍 Фільтрувати</button>
-                <a href="{% url 'trip_list' %}" class="btn btn-sm btn-secondary">Скинути</a>
+                <a href="{% url 'weigher_journal_list' %}" class="btn btn-sm btn-secondary">Скинути</a>
             </div>
         </div>
     </form>
 
 
-    <a href="{% url 'trip_add' %}" class="btn btn-success mb-3">Додати рейс</a>
+    <a href="{% url 'weigher_journal_add' %}" class="btn btn-success mb-3">Додати рейс</a>
 
     <table class="table table-striped">
         <thead>
@@ -93,41 +93,41 @@
         </tr>
         </thead>
         <tbody>
-        {% for trip in trips %}
+        {% for entry in entrys %}
         <tr>
             <td>{{ forloop.counter }}</td>
-            <td>{{ trip.document_number }}</td>
-            <td>{{ trip.date_time|date:"d.m.Y H:i" }}</td>
-            <td>{{ trip.sender }}</td>
-            <td>{{ trip.receiver }}</td>
-            <td>{{ trip.car }}</td>
-            <td>{{ trip.driver }}</td>
-            <td>{{ trip.culture }}</td>
-            <td>{{ trip.weight_gross }}</td>
-            <td>{{ trip.weight_tare }}</td>
-            <td>{{ trip.weight_net }}</td>
-            <td>{{ trip.unloading_place }}</td>
+            <td>{{ entry.document_number }}</td>
+            <td>{{ entry.date_time|date:"d.m.Y H:i" }}</td>
+            <td>{{ entry.sender }}</td>
+            <td>{{ entry.receiver }}</td>
+            <td>{{ entry.car }}</td>
+            <td>{{ entry.driver }}</td>
+            <td>{{ entry.culture }}</td>
+            <td>{{ entry.weight_gross }}</td>
+            <td>{{ entry.weight_tare }}</td>
+            <td>{{ entry.weight_net }}</td>
+            <td>{{ entry.unloading_place }}</td>
             <td>
-                <a href="{% url 'trip_edit' trip.id %}" class="btn btn-sm btn-warning">Редагувати</a>
+                <a href="{% url 'weigher_journal_update' entry.id %}" class="btn btn-sm btn-warning">Редагувати</a>
                 <!-- Видалення через модалку -->
-                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ trip.id }}">
+                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ entry.id }}">
                     Видалити
                 </button>
             </td>
         </tr>
 
         <!-- Modal Delete -->
-        <div class="modal fade" id="deleteModal{{ trip.id }}" tabindex="-1">
+        <div class="modal fade" id="deleteModal{{ entry.id }}" tabindex="-1">
             <div class="modal-dialog">
             <div class="modal-content">
-                <form method="post" action="{% url 'trip_delete' trip.id %}">
+                <form method="post" action="{% url 'weigher_journal_delete' entry.id %}">
                 {% csrf_token %}
                 <div class="modal-header">
                     <h5 class="modal-title">Підтвердження видалення</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    Ви впевнені, що хочете видалити рейс <b>{{ trip.document_number }}</b>?
+                    Ви впевнені, що хочете видалити рейс <b>{{ entry.document_number }}</b>?
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>

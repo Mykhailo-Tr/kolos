@@ -3,10 +3,10 @@ from . import autocomplete_views as a_views
 from . import views
 
 urlpatterns = [
-    path("trips/", views.trip_list, name="trip_list"),
-    path("trips/add/", views.trip_create, name="trip_add"),
-    path("trips/<int:pk>/edit/", views.trip_update, name="trip_edit"),
-    path("trips/<int:pk>/delete/", views.trip_delete, name="trip_delete"),
+    path("entrys/", views.weigher_journal_list, name="weigher_journal_list"),
+    path("entrys/add/", views.weigher_journal_create, name="weigher_journal_add"),
+    path("entrys/<int:pk>/edit/", views.weigher_journal_update, name="weigher_journal_update"),
+    path("entrys/<int:pk>/delete/", views.weigher_journal_delete, name="weigher_journal_delete"),
     
     # Autocomplete URLs
     path('autocomplete/sender/', a_views.SenderAutocomplete.as_view(), name='sender-autocomplete'),

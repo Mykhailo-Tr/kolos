@@ -2,11 +2,11 @@
 from django import forms
 from dal import autocomplete
 from django.utils.timezone import now
-from .models import Trip
+from .models import WeigherJournal 
 
-class TripForm(forms.ModelForm):
+class WeigherJournalForm(forms.ModelForm):
     class Meta:
-        model = Trip
+        model = WeigherJournal
         fields = [
             "document_number", "date_time", "sender", "receiver",
             "car", "driver", "trailer", "culture",

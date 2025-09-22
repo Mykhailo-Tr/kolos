@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .forms import TripReportForm
-from logistics.models import Trip
+from logistics.models import WeigherJournal
 from . import services
 
 
@@ -8,7 +8,7 @@ def trip_report(request):
     form = TripReportForm(request.GET or None)
 
     # базовий queryset з select_related для оптимізації
-    trips = Trip.objects.select_related(
+    entrys = WeigherJournal.objects.select_related(
         "driver", "car", "trailer", "culture",
         "sender", "receiver", "unloading_place"
     )
@@ -17,34 +17,34 @@ def trip_report(request):
     if form.is_valid():
         cd = form.cleaned_data
         if cd.get("date_from"):
-            trips = trips.filter(date_time__gte=cd["date_from"])
+            entrys = entrys.filter(date_time__gte=cd["date_from"])
         if cd.get("date_to"):
-            trips = trips.filter(date_time__lte=cd["date_to"])
+            entrys = entrys.filter(date_time__lte=cd["date_to"])
         if cd.get("driver"):
-            trips = trips.filter(driver=cd["driver"])
+            entrys = entrys.filter(driver=cd["driver"])
         if cd.get("car"):
-            trips = trips.filter(car=cd["car"])
+            entrys = entrys.filter(car=cd["car"])
         if cd.get("trailer"):
-            trips = trips.filter(trailer=cd["trailer"])
+            entrys = entrys.filter(trailer=cd["trailer"])
         if cd.get("culture"):
-            trips = trips.filter(culture=cd["culture"])
+            entrys = entrys.filter(culture=cd["culture"])
         if cd.get("sender"):
-            trips = trips.filter(sender=cd["sender"])
+            entrys = entrys.filter(sender=cd["sender"])
         if cd.get("receiver"):
-            trips = trips.filter(receiver=cd["receiver"])
+            entrys = entrys.filter(receiver=cd["receiver"])
         if cd.get("unloading_place"):
-            trips = trips.filter(unloading_place=cd["unloading_place"])
+            entrys = entrys.filter(unloading_place=cd["unloading_place"])
 
     # агреговані дані (через services)
-    culture_stats = services.get_culture_stats(trips)
-    driver_stats = services.get_driver_stats(trips)
-    car_stats = services.get_car_stats(trips)
-    unloading_stats = services.get_unloading_stats(trips)
-    balance = services.get_balance(trips)
+    culture_stats = services.get_culture_stats(entrys)
+    driver_stats = services.get_driver_stats(entrys)
+    car_stats = services.get_car_stats(entrys)
+    unloading_stats = services.get_unloading_stats(entrys)
+    balance = services.get_balance(entrys)
 
     context = {
         "form": form,
-        "trips": trips,
+        "entrys": entrys,
 
         # дані для графіків і таблиць
         "culture_labels": [c["culture__name"] or "Без культури" for c in culture_stats],

@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Driver, Culture, Partner
-from .models import Trip, Car, Trailer
+from .models import WeigherJournal, Car, Trailer
 from django.db import transaction
-from .forms import TripForm
+from .forms import WeigherJournalForm
 
 TAG_FIELDS = {
     'car': (Car, 'number'),
@@ -40,14 +40,14 @@ def _normalize_fk_fields(post_data):
                 post_data[field] = str(obj.pk)
         else:
             # raw не можна перетворити в int — це текстова мітка, створимо/отримаємо
-            label = raw.strip()
+            label = raw.sentry()
             obj, created = Model.objects.get_or_create(**{lookup_field: label})
             post_data[field] = str(obj.pk)
 
     return post_data
 
 
-def trip_create(request):
+def weigher_journal_create(request):
     car_driver_map = {str(car.id): car.default_driver_id for car in Car.objects.filter(default_driver__isnull=False)}
     if request.method == "POST":
         data = request.POST.copy()  # mutable
@@ -55,70 +55,74 @@ def trip_create(request):
         with transaction.atomic():
             data = _normalize_fk_fields(data)
 
-            form = TripForm(data)
+            form = WeigherJournalForm(data)
             if form.is_valid():
                 form.save()
-                return redirect("trip_list")
+                return redirect("weigher_journal_list")
             else:
                 print(form.errors)
     else:
-        form = TripForm()
+        form = WeigherJournalForm()
 
-    return render(request, "logistics/trip_form.html", {
+    return render(request, "logistics/weigher_journal_form.html", {
         "form": form,
-        "page": "trips",
+        "page": "weigher_journals",
         "car_driver_map": car_driver_map,
     })
 
 
-def trip_update(request, pk):
-    trip = get_object_or_404(Trip, pk=pk)
+def weigher_journal_update(request, pk):
+    entry = get_object_or_404(WeigherJournal, pk=pk)
     if request.method == "POST":
         data = request.POST.copy()
         with transaction.atomic():
             data = _normalize_fk_fields(data)
-            form = TripForm(data, instance=trip)
+            form = WeigherJournalForm(data, instance=entry)
             if form.is_valid():
                 form.save()
-                return redirect("trip_list")
+                return redirect("weigher_journal_list")
             else:
                 pass
     else:
-        form = TripForm(instance=trip)
+        form = WeigherJournalForm(instance=entry)
 
-    return render(request, "logistics/trip_form.html", {"form": form, "page": "trips"})
+    return render(request, "logistics/weigher_journal_form.html", {
+        "form": form, 
+        "page":"weigher_journals"
+    })
 
-def trip_list(request):
-    trips = Trip.objects.all().order_by("-date_time")
+
+def weigher_journal_list(request):
+    entrys = WeigherJournal.objects.all().order_by("-date_time")
 
     # фільтрація
     if request.GET.get("car"):
-        trips = trips.filter(car_id=request.GET["car"])
+        entrys = entrys.filter(car_id=request.GET["car"])
     if request.GET.get("driver"):
-        trips = trips.filter(driver_id=request.GET["driver"])
+        entrys = entrys.filter(driver_id=request.GET["driver"])
     if request.GET.get("culture"):
-        trips = trips.filter(culture_id=request.GET["culture"])
+        entrys = entrys.filter(culture_id=request.GET["culture"])
     if request.GET.get("sender"):
-        trips = trips.filter(sender_id=request.GET["sender"])
+        entrys = entrys.filter(sender_id=request.GET["sender"])
     if request.GET.get("receiver"):
-        trips = trips.filter(receiver_id=request.GET["receiver"])
+        entrys = entrys.filter(receiver_id=request.GET["receiver"])
     if request.GET.get("q"):
-        trips = trips.filter(document_number__icontains=request.GET["q"])
+        entrys = entrys.filter(document_number__icontains=request.GET["q"])
 
     context = {
-        "trips": trips,
+        "entrys": entrys,
         "cars": Car.objects.all(),
         "drivers": Driver.objects.all(),
         "cultures": Culture.objects.all(),
         "senders": Partner.objects.all(),
         "receivers": Partner.objects.all(),
-        "page": "trips",
+        "page": "weigher_journals",
     }
-    return render(request, "logistics/trip_list.html", context)
+    return render(request, "logistics/weigher_journal_list.html", context)
 
 
-def trip_delete(request, pk):
-    trip = get_object_or_404(Trip, pk=pk)
+def weigher_journal_delete(request, pk):
+    entry = get_object_or_404(WeigherJournal, pk=pk)
     if request.method == "POST":
-        trip.delete()
-    return redirect("trip_list")
+        entry.delete()
+    return redirect("weigher_journal_list")

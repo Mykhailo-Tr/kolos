@@ -28,9 +28,9 @@ class WeigherJournal(models.Model):
     
     culture = models.ForeignKey(Culture, on_delete=models.CASCADE, verbose_name="Культура")
 
-    weight_gross = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Вага брутто (кг)")
-    weight_tare = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Вага тари (кг)")
-    weight_net = models.DecimalField(max_digits=10, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
+    weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
+    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)")
+    weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
 
     unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
@@ -67,9 +67,9 @@ class ShipmentJournal(models.Model):
 
     culture = models.ForeignKey(Culture, on_delete=models.CASCADE, verbose_name="Культура")
     
-    weight_gross = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Вага брутто (кг)")
-    weight_tare = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Вага тари (кг)")
-    weight_net = models.DecimalField(max_digits=10, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
+    weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
+    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)")
+    weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
 
     unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")
     
@@ -106,9 +106,9 @@ class ArrivalJournal(models.Model):
     
     culture = models.ForeignKey(Culture, on_delete=models.CASCADE, verbose_name="Культура")
     
-    weight_gross = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Вага брутто (кг)")
-    weight_tare = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Вага тари (кг)")
-    weight_net = models.DecimalField(max_digits=10, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
+    weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
+    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)")
+    weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
     
     unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")
     

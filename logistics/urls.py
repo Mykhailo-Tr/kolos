@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import autocomplete_views as a_views
-from .views import weigher_views, arrival_views
+from .views import weigher_views, arrival_views, shipment_views
 
 urlpatterns = [
     # Weigher Journal URLs
@@ -14,6 +14,12 @@ urlpatterns = [
     path("arrival-journal/add/", arrival_views.arrival_journal_create, name="arrival_journal_add"),
     path("arrival-journal/<int:pk>/edit/", arrival_views.arrival_journal_update, name="arrival_journal_update"),
     path("arrival-journal/<int:pk>/delete/", arrival_views.arrival_journal_delete, name="arrival_journal_delete"),
+    
+    # Shipment Journal URLs
+    path("shipment-journal/", shipment_views.shipment_journal_list, name="shipment_journal_list"),
+    path("shipment-journal/add/", shipment_views.shipment_journal_create, name="shipment_journal_add"),
+    path("shipment-journal/<int:pk>/edit/", shipment_views.shipment_journal_update, name="shipment_journal_update"),
+    path("shipment-journal/<int:pk>/delete/", shipment_views.shipment_journal_delete, name="shipment_journal_delete"),
     
     # Autocomplete URLs
     path('autocomplete/sender/', a_views.SenderAutocomplete.as_view(), name='sender-autocomplete'),

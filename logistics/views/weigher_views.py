@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Driver, Culture, Partner
-from .models import WeigherJournal, Car, Trailer
+from ..models import Driver, Culture, Partner
+from ..models import WeigherJournal, Car, Trailer
 from django.db import transaction
-from .forms import WeigherJournalForm
+from ..forms import WeigherJournalForm
 
 TAG_FIELDS = {
     'car': (Car, 'number'),

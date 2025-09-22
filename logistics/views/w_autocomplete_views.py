@@ -1,5 +1,5 @@
 from dal import autocomplete
-from .models import Driver, Car, Trailer, Culture, UnloadingPlace, Partner
+from ..models import Driver, Car, Trailer, Culture, UnloadingPlace, Partner
 
 class SenderAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):

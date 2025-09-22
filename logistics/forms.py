@@ -2,7 +2,7 @@
 from django import forms
 from dal import autocomplete
 from django.utils.timezone import now
-from .models import WeigherJournal 
+from .models import WeigherJournal, ShipmentJournal, ArrivalJournal
 
 class WeigherJournalForm(forms.ModelForm):
     class Meta:
@@ -91,5 +91,50 @@ class WeigherJournalForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # default date_time only for new instances
+        if not self.instance.pk:
+            self.fields["date_time"].initial = now().strftime("%Y-%m-%dT%H:%M")
+
+
+class ShipmentJournalForm(forms.ModelForm):
+    class Meta:
+        model = ShipmentJournal
+        fields = [
+            "document_number", "date_time", "sender",
+            "car", "driver", "trailer", "culture",
+            "weight_gross", "weight_tare", "unloading_place", "note"
+        ]
+        # Similar widget definitions as in WeigherJournalForm
+        widgets = WeigherJournalForm.Meta.widgets.copy()
+        del widgets["receiver"]  # ShipmentJournal does not have receiver
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields["date_time"].initial = now().strftime("%Y-%m-%dT%H:%M")
+            
+
+class ArrivalJournalForm(forms.ModelForm):
+    class Meta:
+        model = ArrivalJournal
+        fields = [
+            "document_number", "date_time", "sender_or_receiver",
+            "car", "driver", "trailer", "culture",
+            "weight_gross", "weight_tare", "unloading_place", "note"
+        ]
+        # Similar widget definitions as in WeigherJournalForm
+        widgets = WeigherJournalForm.Meta.widgets.copy()
+        del widgets["sender"]
+        del widgets["receiver"]
+        widgets["sender_or_receiver"] = autocomplete.ModelSelect2(
+            url='partner-autocomplete',  
+            attrs={
+                "data-placeholder": "Введіть або оберіть відправника / отримувача",
+                "data-minimum-input-length": 0,
+                "class": "form-control ajax-no-tags"
+            }
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if not self.instance.pk:
             self.fields["date_time"].initial = now().strftime("%Y-%m-%dT%H:%M")

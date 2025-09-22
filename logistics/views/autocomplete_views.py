@@ -39,6 +39,18 @@ class ReceiverAutocomplete(autocomplete.Select2QuerySetView):
             obj.partner_type = 'both'
             obj.save()
         return obj
+    
+class PartnerAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Partner.objects.all().order_by('name')
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs
+
+    def create_object(self, text):
+        name = text.strip()
+        obj, created = Partner.objects.get_or_create(name=name)
+        return obj
 
 class CarAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):

@@ -13,7 +13,7 @@
 <div class="container mt-4">
   <div class="card shadow-sm rounded-4">
     <div class="card-body">
-      <h4 class="mb-3">{{ form.instance.pk|yesno:"Редагувати рейс,Додати рейс" }}</h4>
+      <h4 class="mb-3">{{ form.instance.pk|yesno:"Редагувати запис,Додати запис" }}</h4>
 
       <form method="post" novalidate>
         {% csrf_token %}

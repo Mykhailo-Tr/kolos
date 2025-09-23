@@ -33,16 +33,26 @@ def get_unloading_stats(qs):
     )
 
 
-def get_balance(qs, receiver_field="receiver"):
-    """Баланс по відправнику/отримувачу"""
+def get_balance(qs, sender_field="sender", receiver_field="receiver", use_single_field=False):
+    """
+    Баланс по відправнику/отримувачу.
+    Якщо use_single_field=True — використовується одне поле (sender_or_receiver).
+    """
 
-    by_sender = qs.values("sender_id", "sender__name").annotate(
+    if use_single_field:
+        balance = qs.values(
+            f"{receiver_field}_id", f"{receiver_field}__name"
+        ).annotate(
+            total_net=Sum(F("weight_gross") - F("weight_tare"))
+        )
+        return {"partners": list(balance)}
+
+    # стандартний варіант (WeigherJournal / ShipmentJournal)
+    by_sender = qs.values(f"{sender_field}_id", f"{sender_field}__name").annotate(
         total_net=Sum(F("weight_gross") - F("weight_tare"))
     )
 
-    by_receiver = qs.values(
-        f"{receiver_field}_id", f"{receiver_field}__name"
-    ).annotate(
+    by_receiver = qs.values(f"{receiver_field}_id", f"{receiver_field}__name").annotate(
         total_net=Sum(F("weight_gross") - F("weight_tare"))
     )
 

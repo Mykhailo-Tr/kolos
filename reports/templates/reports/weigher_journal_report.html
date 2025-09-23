@@ -41,11 +41,12 @@
                     <th>Вага брутто</th>
                     <th>Вага тара</th>
                     <th>Нетто</th>
+                    <th>ℹ️</th>
                 </tr>
             </thead>
             <tbody>
                 {% for entry in entrys %}
-                <tr class="clickable-row" data-bs-toggle="collapse" data-bs-target="#entry{{ entry.id }}">
+                <tr>
                     <td>{{ entry.document_number }}</td>
                     <td>{{ entry.date_time|date:"d.m.Y H:i" }}</td>
                     <td>{{ entry.sender }}</td>
@@ -57,22 +58,66 @@
                     <td>{{ entry.weight_gross }}</td>
                     <td>{{ entry.weight_tare }}</td>
                     <td>{{ entry.net_weight }}</td>
-                </tr>
-                <tr class="collapse bg-light" id="entry{{ entry.id }}">
-                    <td colspan="11">
-                        <div class="p-2">
-                            <strong>Додаткова інформація:</strong><br>
-                            📍 Місце розвантаження: {{ entry.unloading_place }}<br>
-                            🏢 Відправник: {{ entry.sender }}<br>
-                            🚛 Автомобіль: {{ entry.car }} / {{ entry.trailer }}<br>
-                            👨‍✈️ Водій: {{ entry.driver }}<br>
-                            🌾 Культура: {{ entry.culture }}<br>
-                            📝 Дата створення: {{ entry.date_time|date:"d.m.Y H:i" }}
-                        </div>
+                    <td>
+                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#modal{{ entry.id }}">
+                            📄
+                        </button>
                     </td>
                 </tr>
+
+                <!-- Модальне вікно -->
+                <div class="modal fade" id="modal{{ entry.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content shadow-lg">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title">📑 Рейс №{{ entry.document_number }}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрити"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <p><strong>📄 № документа:</strong> {{ entry.document_number }}</p>
+                                    <p><strong>📅 Дата і час:</strong> {{ entry.date_time|date:"d.m.Y H:i" }}</p>
+                                    <p><strong>🏢 Відправник:</strong> {{ entry.sender }}</p>
+                                    <p><strong>🏬 Отримувач:</strong> {{ entry.receiver }}</p>
+                                    <p><strong>📍 Місце розвантаження:</strong> {{ entry.unloading_place }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>🚛 Автомобіль:</strong> {{ entry.car }}</p>
+                                    <p><strong>🚚 Причіп:</strong> {{ entry.trailer|default:"—" }}</p>
+                                    <p><strong>👨‍✈️ Водій:</strong> {{ entry.driver }}</p>
+                                    <p><strong>🌾 Культура:</strong> {{ entry.culture }}</p>
+                                    <p><strong>📝 Примітка:</strong> {{ entry.note|default:"—" }}</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <!-- Вагові показники -->
+                            <div class="row text-center">
+                                <div class="col">
+                                    <div class="p-3 bg-light rounded shadow-sm">
+                                        <strong>⚖️ Вага брутто</strong><br>{{ entry.weight_gross }} кг
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="p-3 bg-light rounded shadow-sm">
+                                        <strong>⚖️ Вага тари</strong><br>{{ entry.weight_tare }} кг
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="p-3 bg-success text-white rounded shadow-sm">
+                                        <strong>✅ Вага нетто</strong><br>{{ entry.weight_net }} кг
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                        </div>
+                    </div>
+                </div>
+                </div>
                 {% empty %}
-                <tr><td colspan="11" class="text-center">Немає даних</td></tr>
+                    <tr><td colspan="12" class="text-center">Немає даних</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -111,11 +156,9 @@
         'rgba(255, 159, 64, 0.6)',
     ];
 
-    // Дані для графіків (агреговані)
     const labels = {{ culture_labels|safe }};
     const values = {{ culture_values|safe }};
 
-    // Бар-чарт
     new Chart(document.getElementById('barChart'), {
         type: 'bar',
         data: {
@@ -136,7 +179,6 @@
         }
     });
 
-    // Pie chart
     new Chart(document.getElementById('pieChart'), {
         type: 'pie',
         data: {
@@ -168,6 +210,5 @@
     });
 </script>
 
-<!-- Bootstrap collapse -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

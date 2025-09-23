@@ -1,11 +1,11 @@
 from django.shortcuts import render
-from .forms import TripReportForm
-from logistics.models import WeigherJournal
+from .forms import WeigherJournalFilterForm, ShipmentJournalFilterForm
+from logistics.models import WeigherJournal, ShipmentJournal
 from . import services
 
 
-def trip_report(request):
-    form = TripReportForm(request.GET or None)
+def weigher_journal_report(request):
+    form = WeigherJournalFilterForm(request.GET or None)
 
     # базовий queryset з select_related для оптимізації
     entrys = WeigherJournal.objects.select_related(
@@ -40,7 +40,8 @@ def trip_report(request):
     driver_stats = services.get_driver_stats(entrys)
     car_stats = services.get_car_stats(entrys)
     unloading_stats = services.get_unloading_stats(entrys)
-    balance = services.get_balance(entrys)
+    balance = services.get_balance(entrys, receiver_field="receiver")
+
 
     context = {
         "form": form,
@@ -61,4 +62,57 @@ def trip_report(request):
 
         "balance": balance,
     }
-    return render(request, "reports/trip_report.html", context)
+    return render(request, "reports/weigher_journal_report.html", context)
+
+def shipment_journal_report(request):
+    form = ShipmentJournalFilterForm(request.GET or None)
+
+    entrys = ShipmentJournal.objects.select_related(
+        "driver", "car", "trailer", "culture", "sender", "unloading_place"
+    )
+
+    if form.is_valid():
+        cd = form.cleaned_data
+        if cd.get("start_date"):
+            entrys = entrys.filter(date_time__gte=cd["start_date"])
+        if cd.get("end_date"):
+            entrys = entrys.filter(date_time__lte=cd["end_date"])
+        if cd.get("driver"):
+            entrys = entrys.filter(driver=cd["driver"])
+        if cd.get("car"):
+            entrys = entrys.filter(car=cd["car"])
+        if cd.get("trailer"):
+            entrys = entrys.filter(trailer=cd["trailer"])
+        if cd.get("culture"):
+            entrys = entrys.filter(culture=cd["culture"])
+        if cd.get("sender"):
+            entrys = entrys.filter(sender=cd["sender"])
+        if cd.get("unloading_place"):
+            entrys = entrys.filter(unloading_place=cd["unloading_place"])
+
+    culture_stats = services.get_culture_stats(entrys)
+    driver_stats = services.get_driver_stats(entrys)
+    car_stats = services.get_car_stats(entrys)
+    unloading_stats = services.get_unloading_stats(entrys)
+    balance = services.get_balance(entrys, receiver_field="unloading_place")
+
+
+    context = {
+        "form": form,
+        "entrys": entrys,
+
+        "culture_labels": [c["culture__name"] or "Без культури" for c in culture_stats],
+        "culture_values": [float(c["total_net"] or 0) for c in culture_stats],
+
+        "driver_labels": [d["driver__full_name"] or "Без водія" for d in driver_stats],
+        "driver_values": [float(d["total_net"] or 0) for d in driver_stats],
+
+        "car_labels": [c["car__number"] or "Без авто" for c in car_stats],
+        "car_values": [float(c["total_net"] or 0) for c in car_stats],
+
+        "unloading_labels": [u["unloading_place__name"] or "Без місця" for u in unloading_stats],
+        "unloading_values": [float(u["total_net"] or 0) for u in unloading_stats],
+
+        "balance": balance,
+    }
+    return render(request, "reports/shipment_journal_report.html", context)

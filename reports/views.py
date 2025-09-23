@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.utils.timezone import now
+from datetime import timedelta
 from .forms import WeigherJournalFilterForm, ShipmentJournalFilterForm, ArrivalJournalFilterForm
 from logistics.models import WeigherJournal, ShipmentJournal, ArrivalJournal
 from . import services
@@ -7,8 +8,10 @@ from . import services
 
 def reports_home(request):
     today = now().date()
-    qs = WeigherJournal.objects.filter(date_time__date=today)
+    start = now().replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=1)
 
+    qs = WeigherJournal.objects.filter(date_time__gte=start, date_time__lt=end)
     context = {
         "culture_stats": services.get_culture_stats(qs),
         "car_stats": services.get_car_stats(qs),

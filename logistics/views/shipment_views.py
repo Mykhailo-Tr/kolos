@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
+from django.db.models import Q
 from directory.models import Driver, Culture, Partner, Car, Trailer
 from ..models import ShipmentJournal
 from ..forms import ShipmentJournalForm
@@ -9,16 +10,25 @@ from ..utils import _normalize_fk_fields
 def shipment_journal_list(request):
     entrys = ShipmentJournal.objects.all().order_by("-date_time")
 
-    # фільтрація
+    # фільтрація з нечутливістю до регістру
     if request.GET.get("car"):
-        entrys = entrys.filter(car_id=request.GET["car"])
+        entrys = entrys.filter(car_id__iexact=request.GET["car"])
     if request.GET.get("driver"):
-        entrys = entrys.filter(driver_id=request.GET["driver"])
+        entrys = entrys.filter(driver_id__iexact=request.GET["driver"])
     if request.GET.get("culture"):
-        entrys = entrys.filter(culture_id=request.GET["culture"])
+        entrys = entrys.filter(culture_id__iexact=request.GET["culture"])
     if request.GET.get("sender"):
-        entrys = entrys.filter(sender_id=request.GET["sender"])
+        entrys = entrys.filter(sender_id__iexact=request.GET["sender"])
 
+    # пошук
+    if request.GET.get("q"):
+        q = request.GET["q"].strip()
+        entrys = entrys.filter(
+            Q(car__number__icontains=q) |
+            Q(driver__full_name__icontains=q) |
+            Q(culture__name__icontains=q) |
+            Q(sender__name__icontains=q)
+        )
 
     return render(request, "logistics/shipment_journal_list.html", {
         "entrys": entrys,

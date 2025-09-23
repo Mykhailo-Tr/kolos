@@ -1,5 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
+from django.db.models import Q
+from django.db.models.functions import Lower
+from transliterate import translit
+
+import unicodedata
 from directory.models import Driver, Culture, Partner, Car, Trailer
 from ..models import WeigherJournal
 from ..forms import WeigherJournalForm
@@ -51,10 +56,24 @@ def weigher_journal_update(request, pk):
     })
 
 
+def normalize_query(q):
+    """Нормалізує рядок та повертає варіанти (латиниця ↔ кирилиця)"""
+    base = unicodedata.normalize("NFKC", q).lower()
+    variants = {base}
+    try:
+        # латиниця → кирилиця
+        variants.add(translit(base, "uk", reversed=False).lower())
+        # кирилиця → латиниця
+        variants.add(translit(base, "uk", reversed=True).lower())
+    except Exception:
+        pass
+    return list(variants)
+
+
 def weigher_journal_list(request):
     entrys = WeigherJournal.objects.all().order_by("-date_time")
 
-    # фільтрація
+    # фільтрація по ForeignKey (ID → exact)
     if request.GET.get("car"):
         entrys = entrys.filter(car_id=request.GET["car"])
     if request.GET.get("driver"):
@@ -65,8 +84,34 @@ def weigher_journal_list(request):
         entrys = entrys.filter(sender_id=request.GET["sender"])
     if request.GET.get("receiver"):
         entrys = entrys.filter(receiver_id=request.GET["receiver"])
+
+    # пошук з урахуванням регістру і мови
     if request.GET.get("q"):
-        entrys = entrys.filter(document_number__icontains=request.GET["q"])
+        q = request.GET["q"].strip()
+        variants = normalize_query(q)
+
+        # приводимо поля в lower
+        entrys = entrys.annotate(
+            document_number_lower=Lower("document_number"),
+            car_number_lower=Lower("car__number"),
+            driver_name_lower=Lower("driver__full_name"),
+            culture_name_lower=Lower("culture__name"),
+            sender_name_lower=Lower("sender__name"),
+            receiver_name_lower=Lower("receiver__name"),
+        )
+
+        queries = Q()
+        for variant in variants:
+            queries |= (
+                Q(document_number_lower__contains=variant) |
+                Q(car_number_lower__contains=variant) |
+                Q(driver_name_lower__contains=variant) |
+                Q(culture_name_lower__contains=variant) |
+                Q(sender_name_lower__contains=variant) |
+                Q(receiver_name_lower__contains=variant)
+            )
+
+        entrys = entrys.filter(queries)
 
     context = {
         "entrys": entrys,

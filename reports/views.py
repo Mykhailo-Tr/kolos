@@ -1,7 +1,20 @@
 from django.shortcuts import render
+from django.utils.timezone import now
 from .forms import WeigherJournalFilterForm, ShipmentJournalFilterForm, ArrivalJournalFilterForm
 from logistics.models import WeigherJournal, ShipmentJournal, ArrivalJournal
 from . import services
+
+
+def reports_home(request):
+    today = now().date()
+    qs = WeigherJournal.objects.filter(date_time__date=today)
+
+    context = {
+        "culture_stats": services.get_culture_stats(qs),
+        "car_stats": services.get_car_stats(qs),
+        "driver_stats": services.get_driver_stats(qs),
+    }
+    return render(request, "reports/reports.html", context)
 
 
 def weigher_journal_report(request):

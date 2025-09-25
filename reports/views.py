@@ -197,16 +197,17 @@ def arrival_journal_report(request):
 
 
 def _day_range_for_date(date):
-    # date is a date object
+    if not date:
+        date = now().date()
     start = datetime.combine(date, time.min)
     end = datetime.combine(date, time.max)
-    # If your DB fields are timezone-aware, ensure aware datetimes:
     try:
         start = make_aware(start)
         end = make_aware(end)
     except Exception:
         pass
     return start, end
+
 
 def daily_report(request):
     form = DailyReportForm(request.GET or None)

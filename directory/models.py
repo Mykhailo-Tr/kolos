@@ -56,6 +56,8 @@ class UnloadingPlace(models.Model):
         default="elevator",
         verbose_name="Тип місця"
     )
+    cultures = models.ManyToManyField(Culture, through="logistics.StockBalance")
+
 
     def __str__(self):
         return f"{self.name} ({self.get_place_type_display()})"

@@ -127,3 +127,28 @@ class ArrivalJournal(models.Model):
             return self.weight_gross - self.weight_tare
         return None
         
+        
+class StockBalance(models.Model):
+    unloading_place = models.ForeignKey(
+        UnloadingPlace, 
+        on_delete=models.CASCADE, 
+        related_name="balances",
+        verbose_name="Місце"
+    )
+    culture = models.ForeignKey(
+        Culture, 
+        on_delete=models.CASCADE,
+        related_name="balances",
+        verbose_name="Культура"
+    )
+    quantity = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name="Кількість (кг)"
+    )
+
+    class Meta:
+        unique_together = ("unloading_place", "culture")
+
+    def __str__(self):
+        return f"{self.unloading_place} - {self.culture}: {self.quantity} кг"
+

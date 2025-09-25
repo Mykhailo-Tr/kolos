@@ -1,8 +1,12 @@
 from django.urls import path
 from .views import autocomplete_views as a_views
 from .views import weigher_views, arrival_views, shipment_views
+from .views import weight_views
 
 urlpatterns = [
+    # Weight Reader URL
+    path("api/current-weight/", weight_views.get_current_weight, name="api_current_weight"),
+    
     # Weigher Journal URLs
     path("weigher-journal/", weigher_views.weigher_journal_list, name="weigher_journal_list"),
     path("weigher-journal/add/", weigher_views.weigher_journal_create, name="weigher_journal_add"),

@@ -124,6 +124,22 @@
 <script>
   (function($){
     $(document).ready(function(){
+      function fetchWeight() {
+        fetch("{% url 'api_current_weight' %}")
+          .then(resp => resp.json())
+          .then(data => {
+            if (data.weight !== null) {
+              // Оновлюємо поле брутто
+              $('#id_weight_gross').val(data.weight.toFixed(2));
+              // Одразу перерахуємо нетто
+              updateNetto();
+            }
+          })
+          .catch(err => console.error("Weight fetch error:", err));
+      }
+
+      // Запитуємо раз у 5 секунду
+      setInterval(fetchWeight, 1000);
 
       // Поля без створення нових значень (sender, receiver, unloading_place)
       $('.ajax-no-tags').each(function(){

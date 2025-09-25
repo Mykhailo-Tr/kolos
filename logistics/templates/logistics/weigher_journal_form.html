@@ -130,8 +130,10 @@
 <script>
   (function($){
     $(document).ready(function(){
-        let activeField = null; // "gross" або "tare" або null
-
+        let activeField = "gross"; // "gross" або "tare" або null
+        if ($('#id_weight_gross').val()) {
+          activeField = "tare";
+        }
         function fetchWeight() {
           fetch("{% url 'api_current_weight' %}")
             .then(resp => resp.json())
@@ -139,16 +141,8 @@
               if (data.weight !== null) {
                 if (activeField === "gross") {
                   $('#id_weight_gross').val(data.weight.toFixed(2));
-                } else if (activeField === "tare") {
-                  $('#id_weight_tare').val(data.weight.toFixed(2));
                 } else {
-                  // Авто-логіка: якщо брутто пусте -> пишемо в брутто
-                  // якщо брутто є -> пишемо в тару
-                  if (!$('#id_weight_gross').val()) {
-                    $('#id_weight_gross').val(data.weight.toFixed(2));
-                  } else {
-                    $('#id_weight_tare').val(data.weight.toFixed(2));
-                  }
+                  $('#id_weight_tare').val(data.weight.toFixed(2));
                 }
                 updateNetto();
               }

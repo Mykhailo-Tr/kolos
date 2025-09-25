@@ -29,7 +29,7 @@ class WeigherJournal(models.Model):
     culture = models.ForeignKey(Culture, on_delete=models.CASCADE, verbose_name="Культура")
 
     weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
-    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)")
+    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)", default=0)
     weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
 
     unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")
@@ -107,7 +107,7 @@ class ArrivalJournal(models.Model):
     culture = models.ForeignKey(Culture, on_delete=models.CASCADE, verbose_name="Культура")
     
     weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
-    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)")
+    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)", blank=True, null=True)
     weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
     
     unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")

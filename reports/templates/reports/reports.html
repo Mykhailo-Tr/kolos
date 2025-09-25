@@ -3,7 +3,12 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">📊 Звіти</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📊 Звіти</h2>
+        <a href="{% url 'daily_report' %}" class="btn btn-success">
+            📅 Сформувати денний звіт
+        </a>
+    </div>
 
     <!-- Посилання на звіти -->
     <div class="row mb-5">

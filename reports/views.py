@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 from django.utils.timezone import now
 from datetime import timedelta
 from .forms import WeigherJournalFilterForm, ShipmentJournalFilterForm, ArrivalJournalFilterForm
@@ -18,6 +20,45 @@ def reports_home(request):
         "driver_stats": services.get_driver_stats(qs),
     }
     return render(request, "reports/reports.html", context)
+
+
+def daily_report(request):
+    """Формування зведеного денного звіту (PDF або HTML попередній перегляд)"""
+    today = now().date()
+    start = now().replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=1)
+
+    # дані по кожному журналу
+    weigher_qs = WeigherJournal.objects.filter(date_time__gte=start, date_time__lt=end)
+    shipment_qs = ShipmentJournal.objects.filter(date_time__gte=start, date_time__lt=end)
+    arrival_qs = ArrivalJournal.objects.filter(date_time__gte=start, date_time__lt=end)
+
+    context = {
+        "today": today.strftime("%d.%m.%Y"),
+        "weigher": {
+            "culture_stats": services.get_culture_stats(weigher_qs),
+            "car_stats": services.get_car_stats(weigher_qs),
+            "driver_stats": services.get_driver_stats(weigher_qs),
+            "balance": services.get_balance(weigher_qs, receiver_field="receiver"),
+        },
+        "shipment": {
+            "culture_stats": services.get_culture_stats(shipment_qs),
+            "car_stats": services.get_car_stats(shipment_qs),
+            "driver_stats": services.get_driver_stats(shipment_qs),
+            "balance": services.get_balance(shipment_qs, receiver_field="unloading_place"),
+        },
+        "arrival": {
+            "culture_stats": services.get_culture_stats(arrival_qs),
+            "car_stats": services.get_car_stats(arrival_qs),
+            "driver_stats": services.get_driver_stats(arrival_qs),
+            "balance": services.get_balance(arrival_qs, receiver_field="sender_or_receiver", use_single_field=True),
+        }
+    }
+
+    # 👉 краща практика: формувати PDF для бухгалтерії
+    # Якщо треба HTML-перегляд → рендеримо шаблон
+    html = render_to_string("reports/daily_report.html", context)
+    return HttpResponse(html)  # можна підмінити на PDF рендерер (weasyprint / xhtml2pdf)
 
 
 def weigher_journal_report(request):

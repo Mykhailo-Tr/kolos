@@ -92,20 +92,26 @@
           </div>
         </div>
 
-        <div class="row g-3 mt-2">
-          <div class="col-md-4">
-            <label class="form-label">Брутто (кг)</label>
+      <div class="row g-3 mt-2">
+        <div class="col-md-4">
+          <label class="form-label">Брутто (кг)</label>
+          <div class="input-group">
             {{ form.weight_gross|add_class:"form-control" }}
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Тара (кг)</label>
-            {{ form.weight_tare|add_class:"form-control" }}
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Нетто (кг)</label>
-            <input type="text" id="weightNetDisplay" class="form-control" value="0.00" readonly>
+            <button type="button" class="btn btn-outline-primary" id="btnGross">📥 Зчитати</button>
           </div>
         </div>
+        <div class="col-md-4">
+          <label class="form-label">Тара (кг)</label>
+          <div class="input-group">
+            {{ form.weight_tare|add_class:"form-control" }}
+            <button type="button" class="btn btn-outline-primary" id="btnTare">📥 Зчитати</button>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Нетто (кг)</label>
+          <input type="text" id="weightNetDisplay" class="form-control" value="0.00" readonly>
+        </div>
+      </div>
 
         <div class="mt-3">
           <label class="form-label">Примітка</label>
@@ -124,22 +130,45 @@
 <script>
   (function($){
     $(document).ready(function(){
-      function fetchWeight() {
-        fetch("{% url 'api_current_weight' %}")
-          .then(resp => resp.json())
-          .then(data => {
-            if (data.weight !== null) {
-              // Оновлюємо поле брутто
-              $('#id_weight_gross').val(data.weight.toFixed(2));
-              // Одразу перерахуємо нетто
-              updateNetto();
-            }
-          })
-          .catch(err => console.error("Weight fetch error:", err));
-      }
+        let activeField = null; // "gross" або "tare" або null
 
-      // Запитуємо раз у 5 секунду
-      setInterval(fetchWeight, 1000);
+        function fetchWeight() {
+          fetch("{% url 'api_current_weight' %}")
+            .then(resp => resp.json())
+            .then(data => {
+              if (data.weight !== null) {
+                if (activeField === "gross") {
+                  $('#id_weight_gross').val(data.weight.toFixed(2));
+                } else if (activeField === "tare") {
+                  $('#id_weight_tare').val(data.weight.toFixed(2));
+                } else {
+                  // Авто-логіка: якщо брутто пусте -> пишемо в брутто
+                  // якщо брутто є -> пишемо в тару
+                  if (!$('#id_weight_gross').val()) {
+                    $('#id_weight_gross').val(data.weight.toFixed(2));
+                  } else {
+                    $('#id_weight_tare').val(data.weight.toFixed(2));
+                  }
+                }
+                updateNetto();
+              }
+            })
+            .catch(err => console.error("Weight fetch error:", err));
+        }
+
+        // Автоматичний опитувач
+        setInterval(fetchWeight, 1000);
+
+        // Кнопки ручного вибору
+        $('#btnGross').click(function(){
+          activeField = "gross";
+          fetchWeight();
+        });
+
+        $('#btnTare').click(function(){
+          activeField = "tare";
+          fetchWeight();
+        });
 
       // Поля без створення нових значень (sender, receiver, unloading_place)
       $('.ajax-no-tags').each(function(){

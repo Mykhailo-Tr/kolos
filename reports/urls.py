@@ -7,5 +7,7 @@ urlpatterns = [
     path("shipment-journal/", views.shipment_journal_report, name="shipment_journal_report"),
     path("arrival-journal/", views.arrival_journal_report, name="arrival_journal_report"),
     path("daily/", views.daily_report, name="daily_report"),  
+    path("stock-balance/", views.StockBalanceReportView.as_view(), name="stock_balance_report"),
+
 
 ]

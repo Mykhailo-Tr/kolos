@@ -2,6 +2,7 @@ from django import forms
 from directory.models import Driver, Car, Trailer, Culture, Partner, UnloadingPlace
 from django.utils.timezone import now
 from django.utils.timezone import localdate
+from django.utils import timezone
 
 class DailyReportForm(forms.Form):
     date = forms.DateField(
@@ -40,6 +41,27 @@ class DailyReportForm(forms.Form):
                                              widget=forms.Select(attrs={"class":"form-select"}))
 
     export = forms.BooleanField(required=False, widget=forms.HiddenInput(), initial=False)
+    
+
+class StockBalanceFilterForm(forms.Form):
+    date_from = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    date_to = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    unloading_place = forms.ModelChoiceField(queryset=UnloadingPlace.objects.all(), required=False)
+    culture = forms.ModelChoiceField(queryset=Culture.objects.all(), required=False)
+    driver = forms.ModelChoiceField(queryset=Driver.objects.all(), required=False)
+    car = forms.ModelChoiceField(queryset=Car.objects.all(), required=False)
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("date_from") and cleaned.get("date_to"):
+            if cleaned["date_from"] > cleaned["date_to"]:
+                raise forms.ValidationError("Дата від і до некоректні.")
+        # defaults
+        if not cleaned.get("date_to"):
+            cleaned["date_to"] = timezone.now().date()
+        if not cleaned.get("date_from"):
+            cleaned["date_from"] = cleaned["date_to"]
+        return cleaned
 
 
 class BaseJournalFilterForm(forms.Form):

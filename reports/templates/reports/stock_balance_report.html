@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>📦 Звіт: залишки на складах</h2>
+        <div>
+            <a href="?export=csv{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="btn btn-outline-secondary">CSV</a>
+        </div>
+    </div>
+
+    <form method="get" class="card card-body mb-4">
+        <div class="row g-2">
+            <div class="col-auto">
+                {{ form.date_from.label_tag }} {{ form.date_from }}
+            </div>
+            <div class="col-auto">
+                {{ form.date_to.label_tag }} {{ form.date_to }}
+            </div>
+            <div class="col-auto">
+                {{ form.unloading_place.label_tag }} {{ form.unloading_place }}
+            </div>
+            <div class="col-auto">
+                {{ form.culture.label_tag }} {{ form.culture }}
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary" type="submit">Фільтрувати</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <canvas id="stockChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>Показники</h6>
+                    <p>Період: <strong>{{ date_from }} — {{ date_to }}</strong></p>
+                    <p>Кількість рядків: <strong>{{ rows|length }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="mb-3">Таблиця залишків</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Склад</th>
+                            <th>Культура</th>
+                            <th class="text-end">Надходження (кг)</th>
+                            <th class="text-end">Відвантажено (кг)</th>
+                            <th class="text-end">Баланс (кг)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in rows %}
+                        <tr>
+                            <td>{{ r.place_name }}</td>
+                            <td>{{ r.culture }}</td>
+                            <td class="text-end">{{ r.in_net|floatformat:2 }}</td>
+                            <td class="text-end">{{ r.out_net|floatformat:2 }}</td>
+                            <td class="text-end">{{ r.balance|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-muted">Немає даних за обраний період.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    (function(){
+        const labels = {{ chart_labels|safe }};
+        const values = {{ chart_values|safe }};
+        const ctx = document.getElementById('stockChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Баланс (кг)',
+                    data: values,
+                    // let Chart.js pick default colors
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { title: { display: false } },
+                    y: { title: { display: true, text: 'Кілограми (kg)' } }
+                }
+            }
+        });
+    })();
+</script>
+{% endblock %}

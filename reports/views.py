@@ -5,12 +5,13 @@ from django.views.generic import TemplateView
 from django.utils.timezone import now
 from datetime import timedelta
 from django.utils.timezone import make_aware
+from django.utils import timezone
 from datetime import datetime
 import csv
-from .forms import WeigherJournalFilterForm, ShipmentJournalFilterForm, ArrivalJournalFilterForm, DailyReportForm
+from .forms import WeigherJournalFilterForm, ShipmentJournalFilterForm, ArrivalJournalFilterForm, DailyReportForm, StockBalanceFilterForm
 from logistics.models import WeigherJournal, ShipmentJournal, ArrivalJournal
 from . import services
-from .services import unify_rows_from_querysets, aggregate_rows
+from .services import unify_rows_from_querysets, aggregate_rows, compute_stock_balance
 from datetime import time
 
 
@@ -277,3 +278,61 @@ def daily_report(request):
         "group_by": group_by,
     }
     return render(request, "reports/daily_report.html", context)
+
+
+class StockBalanceReportView(TemplateView):
+    template_name = "reports/stock_balance_report.html"
+
+    def get(self, request, *args, **kwargs):
+        form = StockBalanceFilterForm(request.GET or None)
+        # default dates: today
+        if not form.is_bound:
+            # give defaults via initial
+            today = timezone.now().date()
+            form = StockBalanceFilterForm(initial={"date_from": today, "date_to": today})
+
+        rows = []
+        if form.is_bound and form.is_valid():
+            cd = form.cleaned_data
+            rows = compute_stock_balance(
+                cd["date_from"],
+                cd["date_to"],
+                unloading_place=cd.get("unloading_place"),
+                culture=cd.get("culture"),
+                driver=cd.get("driver"),
+                car=cd.get("car"),
+            )
+        else:
+            # first load: show today's balances
+            cd = form.cleaned_data if form.is_valid() else form.initial
+            rows = compute_stock_balance(cd.get("date_from"), cd.get("date_to"))
+
+        # CSV export
+        if request.GET.get("export") == "csv":
+            response = HttpResponse(content_type="text/csv")
+            fname = f"stock_balance_{cd.get('date_from')}_{cd.get('date_to')}.csv"
+            response["Content-Disposition"] = f'attachment; filename="{fname}"'
+            writer = csv.writer(response)
+            writer.writerow(["Place", "Culture", "In (kg)", "Out (kg)", "Balance (kg)"])
+            for r in rows:
+                writer.writerow([r["place_name"], r["culture"], r["in_net"], r["out_net"], r["balance"]])
+            return response
+
+        # chart data: сумарний баланс по місцям (як приклад)
+        place_sums = {}
+        for r in rows:
+            place_sums.setdefault(r["place_name"], 0)
+            place_sums[r["place_name"]] += float(r["balance"] or 0)
+
+        chart_labels = list(place_sums.keys())
+        chart_values = list(place_sums.values())
+
+        context = {
+            "form": form,
+            "rows": rows,
+            "chart_labels": chart_labels,
+            "chart_values": chart_values,
+            "date_from": cd.get("date_from"),
+            "date_to": cd.get("date_to"),
+        }
+        return render(request, self.template_name, context)

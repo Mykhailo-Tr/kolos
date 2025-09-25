@@ -240,3 +240,108 @@ def aggregate_rows(rows, group_by="none"):
         "groups_summary": groups_summary_out,
         "totals": totals_out,
     }
+    
+
+def compute_stock_balance(date_from, date_to, unloading_place=None, culture=None, driver=None, car=None):
+    """
+    Повертає список рядків з балансом по складах та культурам:
+    [
+        {
+            "place_id": 1,
+            "place_name": "Склад А",
+            "culture_name": "Пшениця",
+            "in_net": Decimal(...),
+            "out_net": Decimal(...),
+            "balance": Decimal(...),
+        }, ...
+    ]
+    ПРИПУЩЕННЯ:
+    - ArrivalJournal та WeigherJournal вважаємо за надходження (in)
+    - ShipmentJournal — за відвантаження (out)
+    За потреби змінити правила фільтрації тут.
+    """
+
+    # загальні фільтри по датах
+    date_filters = {
+        "date_time__date__gte": date_from,
+        "date_time__date__lte": date_to,
+    }
+
+    # робимо базові querysets з фільтрами
+    arrival_qs = ArrivalJournal.objects.filter(**date_filters)
+    weigher_qs = WeigherJournal.objects.filter(**date_filters)
+    shipment_qs = ShipmentJournal.objects.filter(**date_filters)
+
+    # опціональні фільтри
+    if unloading_place:
+        arrival_qs = arrival_qs.filter(unloading_place=unloading_place)
+        weigher_qs = weigher_qs.filter(unloading_place=unloading_place)
+        shipment_qs = shipment_qs.filter(unloading_place=unloading_place)
+    if culture:
+        arrival_qs = arrival_qs.filter(culture=culture)
+        weigher_qs = weigher_qs.filter(culture=culture)
+        shipment_qs = shipment_qs.filter(culture=culture)
+    if driver:
+        arrival_qs = arrival_qs.filter(driver=driver)
+        weigher_qs = weigher_qs.filter(driver=driver)
+        shipment_qs = shipment_qs.filter(driver=driver)
+    if car:
+        arrival_qs = arrival_qs.filter(car=car)
+        weigher_qs = weigher_qs.filter(car=car)
+        shipment_qs = shipment_qs.filter(car=car)
+
+    # агрегації: групуємо по unloading_place + culture
+    arr = arrival_qs.values(
+        "unloading_place", "unloading_place__name", "culture__name"
+    ).annotate(in_net=Sum("weight_net"))
+
+    wgh = weigher_qs.values(
+        "unloading_place", "unloading_place__name", "culture__name"
+    ).annotate(in_net=Sum("weight_net"))
+
+    shp = shipment_qs.values(
+        "unloading_place", "unloading_place__name", "culture__name"
+    ).annotate(out_net=Sum("weight_net"))
+
+    # собираємо у словник по ключу (place_id, culture_name)
+    data = defaultdict(lambda: {"in_net": 0, "out_net": 0, "place_name": None, "culture_name": None, "place_id": None})
+
+    for r in arr:
+        key = (r["unloading_place"], r["culture__name"] or "Без культури")
+        data[key]["in_net"] += r.get("in_net") or 0
+        data[key]["place_name"] = r.get("unloading_place__name")
+        data[key]["culture_name"] = r.get("culture__name") or "Без культури"
+        data[key]["place_id"] = r.get("unloading_place")
+
+    for r in wgh:
+        key = (r["unloading_place"], r["culture__name"] or "Без культури")
+        data[key]["in_net"] += r.get("in_net") or 0
+        data[key]["place_name"] = r.get("unloading_place__name")
+        data[key]["culture_name"] = r.get("culture__name") or "Без культури"
+        data[key]["place_id"] = r.get("unloading_place")
+
+    for r in shp:
+        key = (r["unloading_place"], r["culture__name"] or "Без культури")
+        data[key]["out_net"] += r.get("out_net") or 0
+        data[key]["place_name"] = r.get("unloading_place__name")
+        data[key]["culture_name"] = r.get("culture__name") or "Без культури"
+        data[key]["place_id"] = r.get("unloading_place")
+
+    # формуємо список рядків, обчислюємо balance = in - out
+    rows = []
+    for (place_id, culture_name), vals in data.items():
+        in_net = vals["in_net"] or 0
+        out_net = vals["out_net"] or 0
+        balance = in_net - out_net
+        rows.append({
+            "place_id": vals["place_id"],
+            "place_name": vals["place_name"] or "Без назви",
+            "culture": vals["culture_name"],
+            "in_net": in_net,
+            "out_net": out_net,
+            "balance": balance,
+        })
+
+    # сортування: за місцем, потім культурою
+    rows.sort(key=lambda x: (x["place_name"], x["culture"]))
+    return rows

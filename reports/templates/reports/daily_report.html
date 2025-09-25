@@ -1,19 +1,187 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">📅 Зведений денний звіт — {{ today }}</h2>
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>📅 Денний звіт — {{ selected_date }}</h3>
+    <div>
+      <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}export=csv" class="btn btn-outline-secondary">⬇ Експорт CSV</a>
+    </div>
+  </div>
 
-    <!-- Ваговий журнал -->
-    <h4 class="mt-4">⚖️ Ваговий журнал</h4>
-    {% include "reports/partials/report_block.html" with stats=weigher %}
+  <form method="get" class="mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-auto">
+        {{ form.date.label_tag }} {{ form.date }}
+      </div>
+      <div class="col-auto">
+        {{ form.group_by.label_tag }} {{ form.group_by }}
+      </div>
+      <div class="col-auto">
+        {{ form.car.label_tag }} {{ form.car }}
+      </div>
+      <div class="col-auto">
+        {{ form.driver.label_tag }} {{ form.driver }}
+      </div>
+      <div class="col-auto">
+        {{ form.culture.label_tag }} {{ form.culture }}
+      </div>
+      <div class="col-auto">
+        {{ form.unloading_place.label_tag }} {{ form.unloading_place }}
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary">Сформувати денний звіт</button>
+      </div>
+    </div>
+  </form>
 
-    <!-- Журнал відправок -->
-    <h4 class="mt-4">🚚 Журнал відправок</h4>
-    {% include "reports/partials/report_block.html" with stats=shipment %}
+  <hr>
 
-    <!-- Журнал прибуття -->
-    <h4 class="mt-4">📥 Журнал прибуття</h4>
-    {% include "reports/partials/report_block.html" with stats=arrival %}
+  <div class="mb-3">
+    <strong>Загалом:</strong>
+    <span class="badge bg-success">Завезено (net): {{ totals.net_in|default:0 }}</span>
+    <span class="badge bg-danger">Вивезено (net): {{ totals.net_out|default:0 }}</span>
+    <span class="badge bg-info text-dark">Баланс: {{ totals.balance|default:0 }}</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Група ({{ group_by }})</th>
+          <th>Культура</th>
+          <th class="text-end">Gross (кг)</th>
+          <th class="text-end">Tare (кг)</th>
+          <th class="text-end">Net (кг)</th>
+          <th>Деталі</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in table_rows %}
+        <tr>
+          <td>{{ row.group }}</td>
+          <td>{{ row.culture }}</td>
+          <td class="text-end">{{ row.gross }}</td>
+          <td class="text-end">{{ row.tare }}</td>
+          <td class="text-end">{{ row.net }}</td>
+          <td>
+            <!-- модалка: передаємо group & culture -->
+            <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#detailsModal-{{ forloop.counter }}">
+              🛈
+            </button>
+
+            <!-- modal content (simple) -->
+            <div class="modal fade" id="detailsModal-{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Деталі: {{ row.group }} — {{ row.culture }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
+                  </div>
+                  <div class="modal-body">
+  <div class="mb-3">
+    <p><strong>Gross:</strong> {{ row.gross }} кг</p>
+    <p><strong>Tare:</strong> {{ row.tare }} кг</p>
+    <p><strong>Net:</strong> {{ row.net }} кг</p>
+  </div>
+  <hr>
+  <h6>Рейси у групі:</h6>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered">
+      <thead class="table-light">
+        <tr>
+          <th>Документ</th>
+          <th>Дата</th>
+          <th>Авто</th>
+          <th>Водій</th>
+          <th>Причіп</th>
+          <th>Відправник</th>
+          <th>Одержувач</th>
+          <th class="text-end">Gross</th>
+          <th class="text-end">Tare</th>
+          <th class="text-end">Net</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for trip in row.trips %}
+        <tr>
+          <td>{{ trip.document_number }}</td>
+          <td>{{ trip.date_time|date:"Y-m-d H:i" }}</td>
+          <td>{{ trip.car__number }}</td>
+          <td>{{ trip.driver__name }}</td>
+          <td>{{ trip.trailer__number|default:"—" }}</td>
+          <td>{{ trip.sender__name }}</td>
+          <td>{{ trip.receiver__name }}</td>
+          <td class="text-end">{{ trip.gross_weight }}</td>
+          <td class="text-end">{{ trip.tare_weight }}</td>
+          <td class="text-end">{{ trip.net_weight }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="text-center">Немає рейсів</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center">Немає даних</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+  <h5>Підсумки по групах</h5>
+  <div class="row">
+    {% for g, s in groups_summary.items %}
+    <div class="col-md-4 mb-2">
+      <div class="p-2 border rounded">
+        <strong>{{ g }}</strong><br>
+        Gross: {{ s.gross }} кг<br>
+        Tare: {{ s.tare }} кг<br>
+        Net: {{ s.net }} кг
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">Немає зведень</div>
+    {% endfor %}
+  </div>
+
+  <!-- Окремий невеликий графік (Chart.js) -->
+  <div class="row mt-4">
+    <div class="col-md-8">
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const labels = {{ chart_labels|default:"[]"|safe }};
+  const values = {{ chart_values|default:"[]"|safe }};
+
+  if (labels.length && values.length) {
+    new Chart(document.getElementById("barChart"), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Net (kg)',
+          data: values,
+        }]
+      },
+      options: { responsive: true }
+    });
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

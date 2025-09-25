@@ -2,14 +2,31 @@
 {% load static %}
 {% block content %}
 <div class="container mt-4">
+
+    <!-- Заголовок + перемикач -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>📦 Звіт: залишки на складах</h2>
-        <div>
-            <a href="?export=csv{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="btn btn-outline-secondary">CSV</a>
+        <div class="btn-group">
+            <a href="?mode=period" class="btn btn-sm {% if mode == 'period' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                Звіт за період
+            </a>
+            <a href="?mode=current" class="btn btn-sm {% if mode == 'current' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                Станом на зараз
+            </a>
         </div>
     </div>
 
+    <!-- Експорт CSV тільки для звіту за період -->
+    <a href="?mode={{ mode }}&export=csv{% if mode == 'period' %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% endif %}"
+        class="btn btn-sm btn-outline-secondary">
+        CSV
+    </a>
+
+
+    <!-- Форма фільтрів тільки для режиму "період" -->
+    {% if mode == "period" %}
     <form method="get" class="card card-body mb-4">
+        <input type="hidden" name="mode" value="period">
         <div class="row g-2">
             <div class="col-auto">
                 {{ form.date_from.label_tag }} {{ form.date_from }}
@@ -28,7 +45,9 @@
             </div>
         </div>
     </form>
+    {% endif %}
 
+    <!-- Графік + показники -->
     <div class="row mb-4">
         <div class="col-lg-8">
             <div class="card shadow-sm">
@@ -42,24 +61,33 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h6>Показники</h6>
-                    <p>Період: <strong>{{ date_from }} — {{ date_to }}</strong></p>
+                    {% if mode == "period" %}
+                        <p>Період: <strong>{{ date_from }} — {{ date_to }}</strong></p>
+                    {% else %}
+                        <p><strong>Станом на зараз</strong></p>
+                    {% endif %}
                     <p>Кількість рядків: <strong>{{ rows|length }}</strong></p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Таблиця -->
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="mb-3">Таблиця залишків</h5>
+            <h5 class="mb-3">
+                {% if mode == "period" %}Таблиця залишків за період{% else %}Поточні залишки{% endif %}
+            </h5>
             <div class="table-responsive">
                 <table class="table table-sm table-striped">
                     <thead>
                         <tr>
                             <th>Склад</th>
                             <th>Культура</th>
-                            <th class="text-end">Надходження (кг)</th>
-                            <th class="text-end">Відвантажено (кг)</th>
+                            {% if mode == "period" %}
+                                <th class="text-end">Надходження (кг)</th>
+                                <th class="text-end">Відвантажено (кг)</th>
+                            {% endif %}
                             <th class="text-end">Баланс (кг)</th>
                         </tr>
                     </thead>
@@ -68,12 +96,22 @@
                         <tr>
                             <td>{{ r.place_name }}</td>
                             <td>{{ r.culture }}</td>
-                            <td class="text-end">{{ r.in_net|floatformat:2 }}</td>
-                            <td class="text-end">{{ r.out_net|floatformat:2 }}</td>
+                            {% if mode == "period" %}
+                                <td class="text-end">{{ r.in_net|default:"—"|floatformat:2 }}</td>
+                                <td class="text-end">{{ r.out_net|default:"—"|floatformat:2 }}</td>
+                            {% endif %}
                             <td class="text-end">{{ r.balance|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="5" class="text-muted">Немає даних за обраний період.</td></tr>
+                        <tr>
+                            <td colspan="{% if mode == 'period' %}5{% else %}3{% endif %}" class="text-muted text-center">
+                                {% if mode == "period" %}
+                                    Немає даних за обраний період.
+                                {% else %}
+                                    Немає поточних даних.
+                                {% endif %}
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -96,7 +134,6 @@
                 datasets: [{
                     label: 'Баланс (кг)',
                     data: values,
-                    // let Chart.js pick default colors
                 }]
             },
             options: {

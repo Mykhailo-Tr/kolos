@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import datetime
 import csv
 from .forms import WeigherJournalFilterForm, ShipmentJournalFilterForm, ArrivalJournalFilterForm, DailyReportForm, StockBalanceFilterForm
-from logistics.models import WeigherJournal, ShipmentJournal, ArrivalJournal
+from logistics.models import WeigherJournal, ShipmentJournal, ArrivalJournal, StockBalance
 from . import services
 from .services import unify_rows_from_querysets, aggregate_rows, compute_stock_balance
 from datetime import time
@@ -285,55 +285,102 @@ class StockBalanceReportView(TemplateView):
     template_name = "reports/stock_balance_report.html"
 
     def get(self, request, *args, **kwargs):
-        form = StockBalanceFilterForm(request.GET or None)
-        # default dates: today
-        if not form.is_bound:
-            # give defaults via initial
-            today = timezone.now().date()
-            form = StockBalanceFilterForm(initial={"date_from": today, "date_to": today})
+        mode = request.GET.get("mode", "period")  # period або current
 
         rows = []
-        if form.is_bound and form.is_valid():
-            cd = form.cleaned_data
-            rows = compute_stock_balance(
-                cd["date_from"],
-                cd["date_to"],
-                unloading_place=cd.get("unloading_place"),
-                culture=cd.get("culture"),
-                driver=cd.get("driver"),
-                car=cd.get("car"),
-            )
-        else:
-            # first load: show today's balances
-            cd = form.cleaned_data if form.is_valid() else form.initial
-            rows = compute_stock_balance(cd.get("date_from"), cd.get("date_to"))
+        chart_labels = []
+        chart_values = []
 
-        # CSV export
+        # --- Режим за період ---
+        if mode == "period":
+            form = StockBalanceFilterForm(request.GET or None)
+            # якщо форма не прив'язана, даємо дефолтні дати (сьогодні)
+            if not form.is_bound:
+                today = timezone.now().date()
+                form = StockBalanceFilterForm(initial={"date_from": today, "date_to": today})
+
+            if form.is_bound and form.is_valid():
+                cd = form.cleaned_data
+                rows = compute_stock_balance(
+                    cd["date_from"],
+                    cd["date_to"],
+                    unloading_place=cd.get("unloading_place"),
+                    culture=cd.get("culture"),
+                    driver=cd.get("driver"),
+                    car=cd.get("car"),
+                )
+            else:
+                cd = form.cleaned_data if form.is_valid() else form.initial
+                rows = compute_stock_balance(cd.get("date_from"), cd.get("date_to"))
+
+            # Підготовка даних для графіка
+            place_sums = {}
+            for r in rows:
+                place_sums.setdefault(r["place_name"], 0)
+                place_sums[r["place_name"]] += float(r["balance"] or 0)
+
+            chart_labels = list(place_sums.keys())
+            chart_values = list(place_sums.values())
+
+        # --- Поточні залишки ---
+        else:  # mode == "current"
+            form = None
+            qs = StockBalance.objects.all()
+            rows = [
+                {
+                    "place_name": sb.unloading_place.name,
+                    "culture": sb.culture.name,
+                    "balance": sb.quantity
+                }
+                for sb in qs
+            ]
+            # для графіка сумарний баланс по місцям
+            place_sums = {}
+            for r in rows:
+                place_sums.setdefault(r["place_name"], 0)
+                place_sums[r["place_name"]] += float(r["balance"] or 0)
+
+            chart_labels = list(place_sums.keys())
+            chart_values = list(place_sums.values())
+
+        # --- CSV Export ---
         if request.GET.get("export") == "csv":
             response = HttpResponse(content_type="text/csv")
-            fname = f"stock_balance_{cd.get('date_from')}_{cd.get('date_to')}.csv"
+            if mode == "period":
+                fname = f"stock_balance_{cd.get('date_from')}_{cd.get('date_to')}.csv"
+            else:
+                fname = "stock_balance_current.csv"
             response["Content-Disposition"] = f'attachment; filename="{fname}"'
+
             writer = csv.writer(response)
-            writer.writerow(["Place", "Culture", "In (kg)", "Out (kg)", "Balance (kg)"])
-            for r in rows:
-                writer.writerow([r["place_name"], r["culture"], r["in_net"], r["out_net"], r["balance"]])
+            if mode == "period":
+                writer.writerow(["Place", "Culture", "In (kg)", "Out (kg)", "Balance (kg)"])
+                for r in rows:
+                    writer.writerow([
+                        r["place_name"],
+                        r["culture"],
+                        r.get("in_net") or 0,
+                        r.get("out_net") or 0,
+                        r["balance"]
+                    ])
+            else:
+                writer.writerow(["Place", "Culture", "Balance (kg)"])
+                for r in rows:
+                    writer.writerow([
+                        r["place_name"],
+                        r["culture"],
+                        r["balance"]
+                    ])
             return response
 
-        # chart data: сумарний баланс по місцям (як приклад)
-        place_sums = {}
-        for r in rows:
-            place_sums.setdefault(r["place_name"], 0)
-            place_sums[r["place_name"]] += float(r["balance"] or 0)
-
-        chart_labels = list(place_sums.keys())
-        chart_values = list(place_sums.values())
-
         context = {
+            "mode": mode,
             "form": form,
             "rows": rows,
             "chart_labels": chart_labels,
             "chart_values": chart_values,
-            "date_from": cd.get("date_from"),
-            "date_to": cd.get("date_to"),
+            "date_from": cd.get("date_from") if mode == "period" else None,
+            "date_to": cd.get("date_to") if mode == "period" else None,
         }
+
         return render(request, self.template_name, context)

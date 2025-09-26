@@ -341,6 +341,9 @@ class StockBalanceReportView(TemplateView):
             "chart_values": chart_values,
             "date_from": cd.get("date_from") if mode == "period" else None,
             "date_to": cd.get("date_to") if mode == "period" else None,
+            "today": now().date(),
         }
 
         return render(request, self.template_name, context)
+    
+    

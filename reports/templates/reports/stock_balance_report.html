@@ -21,7 +21,15 @@
         class="btn btn-sm btn-outline-secondary">
         CSV
     </a>
+    <button id="btn-send-report" class="btn btn-outline-primary"
+            data-report-type="stock_balance"
+            data-date="{{ selected_date|default:today }}"
+            data-group-by="{{ group_by|default:'none' }}"
+            data-mode="{{ mode|default:'current' }}">
+    Відправити звіт на репорт-сервер
+    </button>
 
+    <span id="send-report-status" class="ms-2"></span>
 
     <!-- Форма фільтрів тільки для режиму "період" -->
     {% if mode == "period" %}
@@ -148,6 +156,82 @@
                 }
             }
         });
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+            }
+        }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    const btn = document.getElementById('btn-send-report');
+    const statusEl = document.getElementById('send-report-status');
+    if (!btn) return;
+
+    btn.addEventListener('click', async function(){
+        const reportType = btn.dataset.reportType;
+        const payload = new URLSearchParams();
+        payload.append('report_type', reportType);
+        if (reportType === 'daily') {
+            payload.append('date', btn.dataset.date || '');
+            payload.append('group_by', btn.dataset.groupBy || 'none');
+        }
+        if (reportType === 'stock_balance') {
+            payload.append('mode', btn.dataset.mode || 'current');
+
+            if (btn.dataset.mode === 'period') {
+                payload.append('date_from', '{{ request.GET.date_from|default:"" }}');
+                payload.append('date_to', '{{ request.GET.date_to|default:"" }}');
+                payload.append('unloading_place', '{{ request.GET.unloading_place|default:"" }}');
+                payload.append('culture', '{{ request.GET.culture|default:"" }}');
+            }
+        }
+
+        statusEl.textContent = 'Відправляю...';
+
+        try {
+        const resp = await fetch("{% url 'reports_send' %}", {
+            method: 'POST',
+            headers: {
+            'X-CSRFToken': csrftoken,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: payload
+        });
+
+        // надійно обробляємо тіло відповіді
+        const contentType = resp.headers.get('content-type') || '';
+        let data;
+        if (contentType.includes('application/json')) {
+            data = await resp.json();
+        } else {
+            // фолбек — текст (ще може бути HTML або plain text)
+            const text = await resp.text();
+            data = { sent: resp.ok ? true : false, status: resp.status, response: text, error: resp.ok ? null : text };
+        }
+
+        if (resp.ok && data.sent !== false) {
+            statusEl.textContent = '✓ Відправлено';
+        } else {
+            const errMsg = data.error || data.response || ('HTTP ' + resp.status);
+            statusEl.textContent = '✕ Помилка: ' + errMsg;
+        }
+
+        } catch (err) {
+        // мережеві помилки, CORS, timeout (fetch не має timeout за замовчуванням)
+        statusEl.textContent = '✕ Помилка: ' + (err.message || err);
+        console.error("Send report error:", err);
+        }
+    });
     })();
 </script>
 {% endblock %}

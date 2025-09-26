@@ -121,3 +121,11 @@ AUTH_USER_MODEL = "accounts.User"
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Report server settings
+REPORT_SERVER_URL = "http://127.0.0.1:5001"
+
+REPORT_SERVER_API_KEY = ""
+
+REPORT_SERVER_REQUEST_TIMEOUT = 10

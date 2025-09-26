@@ -250,17 +250,19 @@ def daily_report(request):
         fname = f"daily_report_{date.isoformat()}.csv"
         response["Content-Disposition"] = f'attachment; filename="{fname}"'
         writer = csv.writer(response)
+    
         # header
-        writer.writerow(["Group", "Culture", "Gross (kg)", "Tare (kg)", "Net (kg)"])
+        writer.writerow([f"Група ({group_by})", "Культура", "Брутто (kg)", "Тара (kg)", "Нетто (kg)"])
         for r in report["table_rows"]:
             writer.writerow([r["group"], r["culture"], r["gross"], r["tare"], r["net"]])
         # totals block
         writer.writerow([])
-        writer.writerow(["Totals", "", "Gross in", report["totals"]["gross_in"]])
-        writer.writerow(["Totals", "", "Net in", report["totals"]["net_in"]])
-        writer.writerow(["Totals", "", "Gross out", report["totals"]["gross_out"]])
-        writer.writerow(["Totals", "", "Net out", report["totals"]["net_out"]])
-        writer.writerow(["Totals", "", "Balance", report["totals"]["balance"]])
+        writer.writerow(["", "", "Брутто завезено", report["totals"]["gross_in"]])
+        writer.writerow(["", "", "Брутто вивезено", report["totals"]["gross_out"]])
+
+        writer.writerow(["", "", "Нетто завезено", report["totals"]["net_in"]])
+        writer.writerow(["", "", "Нетто вивезено", report["totals"]["net_out"]])
+        writer.writerow(["", "", "Загальний залишок", report["totals"]["balance"]])
         return response
 
     # prepare minimal chart data (optional)
@@ -354,7 +356,7 @@ class StockBalanceReportView(TemplateView):
 
             writer = csv.writer(response)
             if mode == "period":
-                writer.writerow(["Place", "Culture", "In (kg)", "Out (kg)", "Balance (kg)"])
+                writer.writerow(["Місце", "Культура", "Завезено (kg)", "Вивезено (kg)", "Баланс (kg)"])
                 for r in rows:
                     writer.writerow([
                         r["place_name"],
@@ -364,7 +366,7 @@ class StockBalanceReportView(TemplateView):
                         r["balance"]
                     ])
             else:
-                writer.writerow(["Place", "Culture", "Balance (kg)"])
+                writer.writerow(["Місце", "Культура", "Баланс (kg)"])
                 for r in rows:
                     writer.writerow([
                         r["place_name"],

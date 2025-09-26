@@ -356,7 +356,7 @@ class StockBalanceReportView(TemplateView):
 
             writer = csv.writer(response)
             if mode == "period":
-                writer.writerow(["Місце", "Культура", "Завезено (kg)", "Вивезено (kg)", "Баланс (kg)"])
+                writer.writerow(["Місце", "Культура", "Завезено (kg)", "Вивезено (kg)", "Залишок (kg)"])
                 for r in rows:
                     writer.writerow([
                         r["place_name"],
@@ -366,7 +366,7 @@ class StockBalanceReportView(TemplateView):
                         r["balance"]
                     ])
             else:
-                writer.writerow(["Місце", "Культура", "Баланс (kg)"])
+                writer.writerow(["Місце", "Культура", "Залишок (kg)"])
                 for r in rows:
                     writer.writerow([
                         r["place_name"],

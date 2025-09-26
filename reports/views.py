@@ -92,6 +92,7 @@ def weigher_journal_report(request):
     }
     return render(request, "reports/weigher_journal_report.html", context)
 
+
 def shipment_journal_report(request):
     form = ShipmentJournalFilterForm(request.GET or None)
 

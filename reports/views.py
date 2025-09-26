@@ -7,12 +7,13 @@ from datetime import timedelta
 from django.utils.timezone import make_aware
 from django.utils import timezone
 from datetime import datetime
-import csv
+from datetime import time
 from .forms import WeigherJournalFilterForm, ShipmentJournalFilterForm, ArrivalJournalFilterForm, DailyReportForm, StockBalanceFilterForm
 from logistics.models import WeigherJournal, ShipmentJournal, ArrivalJournal, StockBalance
 from . import services
 from .services import unify_rows_from_querysets, aggregate_rows, compute_stock_balance
-from datetime import time
+from .utils import export_stock_balance_csv, export_daily_report_csv
+
 
 
 def reports_home(request):
@@ -245,25 +246,7 @@ def daily_report(request):
 
     # export CSV
     if request.GET.get("export") == "csv":
-        # build CSV from report["table_rows"]
-        response = HttpResponse(content_type="text/csv")
-        fname = f"daily_report_{date.isoformat()}.csv"
-        response["Content-Disposition"] = f'attachment; filename="{fname}"'
-        writer = csv.writer(response)
-    
-        # header
-        writer.writerow([f"Група ({group_by})", "Культура", "Брутто (kg)", "Тара (kg)", "Нетто (kg)"])
-        for r in report["table_rows"]:
-            writer.writerow([r["group"], r["culture"], r["gross"], r["tare"], r["net"]])
-        # totals block
-        writer.writerow([])
-        writer.writerow(["", "", "Брутто завезено", report["totals"]["gross_in"]])
-        writer.writerow(["", "", "Брутто вивезено", report["totals"]["gross_out"]])
-
-        writer.writerow(["", "", "Нетто завезено", report["totals"]["net_in"]])
-        writer.writerow(["", "", "Нетто вивезено", report["totals"]["net_out"]])
-        writer.writerow(["", "", "Загальний залишок", report["totals"]["balance"]])
-        return response
+        return export_daily_report_csv(report, date, group_by)
 
     # prepare minimal chart data (optional)
     chart_labels = [r["group"] + " — " + r["culture"] for r in report["table_rows"][:30]]  # limit
@@ -347,33 +330,7 @@ class StockBalanceReportView(TemplateView):
 
         # --- CSV Export ---
         if request.GET.get("export") == "csv":
-            response = HttpResponse(content_type="text/csv")
-            if mode == "period":
-                fname = f"stock_balance_{cd.get('date_from')}_{cd.get('date_to')}.csv"
-            else:
-                fname = "stock_balance_current.csv"
-            response["Content-Disposition"] = f'attachment; filename="{fname}"'
-
-            writer = csv.writer(response)
-            if mode == "period":
-                writer.writerow(["Місце", "Культура", "Завезено (kg)", "Вивезено (kg)", "Залишок (kg)"])
-                for r in rows:
-                    writer.writerow([
-                        r["place_name"],
-                        r["culture"],
-                        r.get("in_net") or 0,
-                        r.get("out_net") or 0,
-                        r["balance"]
-                    ])
-            else:
-                writer.writerow(["Місце", "Культура", "Залишок (kg)"])
-                for r in rows:
-                    writer.writerow([
-                        r["place_name"],
-                        r["culture"],
-                        r["balance"]
-                    ])
-            return response
+            return export_stock_balance_csv(mode, rows, cd if mode == "period" else None)
 
         context = {
             "mode": mode,

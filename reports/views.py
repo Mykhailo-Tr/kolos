@@ -263,6 +263,7 @@ def daily_report(request):
         "chart_values": chart_values,
         "selected_date": date,
         "group_by": group_by,
+        "today": now().date(),
     }
     return render(request, "reports/daily_report.html", context)
 

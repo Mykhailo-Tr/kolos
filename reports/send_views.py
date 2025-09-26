@@ -40,7 +40,8 @@ def send_report(request):
         if date_str:
             try:
                 date = datetime.date.fromisoformat(date_str)
-            except Exception:
+            except Exception as er:
+                print(f'Error parsing date "{date_str}":', er)
                 return HttpResponseBadRequest("Invalid date")
         else:
             date = datetime.date.today()
@@ -67,6 +68,7 @@ def send_report(request):
         csv_content = generate_daily_csv_string(report, date)
         name = f"daily_report_{date.isoformat()}"
         result = send_report_to_server(name, csv_content)
+        
         return JsonResponse({"sent": result["ok"], "status": result["status_code"], "response": result["response"], "error": result["error"]})
 
     # STOCK BALANCE

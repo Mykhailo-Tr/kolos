@@ -13,22 +13,42 @@ logger = logging.getLogger(__name__)
 
 def generate_daily_csv_string(report: dict, date) -> str:
     """
-    Повертає CSV як str для daily report (reuse logic from export_daily_report_csv)
+    Повертає CSV як str для daily report
     """
     out = io.StringIO()
-    writer = csv.writer(out)
-    writer.writerow([f"Група ({report.get('group_by', 'none')})", "Культура", "Брутто (kg)", "Тара (kg)", "Нетто (kg)"])
+    writer = csv.writer(out, quoting=csv.QUOTE_MINIMAL)
+    
+    # заголовок
+    writer.writerow([
+        f"Група ({report.get('group_by', 'none')})",
+        "Культура",
+        "Брутто (kg)",
+        "Тара (kg)",
+        "Нетто (kg)"
+    ])
+    
+    # рядки таблиці
     for r in report.get("table_rows", []):
-        writer.writerow([r.get("group"), r.get("culture"), r.get("gross"), r.get("tare"), r.get("net")])
+        group = r.get("group") or ""
+        culture = r.get("culture") or ""
+        gross = float(r.get("gross") or 0)
+        tare = float(r.get("tare") or 0)
+        net = float(r.get("net") or 0)
+        writer.writerow([group, culture, gross, tare, net])
+    
+    # пустий рядок
     writer.writerow([])
+    
     totals = report.get("totals", {})
-    writer.writerow(["", "", "Брутто завезено", totals.get("gross_in", 0)])
-    writer.writerow(["", "", "Брутто вивезено", totals.get("gross_out", 0)])
-    writer.writerow(["", "", "Нетто завезено", totals.get("net_in", 0)])
-    writer.writerow(["", "", "Нетто вивезено", totals.get("net_out", 0)])
-    writer.writerow(["", "", "Загальний залишок", totals.get("balance", 0)])
-    return out.getvalue()
+    writer.writerow(["", "", "Брутто завезено", float(totals.get("gross_in", 0))])
+    writer.writerow(["", "", "Брутто вивезено", float(totals.get("gross_out", 0))])
+    writer.writerow(["", "", "Нетто завезено", float(totals.get("net_in", 0))])
+    writer.writerow(["", "", "Нетто вивезено", float(totals.get("net_out", 0))])
+    writer.writerow(["", "", "Загальний залишок", float(totals.get("balance", 0))])
 
+    print(report)
+    print("Generated CSV: ", out.getvalue())
+    return out.getvalue()
 
 def generate_stock_balance_csv_string(mode: str, rows: list, cd: dict = None) -> Tuple[str, str]:
     """

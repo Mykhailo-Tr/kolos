@@ -70,6 +70,8 @@ def send_report(request):
         csv_content = generate_daily_csv_string(report, date)
         result = send_report_to_server(name, csv_content)
         
+        if result["status_code"] == 409:
+            return JsonResponse({"sent": False, "error": "Цей звіт вже існує."}, status=409) 
         return JsonResponse({"sent": result["ok"], "status": result["status_code"], "response": result["response"], "error": result["error"]})
 
     # STOCK BALANCE
@@ -109,6 +111,9 @@ def send_report(request):
             fname, csv_content = generate_stock_balance_csv_string("current", rows)
 
         result = send_report_to_server(name, csv_content)
+        
+        if result["status_code"] == 409:
+            return JsonResponse({"sent": False, "error": "Цей звіт вже існує."}, status=409) 
         return JsonResponse({"sent": result["ok"], "status": result["status_code"], "response": result["response"], "error": result["error"]})
 
     else:

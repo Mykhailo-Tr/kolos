@@ -19,7 +19,7 @@
     <!-- Експорт CSV тільки для звіту за період -->
     <a href="?mode={{ mode }}&export=csv{% if mode == 'period' %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% endif %}"
         class="btn btn-sm btn-outline-secondary">
-        CSV
+        ⬇ Експорт CSV
     </a>
     <div class="d-inline-block ms-3">
         <label for="name" class="form-label d-block small mt-2">Ім'я файлу на репорт-сервері:</label>

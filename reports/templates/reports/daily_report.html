@@ -4,9 +4,8 @@
 <div class="container-fluid mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>📅 Денний звіт — {{ selected_date }}</h3>
-    <div>
-      <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}export=csv" class="btn btn-outline-secondary">⬇ Експорт CSV</a>
-    </div>
+  </div>
+  <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}export=csv" class="btn btn-outline-secondary">⬇ Експорт CSV</a>
     <div class="d-inline-block ms-3">
       <label for="name" class="form-label d-block small mt-2">Ім'я файлу на репорт-сервері:</label>
       <input name="name" type="text" class="form-control form-control-sm"
@@ -20,8 +19,6 @@
       </button>
       <span id="send-report-status" class="ms-2"></span>
     </div>
-
-  </div>
 
   <form method="get" class="mb-3">
     <div class="row g-2 align-items-end">

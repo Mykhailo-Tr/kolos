@@ -124,7 +124,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Report server settings
-REPORT_SERVER_URL = "http://127.0.0.1:5001"
+REPORT_SERVER_URL = "https://ee8c0870-941c-42e5-ad22-e479d4a1584d-00-22g2b0rbgzktm.kirk.replit.dev:5000/"
 
 REPORT_SERVER_API_KEY = ""
 

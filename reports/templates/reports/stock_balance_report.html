@@ -21,15 +21,21 @@
         class="btn btn-sm btn-outline-secondary">
         CSV
     </a>
-    <button id="btn-send-report" class="btn btn-outline-primary"
+    <div class="d-inline-block ms-3">
+        <label for="name" class="form-label d-block small mt-2">Ім'я файлу на репорт-сервері:</label>
+        <input name="name" type="text" class="form-control form-control-sm"
+            placeholder="Ім'я файлу на репорт-сервері"
+            value="{% if mode == 'period' %}stock_balance_report_period.csv{% else %}stock_balance_report_current.csv{% endif %}">
+        <button id="btn-send-report" class="btn btn-outline-primary"
             data-report-type="stock_balance"
             data-date="{{ selected_date|default:today }}"
             data-group-by="{{ group_by|default:'none' }}"
             data-mode="{{ mode|default:'current' }}">
-    Відправити звіт на репорт-сервер
-    </button>
+        Відправити звіт на репорт-сервер
+        </button>
+        <span id="send-report-status" class="ms-2"></span>
+    </div>
 
-    <span id="send-report-status" class="ms-2"></span>
 
     <!-- Форма фільтрів тільки для режиму "період" -->
     {% if mode == "period" %}
@@ -181,6 +187,7 @@
         const payload = new URLSearchParams();
         payload.append('report_type', reportType);
         if (reportType === 'daily') {
+            payload.append('name', document.querySelector('input[name="name"]').value || '');
             payload.append('date', btn.dataset.date || '');
             payload.append('group_by', btn.dataset.groupBy || 'none');
         }
@@ -188,6 +195,7 @@
             payload.append('mode', btn.dataset.mode || 'current');
 
             if (btn.dataset.mode === 'period') {
+                payload.append('name', document.querySelector('input[name="name"]').value || '');
                 payload.append('date_from', '{{ request.GET.date_from|default:"" }}');
                 payload.append('date_to', '{{ request.GET.date_to|default:"" }}');
                 payload.append('unloading_place', '{{ request.GET.unloading_place|default:"" }}');

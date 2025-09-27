@@ -36,6 +36,8 @@ def send_report(request):
         # reuse your existing logic to build report
         date_str = request.POST.get("date")
         group_by = request.POST.get("group_by", "none")
+        default_name = "daily_report_{date_str}_{group_by}_{date}.csv".format(date_str=date_str, group_by=group_by)
+        name = request.POST.get("name", default_name)
         # parse date
         if date_str:
             try:
@@ -66,7 +68,6 @@ def send_report(request):
         rows = unify_rows_from_querysets(w_qs, s_qs, a_qs)
         report = aggregate_rows(rows, group_by=group_by)
         csv_content = generate_daily_csv_string(report, date)
-        name = f"daily_report_{date.isoformat()}"
         result = send_report_to_server(name, csv_content)
         
         return JsonResponse({"sent": result["ok"], "status": result["status_code"], "response": result["response"], "error": result["error"]})
@@ -74,6 +75,10 @@ def send_report(request):
     # STOCK BALANCE
     elif report_type == "stock_balance":
         mode = request.POST.get("mode", "period")
+        default_name = "stock_balance_report_{mode}.csv".format(mode=mode)
+        name = request.POST.get("name", default_name)
+        print("default_name:", default_name)
+        print("name:", name)
         print("mode:", mode)
         if mode == "period":
             date_from = request.POST.get("date_from")
@@ -103,7 +108,6 @@ def send_report(request):
             rows = [{"place_name": sb.unloading_place.name, "culture": sb.culture.name, "balance": sb.quantity} for sb in qs]
             fname, csv_content = generate_stock_balance_csv_string("current", rows)
 
-        name = fname
         result = send_report_to_server(name, csv_content)
         return JsonResponse({"sent": result["ok"], "status": result["status_code"], "response": result["response"], "error": result["error"]})
 

@@ -85,6 +85,8 @@ def send_report(request):
         if mode == "period":
             date_from = request.POST.get("date_from")
             date_to = request.POST.get("date_to")
+            if len(date_from) == 0 or len(date_to) == 0:
+                return HttpResponseBadRequest("Missing date_from/date_to")
             try:
                 df = datetime.date.fromisoformat(date_from) if date_from else None
                 dt = datetime.date.fromisoformat(date_to) if date_to else None

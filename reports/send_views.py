@@ -36,7 +36,7 @@ def send_report(request):
         # reuse your existing logic to build report
         date_str = request.POST.get("date")
         group_by = request.POST.get("group_by", "none")
-        default_name = "daily_report_{date_str}_{group_by}_{date}.csv".format(date_str=date_str, group_by=group_by)
+        default_name = "daily_report_{date_str}_{group_by}_{date_str}.csv".format(date_str=date_str, group_by=group_by)
         name = request.POST.get("name", default_name)
         # parse date
         if date_str:

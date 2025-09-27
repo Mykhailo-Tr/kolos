@@ -7,13 +7,19 @@
     <div>
       <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}export=csv" class="btn btn-outline-secondary">⬇ Експорт CSV</a>
     </div>
-    <button id="btn-send-report" class="btn btn-outline-primary"
-            data-report-type="daily"
-            data-date="{{ selected_date|default:today }}"
-            data-group-by="{{ group_by|default:'none' }}">
-    Відправити звіт на репорт-сервер
-    </button>
-    <span id="send-report-status" class="ms-2"></span>
+    <div class="d-inline-block ms-3">
+      <label for="name" class="form-label d-block small mt-2">Ім'я файлу на репорт-сервері:</label>
+      <input name="name" type="text" class="form-control form-control-sm"
+             placeholder="Ім'я файлу на репорт-сервері"
+             value="{% if mode == 'period' %}daily_report_period.csv{% else %}daily_report_current.csv{% endif %}">
+      <button id="btn-send-report" class="btn btn-outline-primary"
+              data-report-type="daily"
+              data-date="{{ selected_date|default:today }}"
+              data-group-by="{{ group_by|default:'none' }}">
+      Відправити звіт на репорт-сервер
+      </button>
+      <span id="send-report-status" class="ms-2"></span>
+    </div>
 
   </div>
 
@@ -216,6 +222,7 @@
         payload.append('report_type', reportType);
         if (reportType === 'daily') {
             const date = document.querySelector('input[name="date"]').value;
+            payload.append('name', document.querySelector('input[name="name"]').value || '');
             payload.append('date', date || '');
             payload.append('group_by', btn.dataset.groupBy || 'none');
         }

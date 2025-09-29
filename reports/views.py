@@ -252,7 +252,7 @@ def daily_report(request):
     # prepare minimal chart data (optional)
     chart_labels = [r["group"] + " — " + r["culture"] for r in report["table_rows"][:30]]  # limit
     chart_values = [r["net"] for r in report["table_rows"][:30]]
-
+    edited_selected_date = date.strftime("%Y-%m-%d") if date else ""
     context = {
         "form": form,
         "report": report,
@@ -262,6 +262,7 @@ def daily_report(request):
         "chart_labels": chart_labels,
         "chart_values": chart_values,
         "selected_date": date,
+        "edited_selected_date": edited_selected_date,
         "group_by": group_by,
         "today": now().date(),
     }

@@ -4,9 +4,10 @@ from django.db import transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
 from transliterate import translit
-
-
 import unicodedata
+
+from activity.utils import log_activity
+
 from directory.models import Driver, Culture, Partner, Car, Trailer
 from ..models import WeigherJournal
 from ..forms import WeigherJournalForm
@@ -24,6 +25,9 @@ def weigher_journal_create(request):
             form = WeigherJournalForm(data)
             if form.is_valid():
                 form.save()
+                entry = form.instance
+                log_activity(request.user, "create", f"Додав рейс №{entry.document_number}")
+
                 return redirect("weigher_journal_list")
             else:
                 print(form.errors)

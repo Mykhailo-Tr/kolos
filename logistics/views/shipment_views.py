@@ -3,6 +3,8 @@ from django.db import transaction
 from django.db.models import Q
 from directory.models import Driver, Culture, Partner, Car, Trailer
 from django.core.paginator import Paginator
+
+from activity.utils import log_activity
 from ..models import ShipmentJournal
 from ..forms import ShipmentJournalForm
 from ..utils import _normalize_fk_fields
@@ -66,6 +68,7 @@ def shipment_journal_create(request):
             form = ShipmentJournalForm(data)
             if form.is_valid():
                 form.save()
+                log_activity(request.user, "create", f"Додав відвантаження №{form.instance.document_number}")
                 return redirect("shipment_journal_list")
             else:
                 print(form.errors)
@@ -91,6 +94,7 @@ def shipment_journal_update(request, pk):
             form = ShipmentJournalForm(data, instance=entry)
             if form.is_valid():
                 form.save()
+                log_activity(request.user, "update", f"Редагував відвантаження №{entry.document_number}")
                 return redirect("shipment_journal_list")
             else:
                 print(form.errors)
@@ -109,4 +113,5 @@ def shipment_journal_delete(request, pk):
     entry = get_object_or_404(ShipmentJournal, pk=pk)
     if request.method == "POST":
         entry.delete()
+        log_activity(request.user, "delete", f"Видалив відвантаження №{entry.document_number}")
     return redirect("shipment_journal_list")

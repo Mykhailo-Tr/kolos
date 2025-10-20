@@ -50,6 +50,7 @@ def weigher_journal_update(request, pk):
             form = WeigherJournalForm(data, instance=entry)
             if form.is_valid():
                 form.save()
+                log_activity(request.user, "update", f"Редагував рейс №{entry.document_number}")
                 return redirect("weigher_journal_list")
             else:
                 pass
@@ -148,4 +149,5 @@ def weigher_journal_delete(request, pk):
     entry = get_object_or_404(WeigherJournal, pk=pk)
     if request.method == "POST":
         entry.delete()
+        log_activity(request.user, "delete", f"Видалив рейс №{entry.document_number}")
     return redirect("weigher_journal_list")

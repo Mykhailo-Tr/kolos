@@ -3,6 +3,8 @@ from django.db import transaction
 from django.db.models import Q
 from directory.models import Driver, Culture, Partner, Car, Trailer
 from django.core.paginator import Paginator
+
+from activity.utils import log_activity
 from ..models import ArrivalJournal
 from ..forms import ArrivalJournalForm
 from ..utils import _normalize_fk_fields
@@ -34,8 +36,8 @@ def arrival_journal_list(request):
             Q(receiver__name__icontains=q)
         )
 
-    # ✅ Пагінація (10 записів на сторінці)
-    paginator = Paginator(entrys, 10)
+    # ✅ Пагінація (20 записів на сторінці)
+    paginator = Paginator(entrys, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -62,6 +64,7 @@ def arrival_journal_create(request):
             form = ArrivalJournalForm(data)
             if form.is_valid():
                 form.save()
+                log_activity(request.user, "create", f"Додав прибуття №{form.instance.document_number}")
                 return redirect("arrival_journal_list")
             else:
                 print(form.errors)
@@ -84,6 +87,7 @@ def arrival_journal_update(request, pk):
             form = ArrivalJournalForm(data, instance=entry)
             if form.is_valid():
                 form.save()
+                log_activity(request.user, "update", f"Редагував прибуття №{entry.document_number}")
                 return redirect("arrival_journal_list")
             else:
                 pass
@@ -100,4 +104,5 @@ def arrival_journal_delete(request, pk):
     entry = get_object_or_404(ArrivalJournal, pk=pk)
     if request.method == "POST":
         entry.delete()
+        log_activity(request.user, "delete", f"Видалив прибуття №{entry.document_number}")
     return redirect("arrival_journal_list")

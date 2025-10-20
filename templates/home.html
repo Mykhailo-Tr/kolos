@@ -2,12 +2,57 @@
 
 {% block content %}
 <div class="container mt-5">
-    {% if not request.user.is_authenticated %}
-        <h2>Ласкаво просимо на головну сторінку!</h2>
-        <p>Будь ласка, <a href="{% url 'login' %}">увійдіть</a> або <a href="{% url 'register' %}">зареєструйтесь</a>, щоб продовжити.</p>
-    {% else %}
-        <h2>Вітаю, {{ request.user.first_name }} {{ request.user.last_name }}!</h2>
-        <p>Ваша роль: <b>{{ request.user.get_role_display }}</b></p>
-    {% endif %}
+  {% if not request.user.is_authenticated %}
+    <h2>Ласкаво просимо!</h2>
+    <p>Будь ласка, <a href="{% url 'login' %}">увійдіть</a> або <a href="{% url 'register' %}">зареєструйтесь</a>.</p>
+  {% else %}
+    <h2>Вітаю, {{ request.user.first_name }} {{ request.user.last_name }}!</h2>
+    <p>Ваша роль: <b>{{ request.user.get_role_display }}</b></p>
+
+    <hr class="my-4">
+
+    <h3 class="mb-4">🕓 Історія ваших дій</h3>
+
+    <div class="btn-group mb-4">
+      <a href="?period=today" class="btn btn-outline-primary {% if filter_period == 'today' %}active{% endif %}">Сьогодні</a>
+      <a href="?period=week" class="btn btn-outline-primary {% if filter_period == 'week' %}active{% endif %}">Тиждень</a>
+      <a href="?period=month" class="btn btn-outline-primary {% if filter_period == 'month' %}active{% endif %}">Місяць</a>
+      <a href="?period=all" class="btn btn-outline-primary {% if filter_period == 'all' %}active{% endif %}">Всі</a>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3">
+      <div class="card-body">
+        {% if logs %}
+          <table class="table align-middle table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Дата і час</th>
+                <th>Дія</th>
+                <th>Опис</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in logs %}
+              <tr class="
+                {% if log.action == 'create' %}table-success
+                {% elif log.action == 'update' %}table-warning
+                {% elif log.action == 'delete' %}table-danger
+                {% elif log.action == 'login' %}table-info
+                {% elif log.action == 'logout' %}table-secondary
+                {% else %}table-light{% endif %}
+              ">
+                <td>{{ log.created_at|date:"d.m.Y H:i" }}</td>
+                <td><b>{{ log.get_action_display }}</b></td>
+                <td>{{ log.description }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="text-muted text-center">Поки що немає записів активності.</p>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

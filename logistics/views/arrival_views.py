@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from django.db.models import Q
 from directory.models import Driver, Culture, Partner, Car, Trailer
+from django.core.paginator import Paginator
 from ..models import ArrivalJournal
 from ..forms import ArrivalJournalForm
 from ..utils import _normalize_fk_fields
@@ -22,7 +23,7 @@ def arrival_journal_list(request):
     if request.GET.get("receiver"):
         entrys = entrys.filter(receiver_id__iexact=request.GET["receiver"])
 
-    # пошук по кількох полях
+    # пошук
     if request.GET.get("q"):
         q = request.GET["q"].strip()
         entrys = entrys.filter(
@@ -33,8 +34,14 @@ def arrival_journal_list(request):
             Q(receiver__name__icontains=q)
         )
 
+    # ✅ Пагінація (10 записів на сторінці)
+    paginator = Paginator(entrys, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
     return render(request, "logistics/arrival_journal_list.html", {
-        "entrys": entrys,
+        "entrys": page_obj,  # замість entrys передаємо page_obj
+        "page_obj": page_obj,
         "page": "arrival_journals",
         "cars": Car.objects.all().order_by("number"),
         "drivers": Driver.objects.all().order_by("full_name"),

@@ -117,7 +117,7 @@ def weigher_journal_list(request):
 
     # --- Pagination ---
     page = request.GET.get("page", 1)
-    paginator = Paginator(entrys, 20)  # 25 entries per page
+    paginator = Paginator(entrys, 20)  # 20 entries per page
     try:
         entrys_page = paginator.page(page)
     except PageNotAnInteger:

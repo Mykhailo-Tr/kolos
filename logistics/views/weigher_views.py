@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
 from transliterate import translit
+
 
 import unicodedata
 from directory.models import Driver, Culture, Partner, Car, Trailer
@@ -70,27 +72,28 @@ def normalize_query(q):
     return list(variants)
 
 
+
 def weigher_journal_list(request):
     entrys = WeigherJournal.objects.all().order_by("-date_time")
 
-    # фільтрація по ForeignKey (ID → exact)
-    if request.GET.get("car"):
-        entrys = entrys.filter(car_id=request.GET["car"])
-    if request.GET.get("driver"):
-        entrys = entrys.filter(driver_id=request.GET["driver"])
-    if request.GET.get("culture"):
-        entrys = entrys.filter(culture_id=request.GET["culture"])
-    if request.GET.get("sender"):
-        entrys = entrys.filter(sender_id=request.GET["sender"])
-    if request.GET.get("receiver"):
-        entrys = entrys.filter(receiver_id=request.GET["receiver"])
+    # --- Filtering ---
+    filters = {
+        "car_id": request.GET.get("car"),
+        "driver_id": request.GET.get("driver"),
+        "culture_id": request.GET.get("culture"),
+        "sender_id": request.GET.get("sender"),
+        "receiver_id": request.GET.get("receiver"),
+    }
+    filters = {k: v for k, v in filters.items() if v}  # remove empty
+    if filters:
+        entrys = entrys.filter(**filters)
 
-    # пошук з урахуванням регістру і мови
-    if request.GET.get("q"):
-        q = request.GET["q"].strip()
+    # --- Search ---
+    q = request.GET.get("q")
+    if q:
+        q = q.strip()
         variants = normalize_query(q)
 
-        # приводимо поля в lower
         entrys = entrys.annotate(
             document_number_lower=Lower("document_number"),
             car_number_lower=Lower("car__number"),
@@ -110,20 +113,32 @@ def weigher_journal_list(request):
                 Q(sender_name_lower__contains=variant) |
                 Q(receiver_name_lower__contains=variant)
             )
-
         entrys = entrys.filter(queries)
 
+    # --- Pagination ---
+    page = request.GET.get("page", 1)
+    paginator = Paginator(entrys, 20)  # 25 entries per page
+    try:
+        entrys_page = paginator.page(page)
+    except PageNotAnInteger:
+        entrys_page = paginator.page(1)
+    except EmptyPage:
+        entrys_page = paginator.page(paginator.num_pages)
+
+    # --- Context ---
     context = {
-        "entrys": entrys,
+        "entrys": entrys_page,
+        "paginator": paginator,
+        "is_paginated": paginator.num_pages > 1,
         "cars": Car.objects.all(),
         "drivers": Driver.objects.all(),
         "cultures": Culture.objects.all(),
         "senders": Partner.objects.all(),
         "receivers": Partner.objects.all(),
         "page": "weigher_journals",
+        "query": request.GET,  # to preserve filters in pagination links
     }
     return render(request, "logistics/weigher_journal_list.html", context)
-
 
 def weigher_journal_delete(request, pk):
     entry = get_object_or_404(WeigherJournal, pk=pk)

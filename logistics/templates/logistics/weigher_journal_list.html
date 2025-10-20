@@ -95,7 +95,7 @@
         <tbody>
         {% for entry in entrys %}
         <tr>
-            <td>{{ forloop.counter }}</td>
+            <td>{{ forloop.counter|add:entrys.start_index|add:-1 }}</td>
             <td>{{ entry.document_number }}</td>
             <td>{{ entry.date_time|date:"d.m.Y H:i" }}</td>
             <td>{{ entry.sender }}</td>
@@ -140,5 +140,40 @@
         {% endfor %}
         </tbody>
     </table>
+    {% if is_paginated %}
+        <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-4">
+            {% if entrys.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for k, v in query.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ entrys.previous_page_number }}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+
+            {% for num in entrys.paginator.page_range %}
+            {% if entrys.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > entrys.number|add:-3 and num < entrys.number|add:3 %}
+                <li class="page-item">
+                <a class="page-link" href="?{% for k, v in query.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if entrys.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for k, v in query.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ entrys.next_page_number }}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            {% endif %}
+        </ul>
+        </nav>
+    {% endif %}
 </div>
 {% endblock %}

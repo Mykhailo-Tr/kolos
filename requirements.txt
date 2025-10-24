@@ -1,0 +1,20 @@
+# Django core
+Django
+
+# Autocomplete fields
+django-autocomplete-light
+
+# Template tweaks
+django-widget-tweaks
+
+# Reports / API integration (якщо плануєш роботу з API)
+requests
+
+# Для роботи з .env файлами (зручно при Docker)
+python-dotenv
+
+# Для форматування дат/часу
+pytz
+
+gunicorn
+transliterate

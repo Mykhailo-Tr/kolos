@@ -112,7 +112,10 @@ def send_report(request):
             rows = [{"place_name": sb.unloading_place.name, "culture": sb.culture.name, "balance": sb.quantity} for sb in qs]
             fname, csv_content = generate_stock_balance_csv_string("current", rows)
 
-        result = send_report_to_server(name, csv_content)
+        if date_from and date_to:
+            result = send_report_to_server(name, csv_content, date_from=date_from, date_to=date_to)
+        else:
+            result = send_report_to_server(name, csv_content)
         
         if result["status_code"] == 409:
             return JsonResponse({"sent": False, "error": "Цей звіт вже існує."}, status=409) 

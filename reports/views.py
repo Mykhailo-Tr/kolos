@@ -309,6 +309,8 @@ class StockBalanceReportView(TemplateView):
 
             chart_labels = list(place_sums.keys())
             chart_values = list(place_sums.values())
+            
+            name_of_file = f"stock_balance_{cd.get('date_from')}:{cd.get('date_to')}.csv"
 
         # --- Поточні залишки ---
         else:  # mode == "current"
@@ -330,11 +332,15 @@ class StockBalanceReportView(TemplateView):
 
             chart_labels = list(place_sums.keys())
             chart_values = list(place_sums.values())
+            
+            name_of_file = f"stock_balance_{now().date()}.csv"
 
         # --- CSV Export ---
         if request.GET.get("export") == "csv":
             return export_stock_balance_csv(mode, rows, cd if mode == "period" else None)
 
+        
+        
         context = {
             "mode": mode,
             "form": form,
@@ -344,6 +350,7 @@ class StockBalanceReportView(TemplateView):
             "date_from": cd.get("date_from") if mode == "period" else None,
             "date_to": cd.get("date_to") if mode == "period" else None,
             "today": now().date(),
+            "name_of_file": name_of_file,
         }
 
         return render(request, self.template_name, context)

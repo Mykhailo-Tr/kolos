@@ -70,7 +70,7 @@ def generate_stock_balance_csv_string(mode: str, rows: list, cd: dict = None) ->
     return fname, out.getvalue()
 
 
-def send_report_to_server(name: str, content: str, as_json: bool = False) -> dict:
+def send_report_to_server(name: str, content: str, as_json: bool = False, date_from: str = None, date_to: str = None) -> dict:
     """
     Відправляє на REPORT_SERVER_URL/api/reports/upload
     Повертає dict з результатом: {"ok": bool, "status_code": int, "response": <text_or_json>, "error": <message>}
@@ -79,7 +79,7 @@ def send_report_to_server(name: str, content: str, as_json: bool = False) -> dic
     headers = {"User-Agent": "Django-Report-Sender/1.0"}
     if settings.REPORT_SERVER_API_KEY:
         headers["Authorization"] = f"Bearer {settings.REPORT_SERVER_API_KEY}"
-    payload = {"name": name, "content": content}
+    payload = {"name": name, "content": content, "date_from": date_from, "date_to": date_to}
     try:
         # надсилаємо JSON (Flask-сервер з вашого прикладу приймає JSON)
         resp = requests.post(url, json=payload, headers=headers, timeout=getattr(settings, "REPORT_SERVER_REQUEST_TIMEOUT", 10))

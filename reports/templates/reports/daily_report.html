@@ -10,7 +10,7 @@
       <label for="name" class="form-label d-block small mt-2">Ім'я файлу на репорт-сервері:</label>
       <input name="name" type="text" class="form-control form-control-sm"
              placeholder="Ім'я файлу на репорт-сервері"
-             value="daily_report_{{ edited_selected_date }}.csv">
+             value="daily_report_{{ edited_selected_date }}">
       <button id="btn-send-report" class="btn btn-outline-primary"
               data-report-type="daily"
               data-date="{{ selected_date|default:today }}"

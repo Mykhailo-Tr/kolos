@@ -25,7 +25,7 @@
         <label for="name" class="form-label d-block small mt-2">Ім'я файлу на репорт-сервері:</label>
         <input name="name" type="text" class="form-control form-control-sm"
             placeholder="Ім'я файлу на репорт-сервері"
-            value="{% if mode == 'period' %}stock_balance_report_period.csv{% else %}stock_balance_report_current.csv{% endif %}">
+            value="{{ name_of_file|default:'stock_balance_report' }}">
         <button id="btn-send-report" class="btn btn-outline-primary"
             data-report-type="stock_balance"
             data-date="{{ selected_date|default:today }}"

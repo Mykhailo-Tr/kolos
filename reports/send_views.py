@@ -82,17 +82,22 @@ def send_report(request):
         print("default_name:", default_name)
         print("name:", name)
         print("mode:", mode)
+        
+        # Ініціалізуємо змінні для обох режимів
+        date_from = None
+        date_to = None
+        
         if mode == "period":
             date_from = request.POST.get("date_from")
             date_to = request.POST.get("date_to")
-            if len(date_from) == 0 or len(date_to) == 0:
+            if not date_from or not date_to:
                 return HttpResponseBadRequest("Missing date_from/date_to")
             try:
                 df = datetime.date.fromisoformat(date_from) if date_from else None
                 dt = datetime.date.fromisoformat(date_to) if date_to else None
             except Exception as er:
                 print(er)
-                return HttpResponseBadRequest("Invalid date_from/date_to", er)
+                return HttpResponseBadRequest("Invalid date_from/date_to")
 
             unloading_place = request.POST.get("unloading_place") or None
             culture = request.POST.get("culture") or None
@@ -108,10 +113,12 @@ def send_report(request):
             )
             fname, csv_content = generate_stock_balance_csv_string("period", rows, {"date_from": date_from, "date_to": date_to})
         else:
+            # mode == "current"
             qs = StockBalance.objects.all()
             rows = [{"place_name": sb.unloading_place.name, "culture": sb.culture.name, "balance": sb.quantity} for sb in qs]
             fname, csv_content = generate_stock_balance_csv_string("current", rows)
 
+        # Тепер date_from і date_to завжди визначені (можуть бути None)
         if date_from and date_to:
             result = send_report_to_server(name, csv_content, date_from=date_from, date_to=date_to)
         else:

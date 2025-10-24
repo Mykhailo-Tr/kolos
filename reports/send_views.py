@@ -77,24 +77,27 @@ def send_report(request):
     # STOCK BALANCE
     elif report_type == "stock_balance":
         mode = request.POST.get("mode", "period")
-        default_name = "stock_balance_report_{mode}.csv".format(mode=mode)
+        default_name = f"stock_balance_report_{mode}.csv"
         name = request.POST.get("name", default_name)
+
         print("default_name:", default_name)
         print("name:", name)
         print("mode:", mode)
-        
-        # Ініціалізуємо змінні для обох режимів
+
+        # 🔹 Ініціалізація, щоб уникнути UnboundLocalError
         date_from = None
         date_to = None
-        
+
         if mode == "period":
             date_from = request.POST.get("date_from")
             date_to = request.POST.get("date_to")
+
             if not date_from or not date_to:
                 return HttpResponseBadRequest("Missing date_from/date_to")
+
             try:
-                df = datetime.date.fromisoformat(date_from) if date_from else None
-                dt = datetime.date.fromisoformat(date_to) if date_to else None
+                df = datetime.date.fromisoformat(date_from)
+                dt = datetime.date.fromisoformat(date_to)
             except Exception as er:
                 print(er)
                 return HttpResponseBadRequest("Invalid date_from/date_to")
@@ -111,22 +114,29 @@ def send_report(request):
                 driver=driver,
                 car=car
             )
-            fname, csv_content = generate_stock_balance_csv_string("period", rows, {"date_from": date_from, "date_to": date_to})
+            fname, csv_content = generate_stock_balance_csv_string(
+                "period", rows, {"date_from": date_from, "date_to": date_to}
+            )
         else:
-            # mode == "current"
             qs = StockBalance.objects.all()
-            rows = [{"place_name": sb.unloading_place.name, "culture": sb.culture.name, "balance": sb.quantity} for sb in qs]
+            rows = [
+                {"place_name": sb.unloading_place.name, "culture": sb.culture.name, "balance": sb.quantity}
+                for sb in qs
+            ]
             fname, csv_content = generate_stock_balance_csv_string("current", rows)
 
-        # Тепер date_from і date_to завжди визначені (можуть бути None)
+        # 🔹 Тепер це безпечно: date_from/date_to завжди існують
         if date_from and date_to:
             result = send_report_to_server(name, csv_content, date_from=date_from, date_to=date_to)
         else:
             result = send_report_to_server(name, csv_content)
-        
-        if result["status_code"] == 409:
-            return JsonResponse({"sent": False, "error": "Цей звіт вже існує."}, status=409) 
-        return JsonResponse({"sent": result["ok"], "status": result["status_code"], "response": result["response"], "error": result["error"]})
 
-    else:
-        return JsonResponse({"sent": False, "error": "Unknown report_type"}, status=400)
+        if result["status_code"] == 409:
+            return JsonResponse({"sent": False, "error": "Цей звіт вже існує."}, status=409)
+
+        return JsonResponse({
+            "sent": result["ok"],
+            "status": result["status_code"],
+            "response": result["response"],
+            "error": result["error"]
+        })

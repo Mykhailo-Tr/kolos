@@ -36,6 +36,7 @@ def _normalize_fk_fields(post_data):
                 post_data[field] = str(obj.pk)
         else:
             # raw не можна перетворити в int — це текстова мітка, створимо/отримаємо
+            print(f"Normalizing field '{raw}'")
             label = raw.sentry()
             obj, created = Model.objects.get_or_create(**{lookup_field: label})
             post_data[field] = str(obj.pk)

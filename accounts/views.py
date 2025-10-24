@@ -1,6 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from datetime import timedelta
+
+from activity.models import ActivityLog
 from .forms import UserRegistrationForm, UserLoginForm
 
 
@@ -34,6 +38,23 @@ def logout_view(request):
     return redirect("login")
 
 
+@login_required
 def home_view(request):
-    context = {"page": "home"}
+    period = request.GET.get("period", "today")
+    now = timezone.now()
+
+    if period == "today":
+        logs = ActivityLog.objects.filter(user=request.user, created_at__date=now.date())
+    elif period == "week":
+        logs = ActivityLog.objects.filter(user=request.user, created_at__gte=now - timedelta(days=7))
+    elif period == "month":
+        logs = ActivityLog.objects.filter(user=request.user, created_at__gte=now - timedelta(days=30))
+    else:
+        logs = ActivityLog.objects.filter(user=request.user)
+
+    context = {
+        "page": "home",
+        "logs": logs,
+        "filter_period": period,
+    }
     return render(request, "home.html", context)

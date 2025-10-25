@@ -13,7 +13,7 @@
 
     <h3 class="mb-4">🕓 Історія ваших дій</h3>
 
-    <div class="btn-group mb-4">
+    <div class="btn-group mb-4 flex-wrap">
       <a href="?period=today" class="btn btn-outline-primary {% if filter_period == 'today' %}active{% endif %}">Сьогодні</a>
       <a href="?period=week" class="btn btn-outline-primary {% if filter_period == 'week' %}active{% endif %}">Тиждень</a>
       <a href="?period=month" class="btn btn-outline-primary {% if filter_period == 'month' %}active{% endif %}">Місяць</a>
@@ -21,10 +21,10 @@
     </div>
 
     <div class="card shadow-sm border-0 rounded-3">
-      <div class="card-body">
+      <div class="card-body history-scroll">
         {% if logs %}
-          <table class="table align-middle table-hover">
-            <thead class="table-light">
+          <table class="table align-middle table-hover mb-0">
+            <thead class="table-light sticky-top">
               <tr>
                 <th>Дата і час</th>
                 <th>Дія</th>
@@ -49,10 +49,52 @@
             </tbody>
           </table>
         {% else %}
-          <p class="text-muted text-center">Поки що немає записів активності.</p>
+          <p class="text-muted text-center mb-0">Поки що немає записів активності.</p>
         {% endif %}
       </div>
     </div>
   {% endif %}
 </div>
+
+<style>
+/* 🔹 Контейнер для історії з фіксованою висотою */
+.history-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.5rem;
+}
+
+/* 🔹 Красивий і тонкий скролбар */
+.history-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.history-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.4);
+  border-radius: 10px;
+}
+.history-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 100, 100, 0.7);
+}
+
+/* 🔹 Фіксуємо шапку таблиці при прокрутці */
+.history-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* 🔹 Адаптація для телефонів */
+@media (max-width: 768px) {
+  .history-scroll {
+    max-height: 300px;
+  }
+  table {
+    font-size: 14px;
+  }
+  th, td {
+    padding: 0.4rem;
+  }
+}
+</style>
 {% endblock %}

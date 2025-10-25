@@ -38,8 +38,11 @@ def logout_view(request):
     return redirect("login")
 
 
-@login_required
+
 def home_view(request):
+    if not request.user.is_authenticated:
+        context = {"page": "home"}
+        return render(request, "home.html", context)
     period = request.GET.get("period", "today")
     now = timezone.now()
 

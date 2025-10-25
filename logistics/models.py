@@ -9,30 +9,32 @@ class WeigherJournal(models.Model):
     
     sender = models.ForeignKey(
         Partner,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="sent_trips",
         limit_choices_to={"partner_type__in": ["sender", "both"]},
-        verbose_name="Відправник"
+        verbose_name="Відправник",
+        null=True
     )
     receiver = models.ForeignKey(
         Partner,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="received_trips",
         limit_choices_to={"partner_type__in": ["receiver", "both"]},
-        verbose_name="Отримувач"
+        verbose_name="Отримувач",
+        null=True
     )
 
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, verbose_name="Автомобіль")
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
+    car = models.ForeignKey(Car, on_delete=models.SET_NULL, verbose_name="Автомобіль", null=True)
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, verbose_name="Водій", null=True)
     trailer = models.ForeignKey(Trailer, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Причеп")
     
-    culture = models.ForeignKey(Culture, on_delete=models.CASCADE, verbose_name="Культура")
+    culture = models.ForeignKey(Culture, on_delete=models.SET_NULL, verbose_name="Культура", null=True)
 
     weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
     weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)", default=0)
     weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
 
-    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")
+    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.SET_NULL, verbose_name="Місце розвантаження", null=True)
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
 
     def save(self, *args, **kwargs):
@@ -55,23 +57,25 @@ class ShipmentJournal(models.Model):
     
     sender = models.ForeignKey(
         Partner,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="sent_shipments",
         limit_choices_to={"partner_type__in": ["sender", "both"]},
-        verbose_name="Відправник"
+        verbose_name="Відправник",
+        null=True
+        
     )
     
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, verbose_name="Автомобіль")
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
+    car = models.ForeignKey(Car, on_delete=models.SET_NULL, verbose_name="Автомобіль", null=True)
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, verbose_name="Водій", null=True)
     trailer = models.ForeignKey(Trailer, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Причеп")
 
-    culture = models.ForeignKey(Culture, on_delete=models.CASCADE, verbose_name="Культура")
+    culture = models.ForeignKey(Culture, on_delete=models.SET_NULL, verbose_name="Культура", null=True)
     
     weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
     weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)")
     weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
 
-    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")
+    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.SET_NULL, verbose_name="Місце розвантаження", null=True)
     
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
     
@@ -95,22 +99,23 @@ class ArrivalJournal(models.Model):
     
     sender_or_receiver = models.ForeignKey(
         Partner,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         limit_choices_to={"partner_type__in": ["sender", "receiver", "both"]},
-        verbose_name="Відправник / Отримувач"
+        verbose_name="Відправник / Отримувач",
+        null=True
     )
     
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, verbose_name="Автомобіль")
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
+    car = models.ForeignKey(Car, on_delete=models.SET_NULL, verbose_name="Автомобіль", null=True)
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, verbose_name="Водій", null=True)
     trailer = models.ForeignKey(Trailer, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Причеп")
     
-    culture = models.ForeignKey(Culture, on_delete=models.CASCADE, verbose_name="Культура")
+    culture = models.ForeignKey(Culture, on_delete=models.SET_NULL, verbose_name="Культура", null=True)
     
     weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
     weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)", blank=True, null=True)
     weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
     
-    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.CASCADE, verbose_name="Місце розвантаження")
+    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.SET_NULL, verbose_name="Місце розвантаження", null=True)
     
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
     
@@ -131,15 +136,17 @@ class ArrivalJournal(models.Model):
 class StockBalance(models.Model):
     unloading_place = models.ForeignKey(
         UnloadingPlace, 
-        on_delete=models.CASCADE, 
+        on_delete=models.SET_NULL, 
         related_name="balances",
-        verbose_name="Місце"
+        verbose_name="Місце",
+        null=True
     )
     culture = models.ForeignKey(
         Culture, 
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="balances",
-        verbose_name="Культура"
+        verbose_name="Культура",
+        null=True
     )
     quantity = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,

@@ -1,0 +1,13 @@
+
+
+services:
+  web:
+    build: .
+    container_name: my_django_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app               # монтуємо код
+      - ./db.sqlite3:/app/db.sqlite3  # монтуємо існуючу базу
+
+    restart: unless-stopped

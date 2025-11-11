@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+{% block content %}
+<div class="container mt-4">
+  <h2>{{ model_verbose }}</h2>
+  <a href="{{ create_url }}" class="btn btn-primary mb-3">Додати</a>
+
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        {% for field in fields %}
+          <th>{{ field.verbose_name }}</th>
+        {% endfor %}
+        <th>Дії</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        {% for value in row.values %}
+          {% if value == None %}
+            <td>—</td>
+          {% else %}
+            <td>{{ value }}</td>
+          {% endif %}
+        {% endfor %}
+        <td>
+          <a href="{{ row.update_url }}" class="btn btn-sm btn-warning">✏️</a>
+          <a href="{{ row.delete_url }}" class="btn btn-sm btn-danger">🗑️</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

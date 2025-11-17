@@ -74,7 +74,7 @@ class BaseUpdateView(BaseFormViewMixin, UpdateView):
 
 
 class BaseDeleteView(DeleteView):
-    template_name = "directory/delete_confirm.html"
+    template_name = "confirm_delete.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

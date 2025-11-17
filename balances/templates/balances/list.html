@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- Заголовок + кнопка -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">📦 {{ model_name|default:"Залишки" }}</h2>
+    <a href="{% url 'balance_create' %}" class="btn btn-primary">
+      ➕ Додати запис
+    </a>
+  </div>
+
+  {% if balances %}
+    <div class="table-responsive shadow-sm rounded">
+      <table class="table table-bordered table-hover align-middle mb-0 sort-table table-striped">
+        <thead class="table text-center">
+          <tr>
+            {% comment %} --- Додаємо сортування --- {% endcomment %}
+            {% with request.GET.order as current_order %}
+            <th>#</th>
+            <th>
+              <a href="?order={% if current_order == 'place__name' %}-place__name{% else %}place__name{% endif %}" class="no-link-style">
+                Місце
+                {% if current_order == 'place__name' %}
+                  ↑
+                {% elif current_order == '-place__name' %}
+                  ↓
+                {% endif %}
+              </a>
+            </th>
+            <th>
+              <a href="?order={% if current_order == 'culture__name' %}-culture__name{% else %}culture__name{% endif %}" class="no-link-style">
+                Культура
+                {% if current_order == 'culture__name' %}
+                  ↑
+                {% elif current_order == '-culture__name' %}
+                  ↓
+                {% endif %}
+              </a>
+            </th>
+            <th>
+              <a href="?order={% if current_order == 'balance_type' %}-balance_type{% else %}balance_type{% endif %}" class="no-link-style">
+                Тип
+                {% if current_order == 'balance_type' %}
+                  ↑
+                {% elif current_order == '-balance_type' %}
+                  ↓
+                {% endif %}
+              </a>
+            </th>
+            <th>
+              <a href="?order={% if current_order == 'quantity' %}-quantity{% else %}quantity{% endif %}" class="no-link-style">
+                Кількість (т)
+                {% if current_order == 'quantity' %}
+                  ↑
+                {% elif current_order == '-quantity' %}
+                  ↓
+                {% endif %}
+              </a>
+            </th>
+            <th>Дії</th>
+            {% endwith %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in balances %}
+          <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ b.place.name }}</td>
+            <td>{{ b.culture.name }}</td>
+            <td class="text-center">{{ b.get_balance_type_display }}</td>
+            <td class="text-end fw-bold">{{ b.quantity|floatformat:3 }}</td>
+            <td class="text-center">
+              <a href="{% url 'balance_update' b.pk %}" class="btn btn-sm btn-outline-warning">✏️</a>
+              <a href="{% url 'balance_delete' b.pk %}" class="btn btn-sm btn-outline-danger">🗑️</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+    <div class="alert alert-info mt-3">
+      Поки що немає записів у журналі залишків.
+    </div>
+  {% endif %}
+</div>
+<style>
+  .sort-table a.no-link-style {
+    color: inherit;
+    
+  }
+  .sort-table a.no-link-style:hover {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
+

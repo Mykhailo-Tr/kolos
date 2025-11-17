@@ -33,7 +33,7 @@ class Car(models.Model):
         ordering = ['number']
     
     def __str__(self):
-        return f"{self.number}"
+        return f"{self.number} - {self.name}" if self.name else self.number
 
 
 class Trailer(models.Model):
@@ -46,7 +46,7 @@ class Trailer(models.Model):
         ordering = ['number']
     
     def __str__(self):
-        return self.number
+        return f"{self.number} - {self.comment}" if self.comment else self.number
 
 
 class Culture(models.Model):

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-3">♻️ Залишки відходів</h3>
+
+    <!-- Таблиця залишків відходів -->
+    <table class="table table-striped table-hover align-middle shadow-sm rounded">
+        <thead class="table-dark">
+            <tr class="text-center">
+                <th>#</th>
+                <th>Місце</th>
+                <th>Культура</th>
+                <th>Кількість (тонн)</th>
+                <th>Дії</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in waste_balances %}
+                <tr class="text-center">
+                    <td class="">{{ forloop.counter }}</td>
+                    <td>{{ item.place.name }}</td>
+                    <td>Відходи - {{ item.culture.name }}</td>
+                    <td class="text-center">{{ item.quantity }}</td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-outline-secondary">Переробка</a>
+                        <a href="#" class="btn btn-sm btn-outline-primary">Утилізація</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-3">Немає відходів</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr class="my-4">
+
+    <!-- Підключення універсального списку -->
+    {% include "waste/list.html" %}
+</div>
+{% endblock %}

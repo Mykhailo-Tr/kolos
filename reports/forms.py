@@ -1,5 +1,5 @@
 from django import forms
-from directory.models import Driver, Car, Trailer, Culture, Partner, UnloadingPlace
+from directory.models import Driver, Car, Trailer, Culture, Place
 from django.utils.timezone import now
 from django.utils.timezone import localdate
 from django.utils import timezone
@@ -35,9 +35,7 @@ class DailyReportForm(forms.Form):
                                      widget=forms.Select(attrs={"class": "form-select"}))
     culture = forms.ModelChoiceField(queryset=Culture.objects.all(), required=False,
                                      widget=forms.Select(attrs={"class": "form-select"}))
-    sender = forms.ModelChoiceField(queryset=Partner.objects.filter(partner_type__in=["sender","both"]),
-                                    required=False, widget=forms.Select(attrs={"class":"form-select"}))
-    unloading_place = forms.ModelChoiceField(queryset=UnloadingPlace.objects.all(), required=False,
+    unloading_place = forms.ModelChoiceField(queryset=Place.objects.all(), required=False,
                                              widget=forms.Select(attrs={"class":"form-select"}))
 
     export = forms.BooleanField(required=False, widget=forms.HiddenInput(), initial=False)
@@ -46,7 +44,7 @@ class DailyReportForm(forms.Form):
 class StockBalanceFilterForm(forms.Form):
     date_from = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
     date_to = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
-    unloading_place = forms.ModelChoiceField(queryset=UnloadingPlace.objects.all(), required=False)
+    unloading_place = forms.ModelChoiceField(queryset=Place.objects.all(), required=False)
     culture = forms.ModelChoiceField(queryset=Culture.objects.all(), required=False)
     driver = forms.ModelChoiceField(queryset=Driver.objects.all(), required=False)
     car = forms.ModelChoiceField(queryset=Car.objects.all(), required=False)
@@ -90,23 +88,15 @@ class BaseJournalFilterForm(forms.Form):
         queryset=Culture.objects.all(), required=False,
         widget=forms.Select(attrs={"class": "form-select"})
     )
-    sender = forms.ModelChoiceField(
-        queryset=Partner.objects.filter(partner_type__in=["sender", "both"]),
-        required=False,
-        widget=forms.Select(attrs={"class": "form-select"})
-    )
+
     unloading_place = forms.ModelChoiceField(
-        queryset=UnloadingPlace.objects.all(), required=False,
+        queryset=Place.objects.all(), required=False,
         widget=forms.Select(attrs={"class": "form-select"})
     )
 
 
 class WeigherJournalFilterForm(BaseJournalFilterForm):
-    receiver = forms.ModelChoiceField(
-        queryset=Partner.objects.filter(partner_type__in=["receiver", "both"]),
-        required=False,
-        widget=forms.Select(attrs={"class": "form-select"})
-    )
+    receiver = None
 
 
 class ShipmentJournalFilterForm(BaseJournalFilterForm):
@@ -140,12 +130,8 @@ class ArrivalJournalFilterForm(forms.Form):
         queryset=Culture.objects.all(), required=False,
         widget=forms.Select(attrs={"class": "form-select"})
     )
-    sender_or_receiver = forms.ModelChoiceField(
-        queryset=Partner.objects.filter(partner_type__in=["sender", "receiver", "both"]),
-        required=False,
-        widget=forms.Select(attrs={"class": "form-select"})
-    )
+
     unloading_place = forms.ModelChoiceField(
-        queryset=UnloadingPlace.objects.all(), required=False,
+        queryset=Place.objects.all(), required=False,
         widget=forms.Select(attrs={"class": "form-select"})
     )

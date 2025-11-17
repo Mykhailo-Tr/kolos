@@ -7,11 +7,6 @@
             <a href="{% url 'driver_list' %}" class="nav-link" id="drivers">🚚 Водії</a>
         </li>
         <li>
-            <a href="{% url 'partner_list' %}" class="nav-link" id="partners">Відправники / Отримувачі</a>
-        </li>
-        <li>
-            <a href="{% url 'place_list' %}" class="nav-link" id="places">📍 Місця розвантаження</a>
-        <li>
             <a href="{% url 'car_list' %}" class="nav-link" id="cars">🚛 Автомобілі</a>
         </li>
         <li>
@@ -21,8 +16,14 @@
             <a href="{% url 'culture_list' %}" class="nav-link" id="cultures">🌾 Культури</a>
         </li>
         <li>
-            <a href="{% url 'reports' %}" class="nav-link" id="reports">📊 Звіти</a>
+            <a href="{% url 'place_list' %}" class="nav-link" id="places">📍 Місця</a>
         </li>
+        <li>
+            <a href="{% url 'field_list' %}" class="nav-link" id="fields">🌱 Поля</a>
+        </li>
+        {% comment %} <li>
+            <a href="{% url 'reports' %}" class="nav-link" id="reports">📊 Звіти</a>
+        </li> {% endcomment %}
     </ul>
 </div>
 <div id="page" data-page="{{ page }}"></div>

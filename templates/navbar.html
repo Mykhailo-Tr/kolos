@@ -11,13 +11,19 @@
       <!-- Ліве меню -->
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a href="{% url 'weigher_journal_list' %}" class="nav-link  bg-opacity-25 rounded" id="entrys">📋 Журнал вагаря</a>
+          <a href="{% url 'weigherjournal_list' %}" class="nav-link  bg-opacity-25 rounded" id="entrys">📋 Внутрішні переміщення</a>
         </li>
         <li class="nav-item">
-          <a href="{% url 'shipment_journal_list' %}" class="nav-link  bg-opacity-25 rounded" id="shipment_journals">📤 Журнал відвантажень</a>
+          <a href="{% url 'shipmentjournal_list' %}" class="nav-link  bg-opacity-25 rounded" id="shipments">🚛 Відвантаження</a>
         </li>
         <li class="nav-item">
-          <a href="{% url 'arrival_journal_list' %}" class="nav-link  bg-opacity-25 rounded" id="arrival_journal">📥 Журнал надходжень</a>
+          <a href="{% url 'fieldsincome_list' %}" class="nav-link  bg-opacity-25 rounded" id="fields_income">🌱 Надходження з полів</a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'wastejournal_list' %}" class="nav-link  bg-opacity-25 rounded" id="wastejournal">🗑️ Відходи</a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'balance_list' %}" class="nav-link  bg-opacity-25 rounded" id="balances">⚖️ Залишки</a>
         </li>
       </ul>
 

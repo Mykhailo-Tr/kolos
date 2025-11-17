@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from activity.models import ActivityLog
-from .forms import UserRegistrationForm, UserLoginForm
+from .forms import UserRegistrationForm, UserLoginForm, EditProfileForm
 
 
 def register_view(request):
@@ -37,6 +37,29 @@ def logout_view(request):
     logout(request)
     return redirect("login")
 
+
+@login_required
+def profile_view(request):
+    context = {
+        "page": "profile",
+        "user": request.user
+    }
+    return render(request, "accounts/profile.html", context)
+
+
+@login_required
+def edit_profile_view(request):
+    user = request.user
+
+    if request.method == "POST":
+        form = EditProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect("profile")
+    else:
+        form = EditProfileForm(instance=user)
+
+    return render(request, "accounts/edit_profile.html", {"form": form})
 
 
 def home_view(request):

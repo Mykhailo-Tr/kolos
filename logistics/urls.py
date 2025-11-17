@@ -1,37 +1,24 @@
 from django.urls import path
-from .views import autocomplete_views as a_views
-from .views import weigher_views, arrival_views, shipment_views
-from .views import weight_views
+from . import views
 
 urlpatterns = [
-    # Weight Reader URL
-    path("api/current-weight/", weight_views.get_current_weight, name="api_current_weight"),
-    
     # Weigher Journal URLs
-    path("weigher-journal/", weigher_views.weigher_journal_list, name="weigher_journal_list"),
-    path("weigher-journal/add/", weigher_views.weigher_journal_create, name="weigher_journal_add"),
-    path("weigher-journal/<int:pk>/edit/", weigher_views.weigher_journal_update, name="weigher_journal_update"),
-    path("weigher-journal/<int:pk>/delete/", weigher_views.weigher_journal_delete, name="weigher_journal_delete"),
-    
-    # Arrival Journal URLs
-    path("arrival-journal/", arrival_views.arrival_journal_list, name="arrival_journal_list"),
-    path("arrival-journal/add/", arrival_views.arrival_journal_create, name="arrival_journal_add"),
-    path("arrival-journal/<int:pk>/edit/", arrival_views.arrival_journal_update, name="arrival_journal_update"),
-    path("arrival-journal/<int:pk>/delete/", arrival_views.arrival_journal_delete, name="arrival_journal_delete"),
+    path('weigher_journals/', views.WeigherJournalListView.as_view(), name='weigherjournal_list'),
+    path('weigher_journals/create/', views.WeigherJournalCreateView.as_view(), name='weigher_journal_create'),
+    path('weigher_journals/<int:pk>/edit/', views.WeigherJournalUpdateView.as_view(), name='weigher_journal_update'),
+    path('weigher_journals/<int:pk>/delete/', views.WeigherJournalDeleteView.as_view(), name='weigher_journal_delete'),
     
     # Shipment Journal URLs
-    path("shipment-journal/", shipment_views.shipment_journal_list, name="shipment_journal_list"),
-    path("shipment-journal/add/", shipment_views.shipment_journal_create, name="shipment_journal_add"),
-    path("shipment-journal/<int:pk>/edit/", shipment_views.shipment_journal_update, name="shipment_journal_update"),
-    path("shipment-journal/<int:pk>/delete/", shipment_views.shipment_journal_delete, name="shipment_journal_delete"),
+    path('shipment_journals/', views.ShipmentJournalListView.as_view(), name='shipmentjournal_list'),
+    path('shipment_journals/create/', views.ShipmentJournalCreateView.as_view(), name='shipment_journal_create'),
+    path('shipment_journals/<int:pk>/edit/', views.ShipmentJournalUpdateView.as_view(), name='shipment_journal_update'),
+    path('shipment_journals/<int:pk>/delete/', views.ShipmentJournalDeleteView.as_view(), name='shipment_journal_delete'),
     
-    # Autocomplete URLs
-    path('autocomplete/sender/', a_views.SenderAutocomplete.as_view(), name='sender-autocomplete'),
-    path('autocomplete/receiver/', a_views.ReceiverAutocomplete.as_view(), name='receiver-autocomplete'),
-    path('autocomplete/partner/', a_views.PartnerAutocomplete.as_view(), name='partner-autocomplete'), 
-    path('autocomplete/car/', a_views.CarAutocomplete.as_view(), name='car-autocomplete'),
-    path('autocomplete/driver/', a_views.DriverAutocomplete.as_view(), name='driver-autocomplete'),
-    path('autocomplete/trailer/', a_views.TrailerAutocomplete.as_view(), name='trailer-autocomplete'),
-    path('autocomplete/culture/', a_views.CultureAutocomplete.as_view(), name='culture-autocomplete'),
-    path('autocomplete/unloading/', a_views.UnloadingPlaceAutocomplete.as_view(), name='unloading-autocomplete'),
+    # Fields Income URLs
+    path('fields_income/', views.FieldsIncomeListView.as_view(), name='fieldsincome_list'),
+    path('fields_income/create/', views.FieldsIncomeCreateView.as_view(), name='fields_income_create'),
+    path('fields_income/<int:pk>/edit/', views.FieldsIncomeUpdateView.as_view(), name='fields_income_update'),
+    path('fields_income/<int:pk>/delete/', views.FieldsIncomeDeleteView.as_view(), name='fields_income_delete'),
+    
+
 ]

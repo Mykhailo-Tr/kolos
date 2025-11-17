@@ -1,161 +1,215 @@
 from django.db import models
 from django.utils import timezone
-from directory.models import Car, Trailer, Driver, Culture, Partner, UnloadingPlace
+from directory.models import Car, Trailer, Driver, Culture, Place, Field
+from balances.services import BalanceService, BalanceType
 
 
-class WeigherJournal(models.Model):
-    document_number = models.CharField(max_length=50, verbose_name="№ документа / накладної")
-    date_time = models.DateTimeField(default=timezone.now, verbose_name="Дата і час")  # ✅ тепер редаговане поле
-    
-    sender = models.ForeignKey(
-        Partner,
-        on_delete=models.SET_NULL,
-        related_name="sent_trips",
-        limit_choices_to={"partner_type__in": ["sender", "both"]},
-        verbose_name="Відправник",
-        null=True
-    )
-    receiver = models.ForeignKey(
-        Partner,
-        on_delete=models.SET_NULL,
-        related_name="received_trips",
-        limit_choices_to={"partner_type__in": ["receiver", "both"]},
-        verbose_name="Отримувач",
-        null=True
-    )
 
-    car = models.ForeignKey(Car, on_delete=models.SET_NULL, verbose_name="Автомобіль", null=True)
-    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, verbose_name="Водій", null=True)
-    trailer = models.ForeignKey(Trailer, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Причеп")
-    
-    culture = models.ForeignKey(Culture, on_delete=models.SET_NULL, verbose_name="Культура", null=True)
+class BaseJournal(models.Model):
+    """ Базова модель для операцій зважування """
 
-    weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
-    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)", default=0)
-    weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
-
-    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.SET_NULL, verbose_name="Місце розвантаження", null=True)
-    note = models.TextField(blank=True, null=True, verbose_name="Примітка")
-
-    def save(self, *args, **kwargs):
-        self.weight_net = self.weight_gross - self.weight_tare
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Рейс {self.document_number} ({self.culture.name})"
-    
-    @property
-    def net_weight(self):
-        if self.weight_gross and self.weight_tare:
-            return self.weight_gross - self.weight_tare
-        return None
-
-
-class ShipmentJournal(models.Model):
-    document_number = models.CharField(max_length=50, verbose_name="№ документа / накладної")
-    date_time = models.DateTimeField(default=timezone.now, verbose_name="Дата і час")  
-    
-    sender = models.ForeignKey(
-        Partner,
-        on_delete=models.SET_NULL,
-        related_name="sent_shipments",
-        limit_choices_to={"partner_type__in": ["sender", "both"]},
-        verbose_name="Відправник",
-        null=True
-        
-    )
-    
-    car = models.ForeignKey(Car, on_delete=models.SET_NULL, verbose_name="Автомобіль", null=True)
-    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, verbose_name="Водій", null=True)
-    trailer = models.ForeignKey(Trailer, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Причеп")
-
-    culture = models.ForeignKey(Culture, on_delete=models.SET_NULL, verbose_name="Культура", null=True)
-    
-    weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
-    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)")
-    weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
-
-    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.SET_NULL, verbose_name="Місце розвантаження", null=True)
-    
-    note = models.TextField(blank=True, null=True, verbose_name="Примітка")
-    
-    def save(self, *args, **kwargs):
-        self.weight_net = self.weight_gross - self.weight_tare
-        super().save(*args, **kwargs)
-        
-    def __str__(self):
-        return f"Відвантаження {self.document_number} ({self.culture.name})"
-    
-    @property
-    def net_weight(self):
-        if self.weight_gross and self.weight_tare:
-            return self.weight_gross - self.weight_tare
-        return None
-    
-    
-class ArrivalJournal(models.Model):
     document_number = models.CharField(max_length=50, verbose_name="№ документа / накладної")
     date_time = models.DateTimeField(default=timezone.now, verbose_name="Дата і час")
-    
-    sender_or_receiver = models.ForeignKey(
-        Partner,
-        on_delete=models.SET_NULL,
-        limit_choices_to={"partner_type__in": ["sender", "receiver", "both"]},
-        verbose_name="Відправник / Отримувач",
-        null=True
-    )
-    
-    car = models.ForeignKey(Car, on_delete=models.SET_NULL, verbose_name="Автомобіль", null=True)
+
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, verbose_name="Водій", null=True)
+    car = models.ForeignKey(Car, on_delete=models.SET_NULL, verbose_name="Автомобіль", null=True)
     trailer = models.ForeignKey(Trailer, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Причеп")
-    
     culture = models.ForeignKey(Culture, on_delete=models.SET_NULL, verbose_name="Культура", null=True)
-    
-    weight_gross = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага брутто (кг)")
-    weight_tare = models.DecimalField(max_digits=100, decimal_places=2, verbose_name="Вага тари (кг)", blank=True, null=True)
-    weight_net = models.DecimalField(max_digits=100, decimal_places=2, editable=False, verbose_name="Вага нетто (кг)")
-    
-    unloading_place = models.ForeignKey(UnloadingPlace, on_delete=models.SET_NULL, verbose_name="Місце розвантаження", null=True)
-    
+
+    weight_gross = models.DecimalField(max_digits=12, decimal_places=3, verbose_name="Вага брутто (тонн)")
+    weight_tare = models.DecimalField(max_digits=12, decimal_places=3, verbose_name="Вага тара (тонн)")
+    weight_loss = models.DecimalField(max_digits=12, decimal_places=3,  verbose_name="Вага втрат (тонн)",
+                                      null=True, blank=True)
+    weight_net = models.DecimalField(max_digits=12, decimal_places=3, editable=False, verbose_name="Вага нетто (тонн)")
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
-    
-    def save(self, *args, **kwargs):
-        self.weight_net = self.weight_gross - self.weight_tare
-        super().save(*args, **kwargs)
-        
-    def __str__(self):
-        return f"Прибуття {self.document_number} ({self.culture.name})"
-    
-    @property
-    def net_weight(self):
-        if self.weight_gross and self.weight_tare:
-            return self.weight_gross - self.weight_tare
-        return None
-        
-        
-class StockBalance(models.Model):
-    unloading_place = models.ForeignKey(
-        UnloadingPlace, 
-        on_delete=models.SET_NULL, 
-        related_name="balances",
-        verbose_name="Місце",
-        null=True
-    )
-    culture = models.ForeignKey(
-        Culture, 
-        on_delete=models.SET_NULL,
-        related_name="balances",
-        verbose_name="Культура",
-        null=True
-    )
-    quantity = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0,
-        verbose_name="Кількість (кг)"
-    )
 
     class Meta:
-        unique_together = ("unloading_place", "culture")
+        abstract = True  # це важливо — Django не створюватиме таблицю для базового класу
 
+    def save(self, *args, **kwargs):
+        if self.weight_loss:
+            self.weight_net = self.weight_gross - self.weight_tare - self.weight_loss
+        else:
+            self.weight_net = self.weight_gross - self.weight_tare
+        super().save(*args, **kwargs)
+
+
+class WeigherJournal(BaseJournal):
+    """ Внутрішні переміщення """
+    
+    from_place = models.ForeignKey(
+        Place,
+        on_delete=models.SET_NULL,
+        related_name="weighings_from",
+        verbose_name="З місця",
+        null=True
+    )
+    to_place = models.ForeignKey(
+        Place,
+        on_delete=models.SET_NULL,
+        related_name="weighings_to",
+        verbose_name="До місця",
+        null=True
+    )
+    
+    class Meta:
+        verbose_name = "Журнал внутрішніх переміщень"
+        verbose_name_plural = "Журнали внутрішніх переміщень"
+        ordering = ['-date_time']
+        
     def __str__(self):
-        return f"{self.unloading_place} - {self.culture}: {self.quantity} кг"
+        return f"Внутрішнє переміщення {self.document_number} ({self.culture.name}): {self.weight_net} тонн"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Зменшуємо залишок в місці відправлення
+        if self.from_place:
+            BalanceService.adjust_balance(
+                place=self.from_place,
+                culture=self.culture,
+                balance_type=BalanceType.STOCK,
+                delta=-self.weight_net
+            )
+        # Збільшуємо залишок в місці призначення
+        if self.to_place:
+            BalanceService.adjust_balance(
+                place=self.to_place,
+                culture=self.culture,
+                balance_type=BalanceType.STOCK,
+                delta=self.weight_net
+            )
+
+
+class ShipmentAction(models.TextChoices):
+    IMPORT = "import", "Ввезення"
+    EXPORT = "export", "Вивезення"
+
+class ShipmentJournal(BaseJournal):
+    """ Зовнішні операції - відвантаження """
+    
+    action_type = models.CharField(
+        max_length=10,
+        choices=ShipmentAction.choices,
+        verbose_name="Тип операції",
+        null=True
+    )
+    place_from = models.ForeignKey(
+        Place,
+        on_delete=models.SET_NULL,
+        related_name="shipments",
+        verbose_name="Місце з",
+        null=True,
+        blank=True
+    )
+    place_from_text = models.CharField(max_length=255, blank=True, null=True, verbose_name="Місце з (текст)")
+    
+    place_to = models.ForeignKey(
+        Place,
+        on_delete=models.SET_NULL,
+        related_name="receipts",
+        verbose_name="Місце до",
+        null=True,
+        blank=True
+    )
+    place_to_text = models.CharField(max_length=255, blank=True, null=True, verbose_name="Місце до (текст)")
+    
+    class Meta:
+        verbose_name = "Журнал відвантажень"
+        verbose_name_plural = "Журнали відвантажень"
+        ordering = ['-date_time']
+    
+    @property
+    def display_place_from(self):
+        if self.action_type == ShipmentAction.EXPORT:
+            return self.place_from.name if self.place_from else self.place_from_text or "Невідомо"
+        return self.place_from.name if self.place_from else "—"
+
+    @property
+    def display_place_to(self):
+        if self.action_type == ShipmentAction.IMPORT:
+            return self.place_to.name if self.place_to else self.place_to_text or "Невідомо"
+        return self.place_to.name if self.place_to else "—"
+        
+    def __str__(self):
+        return (
+            f"Відвантаження {self.document_number} ({self.culture.name}) "
+            f"з {self.display_place_from} до {self.display_place_to}: "
+            f"{self.weight_net} тонн"
+        )
+        
+    def clean(self):
+        """Валідація залежно від типу дії."""
+        from django.core.exceptions import ValidationError
+
+        if self.action_type == ShipmentAction.IMPORT:
+            if not self.place_to:
+                raise ValidationError("Для ввезення потрібно вказати 'Місце до'.")
+        elif self.action_type == ShipmentAction.EXPORT:
+            if not self.place_from :
+                raise ValidationError("Для вивезення потрібно вказати 'Місце з'.")
+            
+        
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        self._update_balance()
+        
+    def _update_balance(self):
+        """Делегує бізнес-логіку в BalanceService."""
+        if not self.culture or not self.weight_net:
+            return
+
+        if self.action_type == ShipmentAction.IMPORT and self.place_to:
+            BalanceService.adjust_balance(
+                place=self.place_to,
+                culture=self.culture,
+                balance_type=BalanceType.STOCK,
+                delta=self.weight_net,
+            )
+        elif self.action_type == ShipmentAction.EXPORT and self.place_from:
+            BalanceService.adjust_balance(
+                place=self.place_from,
+                culture=self.culture,
+                balance_type=BalanceType.STOCK,
+                delta=-self.weight_net,
+            )
+
+        
+
+class FieldsIncome(BaseJournal):
+    """ Журнал надходжень з полів """
+    
+    field = models.ForeignKey(
+        Field,
+        on_delete=models.SET_NULL,
+        related_name="field_outcomes",
+        verbose_name="Поле",
+        null=True
+    )
+    
+    place_to = models.ForeignKey(
+        Place,
+        on_delete=models.SET_NULL,
+        related_name="field_incomes",
+        verbose_name="Місце прийому",
+        null=True
+    )
+        
+    class Meta:
+        verbose_name = "Журнал надходжень з полів"
+        verbose_name_plural = "Журнали надходжень з полів"
+        ordering = ['-date_time']
+        
+    def __str__(self):
+        return f"Надходження {self.document_number} ({self.culture.name}) з поля {self.field.name} до {self.place_to.name}: {self.weight_net} тонн"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        BalanceService.adjust_balance(
+            place=self.place_to,
+            culture=self.culture,
+            balance_type=BalanceType.STOCK,
+            delta=self.weight_net
+        )    
+        
 

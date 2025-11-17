@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-sm border-danger-subtle">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        🗑️ Підтвердження видалення
+      </h5>
+      <span class="badge bg-light text-danger text-uppercase">
+        {{ model_name|default:"Запис" }}
+      </span>
+    </div>
+
+    <div class="card-body">
+      <p class="fs-5">
+        Ви дійсно хочете <strong class="text-danger">видалити</strong> цей запис?
+      </p>
+
+      <div class="alert alert-warning">
+        <strong>{{ object }}</strong>
+      </div>
+
+      <form method="post" class="d-flex gap-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">
+          <i class="bi bi-trash"></i> Так, видалити
+        </button>
+        <a href="{% url model_name|add:'_list' %}" class="btn btn-secondary">
+          <i class="bi bi-arrow-left"></i> Скасувати
+        </a>
+      </form>
+    </div>
+
+    <div class="card-footer text-muted small">
+      Дія незворотна — дані буде видалено остаточно.
+    </div>
+  </div>
+</div>
+{% endblock %}

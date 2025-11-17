@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     
     'widget_tweaks',
     'dal',
@@ -33,7 +34,9 @@ INSTALLED_APPS = [
     
     'accounts',
     'directory',
+    'balances',
     'logistics',
+    'waste',
     'reports',
     'activity',
 ]
@@ -104,9 +107,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
+TIME_ZONE = 'Europe/Kyiv'  
+USE_TZ = True    
 
 USE_TZ = True
 

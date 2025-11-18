@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
@@ -60,6 +60,24 @@ def edit_profile_view(request):
         form = EditProfileForm(instance=user)
 
     return render(request, "accounts/edit_profile.html", {"form": form})
+
+
+@login_required
+def delete_profile_view(request):
+    error = None
+
+    if request.method == "POST":
+        password = request.POST.get("password")
+
+        user = authenticate(username=request.user.username, password=password)
+
+        if user is None:
+            error = "Невірний пароль."
+        else:
+            request.user.delete()
+            return redirect("login")
+
+    return render(request, "accounts/delete_profile.html", {"error": error})
 
 
 def home_view(request):

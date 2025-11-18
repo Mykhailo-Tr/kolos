@@ -1,11 +1,11 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
 
 from activity.models import ActivityLog
-from .forms import UserRegistrationForm, UserLoginForm
+from .forms import UserRegistrationForm, UserLoginForm, EditProfileForm
 
 
 def register_view(request):
@@ -37,6 +37,47 @@ def logout_view(request):
     logout(request)
     return redirect("login")
 
+
+@login_required
+def profile_view(request):
+    context = {
+        "page": "profile",
+        "user": request.user
+    }
+    return render(request, "accounts/profile.html", context)
+
+
+@login_required
+def edit_profile_view(request):
+    user = request.user
+
+    if request.method == "POST":
+        form = EditProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect("profile")
+    else:
+        form = EditProfileForm(instance=user)
+
+    return render(request, "accounts/edit_profile.html", {"form": form})
+
+
+@login_required
+def delete_profile_view(request):
+    error = None
+
+    if request.method == "POST":
+        password = request.POST.get("password")
+
+        user = authenticate(username=request.user.username, password=password)
+
+        if user is None:
+            error = "Невірний пароль."
+        else:
+            request.user.delete()
+            return redirect("login")
+
+    return render(request, "accounts/delete_profile.html", {"error": error})
 
 
 def home_view(request):

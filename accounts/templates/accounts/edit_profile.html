@@ -5,31 +5,58 @@
     <h2 class="mb-4">✏️ Редагування профілю</h2>
 
     <div class="card shadow-sm">
+
         <div class="card-body">
 
             <form method="post">
                 {% csrf_token %}
 
-                {{ form.non_field_errors }}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}<br>
+                    {% endfor %}
+                </div>
+                {% endif %}
 
                 <div class="mb-3">
                     {{ form.username.label_tag }}
                     {{ form.username }}
+                    {% if form.username.errors %}
+                    <div class="alert alert-danger py-1 mt-1">
+                        {{ form.username.errors|join:", " }}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="mb-3">
                     {{ form.first_name.label_tag }}
                     {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                    <div class="alert alert-danger py-1 mt-1">
+                        {{ form.first_name.errors|join:", " }}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="mb-3">
                     {{ form.last_name.label_tag }}
                     {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                    <div class="alert alert-danger py-1 mt-1">
+                        {{ form.last_name.errors|join:", " }}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="mb-3">
                     {{ form.phone.label_tag }}
                     {{ form.phone }}
+                    {% if form.phone.errors %}
+                    <div class="alert alert-danger py-1 mt-1">
+                        {{ form.phone.errors|join:", " }}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100">Зберегти</button>

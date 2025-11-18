@@ -2,102 +2,402 @@
 {% load humanize %}
 
 {% block content %}
-<div class="container mt-4">
+<style>
+  /* 🎨 Загальні змінні */
+  :root {
+    --primary-color: #2563eb;
+    --secondary-color: #64748b;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --border-color: #e2e8f0;
+    --header-bg: #f8fafc;
+    --dark-text: #1e293b;
+  }
 
-  <!-- Заголовок + кнопка -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">📦 {{ model_name|default:"Залишки" }}</h2>
-    <a href="{% url 'balance_create' %}" class="btn btn-primary">
-      ➕ Додати запис
+  /* 📋 Заголовок сторінки */
+  .page-header {
+    background: white;
+    border-bottom: 3px solid var(--primary-color);
+    padding: 20px 25px;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .page-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--dark-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .page-title-icon {
+    font-size: 1.8rem;
+  }
+
+  .btn-add-new {
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    padding: 10px 25px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+  }
+
+  .btn-add-new:hover {
+    background: #1d4ed8;
+    color: white;
+    text-decoration: none;
+  }
+
+  /* 📊 Контейнер таблиці */
+  .table-container {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* 🎯 Стилі таблиці */
+  .professional-table {
+    margin-bottom: 0;
+    border: none;
+    font-size: 0.95rem;
+  }
+
+  .professional-table thead {
+    background: var(--header-bg);
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  .professional-table thead th {
+    border: none;
+    padding: 14px 12px;
+    font-weight: 600;
+    color: var(--dark-text);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--header-bg);
+  }
+
+  .professional-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s ease;
+  }
+
+  .professional-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .professional-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .professional-table tbody td {
+    padding: 12px;
+    vertical-align: middle;
+    border: none;
+    color: var(--dark-text);
+  }
+
+  /* 🔢 Номер рядка */
+  .row-number {
+    width: 50px;
+    font-weight: 600;
+    color: var(--secondary-color);
+  }
+
+  /* 📍 Бейджі для типів */
+  .balance-type-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: var(--header-bg);
+    color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+  }
+
+  /* 💰 Кількість */
+  .quantity-value {
+    font-weight: 600;
+    color: var(--dark-text);
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+  }
+
+  /* 🎬 Кнопки дій */
+  .action-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .btn-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    text-decoration: none;
+    background: white;
+  }
+
+  .btn-action.btn-edit {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+  }
+
+  .btn-action.btn-edit:hover {
+    background: var(--warning-color);
+    color: white;
+  }
+
+  .btn-action.btn-delete {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+  }
+
+  .btn-action.btn-delete:hover {
+    background: var(--danger-color);
+    color: white;
+  }
+
+  /* 🔗 Посилання сортування */
+  .sort-link {
+    color: var(--dark-text) !important;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .sort-link:hover {
+    color: var(--primary-color) !important;
+    background: rgba(37, 99, 235, 0.05);
+    text-decoration: none;
+  }
+
+  .sort-icon {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+  }
+
+  /* ℹ️ Повідомлення про порожній список */
+  .empty-state {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 50px 30px;
+    text-align: center;
+  }
+
+  .empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 15px;
+    opacity: 0.4;
+  }
+
+  .empty-state-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--dark-text);
+    margin-bottom: 8px;
+  }
+
+  .empty-state-text {
+    color: var(--secondary-color);
+    font-size: 1rem;
+  }
+
+  /* 📱 Адаптивність */
+  @media (max-width: 768px) {
+    .page-header {
+      padding: 15px 20px;
+    }
+
+    .page-title {
+      font-size: 1.3rem;
+    }
+
+    .btn-add-new {
+      padding: 8px 20px;
+      font-size: 0.9rem;
+    }
+
+    .professional-table {
+      font-size: 0.85rem;
+    }
+
+    .professional-table thead th {
+      padding: 10px 8px;
+      font-size: 0.75rem;
+    }
+
+    .professional-table tbody td {
+      padding: 10px 8px;
+    }
+
+    .quantity-value {
+      font-size: 0.9rem;
+    }
+
+    .btn-action {
+      width: 28px;
+      height: 28px;
+      font-size: 0.85rem;
+    }
+  }
+</style>
+
+<div class="container mt-4">
+  <!-- 📋 Заголовок сторінки -->
+  <div class="page-header">
+    <h2 class="page-title">
+      <span class="page-title-icon">📦</span>
+      {{ model_name|default:"Залишки" }}
+    </h2>
+    <a href="{% url 'balance_create' %}" class="btn-add-new">
+      <span>➕</span>
+      <span>Додати запис</span>
     </a>
   </div>
 
   {% if balances %}
-    <div class="table-responsive shadow-sm rounded">
-      <table class="table table-bordered table-hover align-middle mb-0 sort-table table-striped">
-        <thead class="table text-center">
-          <tr>
-            {% comment %} --- Додаємо сортування --- {% endcomment %}
-            {% with request.GET.order as current_order %}
-            <th>#</th>
-            <th>
-              <a href="?order={% if current_order == 'place__name' %}-place__name{% else %}place__name{% endif %}" class="no-link-style">
-                Місце
-                {% if current_order == 'place__name' %}
-                  ↑
-                {% elif current_order == '-place__name' %}
-                  ↓
-                {% endif %}
-              </a>
-            </th>
-            <th>
-              <a href="?order={% if current_order == 'culture__name' %}-culture__name{% else %}culture__name{% endif %}" class="no-link-style">
-                Культура
-                {% if current_order == 'culture__name' %}
-                  ↑
-                {% elif current_order == '-culture__name' %}
-                  ↓
-                {% endif %}
-              </a>
-            </th>
-            <th>
-              <a href="?order={% if current_order == 'balance_type' %}-balance_type{% else %}balance_type{% endif %}" class="no-link-style">
-                Тип
-                {% if current_order == 'balance_type' %}
-                  ↑
-                {% elif current_order == '-balance_type' %}
-                  ↓
-                {% endif %}
-              </a>
-            </th>
-            <th>
-              <a href="?order={% if current_order == 'quantity' %}-quantity{% else %}quantity{% endif %}" class="no-link-style">
-                Кількість (т)
-                {% if current_order == 'quantity' %}
-                  ↑
-                {% elif current_order == '-quantity' %}
-                  ↓
-                {% endif %}
-              </a>
-            </th>
-            <th>Дії</th>
-            {% endwith %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for b in balances %}
-          <tr>
-            <td class="text-center">{{ forloop.counter }}</td>
-            <td>{{ b.place.name }}</td>
-            <td>{{ b.culture.name }}</td>
-            <td class="text-center">{{ b.get_balance_type_display }}</td>
-            <td class="text-end fw-bold">{{ b.quantity|floatformat:3 }}</td>
-            <td class="text-center">
-              <a href="{% url 'balance_update' b.pk %}" class="btn btn-sm btn-outline-warning">✏️</a>
-              <a href="{% url 'balance_delete' b.pk %}" class="btn btn-sm btn-outline-danger">🗑️</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- 📊 Таблиця з даними -->
+    <div class="table-container">
+      <div class="table-responsive">
+        <table class="table professional-table">
+          <thead class="text-center">
+            <tr>
+              {% with request.GET.order as current_order %}
+              <th class="row-number">#</th>
+              <th class="text-start">
+                <a href="?order={% if current_order == 'place__name' %}-place__name{% else %}place__name{% endif %}" class="sort-link">
+                  <span>Місце</span>
+                  <span class="sort-icon">
+                    {% if current_order == 'place__name' %}
+                      ▲
+                    {% elif current_order == '-place__name' %}
+                      ▼
+                    {% else %}
+                      ⇅
+                    {% endif %}
+                  </span>
+                </a>
+              </th>
+              <th class="text-start">
+                <a href="?order={% if current_order == 'culture__name' %}-culture__name{% else %}culture__name{% endif %}" class="sort-link">
+                  <span>Культура</span>
+                  <span class="sort-icon">
+                    {% if current_order == 'culture__name' %}
+                      ▲
+                    {% elif current_order == '-culture__name' %}
+                      ▼
+                    {% else %}
+                      ⇅
+                    {% endif %}
+                  </span>
+                </a>
+              </th>
+              <th>
+                <a href="?order={% if current_order == 'balance_type' %}-balance_type{% else %}balance_type{% endif %}" class="sort-link">
+                  <span>Тип</span>
+                  <span class="sort-icon">
+                    {% if current_order == 'balance_type' %}
+                      ▲
+                    {% elif current_order == '-balance_type' %}
+                      ▼
+                    {% else %}
+                      ⇅
+                    {% endif %}
+                  </span>
+                </a>
+              </th>
+              <th class="text-end">
+                <a href="?order={% if current_order == 'quantity' %}-quantity{% else %}quantity{% endif %}" class="sort-link">
+                  <span>Кількість (т)</span>
+                  <span class="sort-icon">
+                    {% if current_order == 'quantity' %}
+                      ▲
+                    {% elif current_order == '-quantity' %}
+                      ▼
+                    {% else %}
+                      ⇅
+                    {% endif %}
+                  </span>
+                </a>
+              </th>
+              <th>Дії</th>
+              {% endwith %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in balances %}
+            <tr>
+              <td class="text-center row-number">{{ forloop.counter }}</td>
+              <td>{{ b.place.name }}</td>
+              <td>{{ b.culture.name }}</td>
+              <td class="text-center">
+                <span class="balance-type-badge">{{ b.get_balance_type_display }}</span>
+              </td>
+              <td class="text-end">
+                <span class="quantity-value">{{ b.quantity|floatformat:3 }}</span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <a href="{% url 'balance_update' b.pk %}" class="btn-action btn-edit" title="Редагувати">
+                    ✏️
+                  </a>
+                  <a href="{% url 'balance_delete' b.pk %}" class="btn-action btn-delete" title="Видалити">
+                    🗑️
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
   {% else %}
-    <div class="alert alert-info mt-3">
-      Поки що немає записів у журналі залишків.
+    <!-- ℹ️ Порожній стан -->
+    <div class="empty-state">
+      <div class="empty-state-icon">📦</div>
+      <h3 class="empty-state-title">Записів поки що немає</h3>
+      <p class="empty-state-text">
+        Додайте перший запис у журнал залишків, щоб почати роботу
+      </p>
     </div>
   {% endif %}
 </div>
-<style>
-  .sort-table a.no-link-style {
-    color: inherit;
-    
-  }
-  .sort-table a.no-link-style:hover {
-    color: inherit;
-    text-decoration: none;
-    cursor: pointer;
-  }
-</style>
-{% endblock %}
 
+{% endblock %}

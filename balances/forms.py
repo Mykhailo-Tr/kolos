@@ -61,3 +61,4 @@ class BalanceForm(forms.ModelForm):
                 )
 
         return cleaned_data
+    

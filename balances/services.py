@@ -41,3 +41,21 @@ class BalanceService:
         # )
 
         return balance
+    
+
+    def get_balance(place, culture, balance_type):
+        """Повертає поточний баланс для вказаного місця, культури та типу балансу."""
+        try:
+            balance = Balance.objects.get(
+                place=place,
+                culture=culture,
+                balance_type=balance_type
+            )
+            return balance
+        except Balance.DoesNotExist:
+            return Balance(
+                place=place,
+                culture=culture,
+                balance_type=balance_type,
+                quantity=0
+            )

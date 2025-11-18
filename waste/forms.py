@@ -1,47 +1,57 @@
 from django import forms
-from .models import WasteJournal
+from django.utils.timezone import now
+from .models import Utilization, Recycling
 
-
-class WasteJournalForm(forms.ModelForm):
-    """Форма для журналу управління відходами"""
-
+class UtilizationForm(forms.ModelForm):
     class Meta:
-        model = WasteJournal
-        fields = [
-            "date_time",
-            "action",
-            "culture",
-            "place_from",
-            "place_to",
-            "quantity",
-        ]
+        model = Utilization
+        exclude = ("place_from", "culture")  # ❗ автоматичні поля
         widgets = {
-            "date_time": forms.DateTimeInput(
-                attrs={"class": "form-control", "type": "datetime-local"}
-            ),
-            "action": forms.Select(attrs={"class": "form-select"}),
-            "culture": forms.Select(attrs={"class": "form-select"}),
-            "place_from": forms.Select(attrs={"class": "form-select"}),
-            "place_to": forms.Select(attrs={"class": "form-select"}),
-            "quantity": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.001",
-                    "min": "0",
-                    "placeholder": "Вкажіть кількість (т)"
-                }
-            ),
+            "date_time": forms.DateTimeInput(attrs={
+                "type": "datetime-local",
+                "class": "form-control",
+                "value": now().strftime("%Y-%m-%dT%H:%M"),
+            }),     
+            "quantity": forms.NumberInput(attrs={
+                "class": "form-control",
+                "step": "0.001",
+                "min": "0",
+                "placeholder": "Кількість утилізованих відходів (тонн)"
+            }),
+            "note": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Примітка (необов’язково)",
+            }),
         }
 
-    def clean(self):
-        """Валідація залежності між дією та місцями"""
-        cleaned_data = super().clean()
-        action = cleaned_data.get("action")
-        place_to = cleaned_data.get("place_to")
 
-        if action == "recycling" and not place_to:
-            self.add_error("place_to", "Для переробки потрібно вказати місце призначення.")
-        if action == "utilization" and place_to:
-            self.add_error("place_to", "Для утилізації не потрібно місце призначення.")
-
-        return cleaned_data
+class RecyclingForm(forms.ModelForm):
+    class Meta:
+        model = Recycling
+        exclude = ("place_from", "culture")   # ❗ автоматичні поля
+        widgets = {
+            "date_time": forms.DateTimeInput(attrs={
+                "type": "datetime-local",
+                "class": "form-control",
+                "value": now().strftime("%Y-%m-%dT%H:%M"),
+            }),     
+            "input_quantity": forms.NumberInput(attrs={
+                "class": "form-control",
+                "step": "0.001",
+                "min": "0",
+                "placeholder": "Кількість відходів для переробки (тонн)"
+            }),
+            "output_quantity": forms.NumberInput(attrs={
+                "class": "form-control",
+                "step": "0.001",
+                "min": "0",
+                "placeholder": "Кількість отриманої продукції (тонн)"
+            }),
+            "place_to": forms.Select(attrs={"class": "form-select"}),
+            "note": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Примітка (необов’язково)",
+            }),
+        }

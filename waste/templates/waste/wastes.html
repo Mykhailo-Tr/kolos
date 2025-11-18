@@ -22,8 +22,13 @@
                     <td>Відходи - {{ item.culture.name }}</td>
                     <td class="text-center">{{ item.quantity }}</td>
                     <td>
-                        <a href="#" class="btn btn-sm btn-outline-secondary">Переробка</a>
-                        <a href="#" class="btn btn-sm btn-outline-primary">Утилізація</a>
+                        <a href="{% url 'recycling_add' item.pk %}" class="btn btn-sm btn-outline-secondary">
+                            Переробка
+                        </a>
+
+                        <a href="{% url 'utilization_add' item.pk %}" class="btn btn-sm btn-outline-primary">
+                            Утилізація
+                        </a>
                     </td>
                 </tr>
             {% empty %}

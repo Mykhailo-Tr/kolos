@@ -1,13 +1,7 @@
-
-
 <div class="container mt-4">
-
   <!-- Заголовок + кнопка -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">📦 {{ model_name }}</h2>
-    <a href="{% url 'waste_journal_create' %}" class="btn btn-primary">
-      ➕ Додати запис
-    </a>
   </div>
 
   <!-- Повідомлення якщо немає записів -->
@@ -19,44 +13,78 @@
             <th>#</th>
             <th>Дата</th>
             <th>Культура</th>
-            <th>Місце з </th>
+            <th>Місце з</th>
             <th>Місце до</th>
-            <th>Вага (т)</th>
+            <th colspan="2" class="border-end-0 border-start-0">ВАГА (т)</th>
             <th>Дія</th>
             <th>Дії</th>
           </tr>
-        
+          <tr class="text-center table-secondary">
+            <th colspan="5" class="border-0"></th>
+            <th class="border-end-0">Вхід</th>
+            <th class="border-start-0">Вихід</th>
+            <th colspan="2" class="border-0"></th>
+          </tr>
         </thead>
         <tbody>
           {% for journal in journals %}
           <tr>
             <td class="text-center">{{ forloop.counter }}</td>
             <td>{{ journal.date_time|date:"d.m.Y H:i" }}</td>
-            <td>{{ journal.culture }}</td>
+            <td>Відходи - {{ journal.culture }}</td>
             <td>{{ journal.place_from }}</td>
             <td>
-                {% if journal.place_to is None %}
-                    Немає
-                {% else %}
-                    {{ journal.place_to }}
-                {% endif %}
+              {% if journal.place_to %}
+                {{ journal.place_to }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
             </td>
-            <td class="text-end fw-bold">{{ journal.quantity|floatformat:3 }}</td>
+            
+            <!-- Колонки ваги -->
+            {% if journal.action == 'recycling' %}
+              <!-- Для переробки - дві окремі клітинки -->
+              <td class="text-start fw-bold text-primary border-end-0">
+                {{ journal.input_quantity }}
+              </td>
+              <td class="text-end fw-bold text-success border-start-0">
+                {{ journal.output_quantity }}
+              </td>
+            {% else %}
+              <!-- Для утилізації - об'єднана клітинка -->
+              <td colspan="2" class="text-center fw-bold text-danger">
+                {{ journal.quantity }}
+              </td>
+            {% endif %}
+            
             <td class="text-center">
+              {% if journal.action == 'utilization' %}
+                <span class="badge bg-danger">Утилізація</span>
+              {% else %}
+                <span class="badge bg-success">Переробка</span>
+              {% endif %}
+            </td>
+            
+            <td class="text-center">
+              <div class="btn-group btn-group-sm" role="group">
                 {% if journal.action == 'utilization' %}
-                    Утилізація
-                {% elif journal.action == 'recycling' %}
-                    Переробка
+                  <a href="{% url 'utilization_edit' journal.id %}" class="btn btn-outline-primary" title="Редагувати">
+                    ✏️
+                  </a>
+                  <a href="{% url 'utilization_delete' journal.id %}" class="btn btn-outline-danger" title="Видалити">
+                    🗑️
+                  </a>
                 {% else %}
-                    {{ journal.action }}
+                  <a href="{% url 'recycling_edit' journal.id %}" class="btn btn-outline-primary" title="Редагувати">
+                    ✏️
+                  </a>
+                  <a href="{% url 'recycling_delete' journal.id %}" class="btn btn-outline-danger" title="Видалити">
+                    🗑️
+                  </a>
                 {% endif %}
+              </div>
             </td>
-            <td class="text-center">
-              <a href="{% url 'waste_journal_update' journal.pk %}" 
-                 class="btn btn-sm btn-outline-warning">✏️</a>
-              <a href="{% url 'waste_journal_delete' journal.pk %}" 
-                 class="btn btn-sm btn-outline-danger">🗑️</a>
-            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -99,4 +127,3 @@
     <div class="alert alert-info">Немає записів у журналі.</div>
   {% endif %}
 </div>
-

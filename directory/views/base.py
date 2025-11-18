@@ -4,7 +4,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 class BaseListView(ListView):
     template_name = "directory/list.html"
     context_object_name = "items"
-    paginate_by = 20  # пагінація — опціонально
+    paginate_by = 10  # пагінація — опціонально
 
     
     def get_context_data(self, **kwargs):

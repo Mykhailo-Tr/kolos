@@ -216,5 +216,37 @@
       </tbody>
     </table>
   </div>
+  <!-- 📄 Пагінація -->
+  {% if is_paginated %}
+  <nav aria-label="Page navigation" class="mt-3">
+    <ul class="pagination justify-content-center" style="gap: 2px; margin:0; padding:0;">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">‹</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">‹</span></li>
+      {% endif %}
+
+      {% for num in paginator.page_range %}
+        {% if num == page_obj.number %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% else %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">{{ num }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">›</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">›</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
 </div>
 {% endblock %}

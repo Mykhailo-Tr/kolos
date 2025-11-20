@@ -1,7 +1,128 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+<style>
+  /* 🎨 Загальні змінні для navbar */
+  :root {
+    --navbar-bg: #1e293b;
+    --navbar-border: #2563eb;
+    --nav-link-color: #e2e8f0;
+    --nav-link-hover: #ffffff;
+    --nav-link-active-bg: #2563eb;
+    --nav-link-hover-bg: #334155;
+  }
+
+  /* 📱 Navbar основний */
+  .navbar-custom {
+    background: var(--navbar-bg) !important;
+    border-bottom: 3px solid var(--navbar-border);
+    padding: 12px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 🌾 Логотип */
+  .navbar-brand {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: white !important;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .navbar-brand:hover {
+    background: var(--nav-link-hover-bg);
+    transform: translateY(-2px);
+  }
+
+  /* 🔗 Навігаційні посилання */
+  .nav-link-custom {
+    color: var(--nav-link-color) !important;
+    padding: 10px 18px !important;
+    margin: 0 4px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .nav-link-custom:hover {
+    color: var(--nav-link-hover) !important;
+    background: var(--nav-link-hover-bg) !important;
+  }
+
+  /* ✨ Активне посилання */
+  .nav-link-custom.active {
+    background: var(--nav-link-active-bg) !important;
+    color: white !important;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+  }
+
+  /* 👤 Посилання профілю/авторизації */
+  .nav-link-auth {
+    color: var(--nav-link-color) !important;
+    padding: 8px 16px !important;
+    margin: 0 4px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+
+  .nav-link-auth:hover {
+    color: white !important;
+    border-color: var(--navbar-border);
+    background: rgba(37, 99, 235, 0.1);
+  }
+
+  /* 🍔 Burger menu button */
+  .navbar-toggler {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 12px;
+  }
+
+  .navbar-toggler:focus {
+    box-shadow: 0 0 0 0.15rem rgba(37, 99, 235, 0.5);
+  }
+
+  .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+  }
+
+  /* 📱 Адаптивність */
+  @media (max-width: 991px) {
+    .navbar-nav {
+      padding: 10px 0;
+    }
+
+    .nav-link-custom,
+    .nav-link-auth {
+      margin: 4px 0;
+    }
+
+    .navbar-brand {
+      font-size: 1.2rem;
+    }
+  }
+
+  /* 🎯 Видалення зайвих класів Bootstrap */
+  .nav-link-custom.bg-opacity-25,
+  .nav-link-custom.rounded {
+    background: transparent !important;
+  }
+</style>
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
   <div class="container-fluid">
     <!-- Ліва частина -->
-    <a class="navbar-brand" href="{% url 'home' %}">🌾 Kolos</a>
+    <a class="navbar-brand" href="{% url 'home' %}">
+      <span>🌾</span>
+      <span>Kolos</span>
+    </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
@@ -11,19 +132,34 @@
       <!-- Ліве меню -->
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a href="{% url 'weigherjournal_list' %}" class="nav-link  bg-opacity-25 rounded" id="entrys">📋 Внутрішні переміщення</a>
+          <a href="{% url 'weigherjournal_list' %}" class="nav-link nav-link-custom" id="entrys">
+            <span>📋</span>
+            <span>Внутрішні переміщення</span>
+          </a>
         </li>
         <li class="nav-item">
-          <a href="{% url 'shipmentjournal_list' %}" class="nav-link  bg-opacity-25 rounded" id="shipments">🚛 Відвантаження</a>
+          <a href="{% url 'shipmentjournal_list' %}" class="nav-link nav-link-custom" id="shipments">
+            <span>🚛</span>
+            <span>Відвантаження</span>
+          </a>
         </li>
         <li class="nav-item">
-          <a href="{% url 'fieldsincome_list' %}" class="nav-link  bg-opacity-25 rounded" id="fields_income">🌱 Надходження з полів</a>
+          <a href="{% url 'fieldsincome_list' %}" class="nav-link nav-link-custom" id="fields_income">
+            <span>🌱</span>
+            <span>Надходження з полів</span>
+          </a>
         </li>
         <li class="nav-item">
-          <a href="{% url 'waste_list' %}" class="nav-link  bg-opacity-25 rounded" id="wastejournal">🗑️ Відходи</a>
+          <a href="{% url 'waste_list' %}" class="nav-link nav-link-custom" id="wastejournal">
+            <span>🗑️</span>
+            <span>Відходи</span>
+          </a>
         </li>
         <li class="nav-item">
-          <a href="{% url 'balance_list' %}" class="nav-link  bg-opacity-25 rounded" id="balances">⚖️ Залишки</a>
+          <a href="{% url 'balance_list' %}" class="nav-link nav-link-custom" id="balances">
+            <span>⚖️</span>
+            <span>Залишки</span>
+          </a>
         </li>
       </ul>
 
@@ -31,14 +167,23 @@
       <ul class="navbar-nav ms-auto">
         {% if request.user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'profile' %}">👤 Профіль</a>
+            <a class="nav-link nav-link-auth" href="{% url 'profile' %}">
+              <span>👤</span>
+              <span>Профіль</span>
+            </a>
           </li>
         {% else %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'register' %}">📝 Реєстрація</a>
+            <a class="nav-link nav-link-auth" href="{% url 'register' %}">
+              <span>📝</span>
+              <span>Реєстрація</span>
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'login' %}">🔑 Логін</a>
+            <a class="nav-link nav-link-auth" href="{% url 'login' %}">
+              <span>🔑</span>
+              <span>Логін</span>
+            </a>
           </li>
         {% endif %}
       </ul>
@@ -56,8 +201,6 @@
       const activeLink = document.getElementById(currentPage);
       if (activeLink) {
         activeLink.classList.add("active");
-        activeLink.classList.add("bg-secondary");
-
       }
     }
   });

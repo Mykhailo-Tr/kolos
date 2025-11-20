@@ -1,28 +1,183 @@
+<style>
+  /* 🎨 Загальні змінні для sidebar */
+  :root {
+    --sidebar-bg: #ffffff;
+    --sidebar-border: #e2e8f0;
+    --sidebar-link-color: #64748b;
+    --sidebar-link-hover: #1e293b;
+    --sidebar-link-active-bg: #2563eb;
+    --sidebar-link-hover-bg: #f1f5f9;
+  }
+
+  /* 📱 Sidebar основний */
+  .sidebar {
+    background: var(--sidebar-bg);
+    border-right: 2px solid var(--sidebar-border);
+    min-height: 100vh;
+    padding: 20px 15px !important;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  }
+
+  /* 📋 Навігаційний список */
+  .nav-pills {
+    gap: 6px;
+  }
+
+  /* 🔗 Посилання в sidebar */
+  .sidebar .nav-link {
+    color: var(--sidebar-link-color);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+    position: relative;
+  }
+
+  .sidebar .nav-link:hover {
+    color: var(--sidebar-link-hover);
+    background: var(--sidebar-link-hover-bg);
+    border-color: var(--sidebar-border);
+    transform: translateX(4px);
+  }
+
+  /* ✨ Активне посилання */
+  .sidebar .nav-link.active {
+    background: transparent;
+    color: var(--sidebar-link-active-bg);
+    font-weight: 600;
+    border-color: transparent;
+  }
+
+  .sidebar .nav-link.active:hover {
+    background: var(--sidebar-link-hover-bg);
+    transform: translateX(4px);
+    color: var(--sidebar-link-active-bg);
+  }
+
+  /* 🎯 Іконки в посиланнях */
+  .sidebar .nav-link span:first-child {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+  }
+
+  /* 📱 Адаптивність */
+  @media (max-width: 768px) {
+    .sidebar {
+      min-height: auto;
+      border-right: none;
+      border-bottom: 2px solid var(--sidebar-border);
+    }
+
+    .sidebar .nav-link {
+      padding: 10px 14px;
+      font-size: 0.9rem;
+    }
+  }
+
+  /* 🎨 Додаткові стилі для розділення груп */
+  .sidebar .nav-item:nth-child(1) {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--sidebar-border);
+  }
+
+  .sidebar .nav-item {
+    position: relative;
+  }
+
+  /* 💡 Вертикальна смужка зліва для активного */
+  .sidebar .nav-link::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--sidebar-link-active-bg);
+    border-radius: 0 4px 4px 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .sidebar .nav-link.active::before {
+    opacity: 1;
+  }
+
+  /* 🎯 Тонка рамка справа для активного */
+  .sidebar .nav-link::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--sidebar-link-active-bg);
+    border-radius: 4px 0 0 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .sidebar .nav-link.active::after {
+    opacity: 1;
+  }
+</style>
+
 <div class="sidebar d-flex flex-column p-3">
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
-            <a href="{% url 'home' %}" class="nav-link" id="home">🏠 Home</a>
+            <a href="{% url 'home' %}" class="nav-link" id="home" style="margin-top: 16px;">
+                <span>🏠</span>
+                <span>Home</span>
+            </a>
         </li>
-        <li>
-            <a href="{% url 'driver_list' %}" class="nav-link" id="drivers">🚚 Водії</a>
+        <li class="nav-item">
+            <a href="{% url 'driver_list' %}" class="nav-link" id="drivers">
+                <span>🚚</span>
+                <span>Водії</span>
+            </a>
         </li>
-        <li>
-            <a href="{% url 'car_list' %}" class="nav-link" id="cars">🚛 Автомобілі</a>
+        <li class="nav-item">
+            <a href="{% url 'car_list' %}" class="nav-link" id="cars">
+                <span>🚛</span>
+                <span>Автомобілі</span>
+            </a>
         </li>
-        <li>
-            <a href="{% url 'trailer_list' %}" class="nav-link" id="trailers">🚚 Причепи</a>
+        <li class="nav-item">
+            <a href="{% url 'trailer_list' %}" class="nav-link" id="trailers">
+                <span>🚚</span>
+                <span>Причепи</span>
+            </a>
         </li>
-        <li>
-            <a href="{% url 'culture_list' %}" class="nav-link" id="cultures">🌾 Культури</a>
+        <li class="nav-item">
+            <a href="{% url 'culture_list' %}" class="nav-link" id="cultures">
+                <span>🌾</span>
+                <span>Культури</span>
+            </a>
         </li>
-        <li>
-            <a href="{% url 'place_list' %}" class="nav-link" id="places">📍 Місця</a>
+        <li class="nav-item">
+            <a href="{% url 'place_list' %}" class="nav-link" id="places">
+                <span>📍</span>
+                <span>Місця</span>
+            </a>
         </li>
-        <li>
-            <a href="{% url 'field_list' %}" class="nav-link" id="fields">🌱 Поля</a>
+        <li class="nav-item">
+            <a href="{% url 'field_list' %}" class="nav-link" id="fields">
+                <span>🌱</span>
+                <span>Поля</span>
+            </a>
         </li>
-        {% comment %} <li>
-            <a href="{% url 'reports' %}" class="nav-link" id="reports">📊 Звіти</a>
+        {% comment %} <li class="nav-item">
+            <a href="{% url 'reports' %}" class="nav-link" id="reports">
+                <span>📊</span>
+                <span>Звіти</span>
+            </a>
         </li> {% endcomment %}
     </ul>
 </div>

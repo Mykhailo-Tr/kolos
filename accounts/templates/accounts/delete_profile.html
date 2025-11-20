@@ -1,63 +1,273 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 500px;">
+<style>
+  /* 🎨 Загальні змінні */
+  :root {
+    --danger-color: #ef4444;
+    --danger-dark: #dc2626;
+    --secondary-color: #64748b;
+    --border-color: #e2e8f0;
+    --dark-text: #1e293b;
+    --error-bg: #fee2e2;
+  }
 
-  <div class="card shadow-sm border-danger-subtle">
+  /* 📋 Контейнер форми */
+  .delete-container {
+    max-width: 550px;
+    margin: 3rem auto;
+    padding: 0 2rem;
+  }
 
-    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">🗑️ Видалення акаунта</h5>
-      <span class="badge bg-light text-danger text-uppercase">Профіль</span>
+  .delete-card {
+    background: white;
+    border-radius: 8px;
+    border: 2px solid #fee2e2;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);
+  }
+
+  /* 📝 Заголовок */
+  .delete-header {
+    background: white;
+    border-bottom: 3px solid var(--danger-color);
+    padding: 25px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .delete-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--dark-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .profile-badge {
+    background: var(--error-bg);
+    color: var(--danger-dark);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1px solid #fecaca;
+  }
+
+  /* 📄 Тіло форми */
+  .delete-body {
+    padding: 30px;
+  }
+
+  .delete-question {
+    font-size: 1.05rem;
+    color: var(--dark-text);
+    margin-bottom: 0.5rem;
+  }
+
+  .delete-question strong {
+    color: var(--danger-color);
+    font-weight: 600;
+  }
+
+  .delete-hint {
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* 🔤 Поля форми */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--dark-text);
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: white;
+    color: var(--dark-text);
+    box-sizing: border-box;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--danger-color);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  }
+
+  /* ⚠️ Помилки */
+  .alert-danger {
+    background: var(--error-bg);
+    color: var(--danger-color);
+    padding: 10px 14px;
+    border-radius: 6px;
+    border-left: 3px solid var(--danger-color);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  /* 🎬 Кнопки */
+  .btn-group {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-delete {
+    flex: 1;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-danger {
+    background: var(--danger-color);
+    color: white;
+  }
+
+  .btn-danger:hover {
+    background: var(--danger-dark);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+  }
+
+  .btn-secondary:hover {
+    background: #f8fafc;
+    color: var(--dark-text);
+    text-decoration: none;
+  }
+
+  /* ⚠️ Футер з попередженням */
+  .danger-footer {
+    background: #fef2f2;
+    padding: 14px 30px;
+    border-top: 1px solid #fee2e2;
+    color: #991b1b;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* 📱 Адаптивність */
+  @media (max-width: 768px) {
+    .delete-container {
+      padding: 0 1rem;
+      margin: 2rem auto;
+    }
+
+    .delete-header {
+      padding: 20px;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .delete-title {
+      font-size: 1.2rem;
+    }
+
+    .delete-body {
+      padding: 20px;
+    }
+
+    .btn-group {
+      flex-direction: column;
+    }
+
+    .danger-footer {
+      padding: 12px 20px;
+    }
+  }
+</style>
+
+<div class="delete-container">
+  <div class="delete-card">
+    <div class="delete-header">
+      <h5 class="delete-title">
+        <span>🗑️</span>
+        <span>Видалення акаунта</span>
+      </h5>
+      <span class="profile-badge">Профіль</span>
     </div>
 
-    <div class="card-body">
+    <form method="post">
+      <div class="delete-body">
+        <p class="delete-question">
+          Ви дійсно хочете <strong>видалити свій акаунт</strong>?
+        </p>
 
-      <p class="fs-5">
-        Ви дійсно хочете <strong class="text-danger">видалити свій акаунт</strong>?
-      </p>
+        <p class="delete-hint">
+          Для підтвердження, введіть свій пароль.
+        </p>
 
-      <p class="text-muted">
-        Для підтвердження, введіть свій пароль.
-      </p>
-
-      <form method="post" class="mt-3">
         {% csrf_token %}
 
-        <div class="mb-3">
-          <label for="password" class="form-label">Пароль</label>
+        <div class="form-group">
+          <label for="password">Пароль</label>
           <input
             type="password"
             name="password"
             id="password"
-            class="form-control"
             placeholder="Введіть пароль"
             required
           >
         </div>
 
         {% if error %}
-        <div class="alert alert-danger py-2">
+        <div class="alert-danger">
           {{ error }}
         </div>
         {% endif %}
 
-        <div class="d-flex gap-2 mt-3">
-          <button type="submit" class="btn btn-danger w-50">
-            <i class="bi bi-trash"></i> Видалити
+        <div class="btn-group">
+          <button type="submit" class="btn-delete btn-danger">
+            <span>🗑️</span>
+            <span>Видалити</span>
           </button>
 
-          <a href="{% url 'profile' %}" class="btn btn-secondary w-50">
-            <i class="bi bi-arrow-left"></i> Скасувати
+          <a href="{% url 'profile' %}" class="btn-delete btn-secondary">
+            <span>←</span>
+            <span>Скасувати</span>
           </a>
         </div>
-      </form>
+      </div>
+    </form>
 
+    <div class="danger-footer">
+      <span>⚠️</span>
+      <span>Дія незворотна — ваш акаунт і всі дані буде видалено назавжди.</span>
     </div>
-
-    <div class="card-footer text-muted small">
-      ⚠️ Дія незворотна — ваш акаунт і всі дані буде видалено назавжди.
-    </div>
-
   </div>
 </div>
 {% endblock %}

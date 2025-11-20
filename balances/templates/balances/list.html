@@ -99,11 +99,15 @@
 
   .professional-table tbody tr {
     border-bottom: 1px solid var(--border-color);
-    transition: background 0.15s ease;
+    transition: background 0.2s ease;
   }
 
   .professional-table tbody tr:hover {
-    background: #f8fafc;
+    background: #dbeafe;
+  }
+
+  .professional-table tbody tr:hover td {
+    background: #dbeafe;
   }
 
   .professional-table tbody tr:last-child {
@@ -133,9 +137,21 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    background: var(--header-bg);
-    color: var(--secondary-color);
-    border: 1px solid var(--border-color);
+    border: 1px solid;
+  }
+
+  /* Колір для зерна */
+  .badge-grain {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #10b981;
+  }
+
+  /* Колір для відходів */
+  .badge-waste {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #f59e0b;
   }
 
   /* 💰 Кількість */
@@ -366,7 +382,9 @@
               <td>{{ b.place.name }}</td>
               <td>{{ b.culture.name }}</td>
               <td class="text-center">
-                <span class="balance-type-badge">{{ b.get_balance_type_display }}</span>
+                <span class="balance-type-badge {% if 'зерно' in b.get_balance_type_display|lower or 'grain' in b.get_balance_type_display|lower %}badge-grain{% elif 'відход' in b.get_balance_type_display|lower or 'waste' in b.get_balance_type_display|lower %}badge-waste{% endif %}">
+                  {{ b.get_balance_type_display }}
+                </span>
               </td>
               <td class="text-end">
                 <span class="quantity-value">{{ b.quantity|floatformat:3 }}</span>

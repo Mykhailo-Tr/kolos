@@ -1,6 +1,8 @@
 from django import forms
 from django.utils.timezone import now
+from django.core.exceptions import ValidationError
 from .models import Utilization, Recycling
+
 
 class UtilizationForm(forms.ModelForm):
     class Meta:
@@ -24,7 +26,25 @@ class UtilizationForm(forms.ModelForm):
                 "placeholder": "Примітка (необов’язково)",
             }),
         }
+        
+    def __init__(self, *args, balance=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.balance = balance  # ← тепер форма знає свій баланс
 
+    def clean_quantity(self):
+        qty = self.cleaned_data["quantity"]
+
+        if qty <= 0:
+            raise ValidationError("Кількість повинна бути більшою за 0.")
+
+        if qty > self.balance.quantity:
+            raise ValidationError(
+                f"Неможливо утилізувати {qty} т — на балансі є лише {self.balance.quantity} т."
+            )
+
+        return qty
+
+        
 
 class RecyclingForm(forms.ModelForm):
     class Meta:

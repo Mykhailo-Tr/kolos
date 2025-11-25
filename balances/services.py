@@ -42,6 +42,19 @@ class BalanceService:
 
         return balance
     
+    
+    def set_balance(place, culture, balance_type, quantity):
+        """Встановлює залишок до вказаного значення."""
+        balance, _ = Balance.objects.get_or_create(
+            place=place,
+            culture=culture,
+            balance_type=balance_type,
+            defaults={"quantity": 0}
+        )
+        balance.quantity = quantity
+        balance.save()
+        return balance
+    
 
     def get_balance(place, culture, balance_type):
         """Повертає поточний баланс для вказаного місця, культури та типу балансу."""

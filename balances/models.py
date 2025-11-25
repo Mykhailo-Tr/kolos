@@ -43,8 +43,6 @@ class Balance(models.Model):
     def __str__(self):
         return f"{self.place} - {self.culture} ({self.balance_type}): {self.quantity} тонн"
     
-
-    
     def snapshot(self):
         """Створює запис в історії (зліпок поточного стану)."""
         BalanceHistory.objects.create(

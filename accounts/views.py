@@ -17,7 +17,7 @@ def register_view(request):
             return redirect("home")
     else:
         form = UserRegistrationForm()
-    return render(request, "accounts/registration.html", {"form": form})
+    return render(request, "accounts/registration.html", {"form": form, "page": "register"})
 
 
 def login_view(request):
@@ -29,7 +29,7 @@ def login_view(request):
             return redirect("home")
     else:
         form = UserLoginForm()
-    return render(request, "accounts/login.html", {"form": form})
+    return render(request, "accounts/login.html", {"form": form, "page": "login"})
 
 
 @login_required
@@ -59,7 +59,7 @@ def edit_profile_view(request):
     else:
         form = EditProfileForm(instance=user)
 
-    return render(request, "accounts/edit_profile.html", {"form": form})
+    return render(request, "accounts/edit_profile.html", {"form": form, "page": "edit_profile"})
 
 
 @login_required

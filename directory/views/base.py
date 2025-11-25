@@ -38,6 +38,7 @@ class BaseListView(ListView):
             "fields": fields,
             "rows": rows,  # ← ось це важливо!
             "create_url": reverse_lazy(f"{model._meta.model_name}_create"),
+            "page": model._meta.model_name + "s",
         })
         return context
 
@@ -53,13 +54,15 @@ class BaseFormViewMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        model = self.model._meta
+        model = self.model._meta    
         context["model_name"] = model.verbose_name
         context["cancel_url"] = reverse_lazy(f"{model.model_name}_list")
         if isinstance(self, CreateView):
             context["title"] = f"Додати {model.verbose_name}"
         else:
             context["title"] = f"Редагувати {model.verbose_name}"
+        
+        context["page"] = f"{self.model._meta.model_name}s"
         return context
 
 
@@ -82,6 +85,7 @@ class BaseDeleteView(DeleteView):
         context["model_name"] = model.verbose_name
         context["cancel_url"] = reverse_lazy(f"{model.model_name}_list")
         context["title"] = f"Видалити {model.verbose_name}"
+        context["page"] = f"{self.model._meta.model_name}s"
         return context
 
     def get_success_url(self):

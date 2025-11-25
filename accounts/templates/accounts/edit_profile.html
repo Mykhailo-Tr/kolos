@@ -1,72 +1,225 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 500px;">
-    <h2 class="mb-4">✏️ Редагування профілю</h2>
+<style>
+  /* 🎨 Загальні змінні */
+  :root {
+    --primary-color: #2563eb;
+    --secondary-color: #64748b;
+    --danger-color: #ef4444;
+    --border-color: #e2e8f0;
+    --header-bg: #f8fafc;
+    --dark-text: #1e293b;
+    --error-bg: #fee2e2;
+  }
 
-    <div class="card shadow-sm">
+  /* 📋 Контейнер форми */
+  .edit-container {
+    max-width: 550px;
+    margin: 3rem auto;
+    padding: 0 2rem;
+  }
 
-        <div class="card-body">
+  .edit-card {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
 
-            <form method="post">
-                {% csrf_token %}
+  /* 📝 Заголовок */
+  .edit-header {
+    background: white;
+    border-bottom: 3px solid var(--primary-color);
+    padding: 25px 30px;
+    text-align: center;
+  }
 
-                {% if form.non_field_errors %}
-                <div class="alert alert-danger py-2">
-                    {% for error in form.non_field_errors %}
-                        {{ error }}<br>
-                    {% endfor %}
-                </div>
-                {% endif %}
+  .edit-header h2 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--dark-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
 
-                <div class="mb-3">
-                    {{ form.username.label_tag }}
-                    {{ form.username }}
-                    {% if form.username.errors %}
-                    <div class="alert alert-danger py-1 mt-1">
-                        {{ form.username.errors|join:", " }}
-                    </div>
-                    {% endif %}
-                </div>
+  /* 📄 Тіло форми */
+  .edit-body {
+    padding: 30px;
+  }
 
-                <div class="mb-3">
-                    {{ form.first_name.label_tag }}
-                    {{ form.first_name }}
-                    {% if form.first_name.errors %}
-                    <div class="alert alert-danger py-1 mt-1">
-                        {{ form.first_name.errors|join:", " }}
-                    </div>
-                    {% endif %}
-                </div>
+  /* 🔤 Поля форми */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
 
-                <div class="mb-3">
-                    {{ form.last_name.label_tag }}
-                    {{ form.last_name }}
-                    {% if form.last_name.errors %}
-                    <div class="alert alert-danger py-1 mt-1">
-                        {{ form.last_name.errors|join:", " }}
-                    </div>
-                    {% endif %}
-                </div>
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--dark-text);
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+  }
 
-                <div class="mb-3">
-                    {{ form.phone.label_tag }}
-                    {{ form.phone }}
-                    {% if form.phone.errors %}
-                    <div class="alert alert-danger py-1 mt-1">
-                        {{ form.phone.errors|join:", " }}
-                    </div>
-                    {% endif %}
-                </div>
+  .form-group input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: white;
+    color: var(--dark-text);
+    box-sizing: border-box;
+  }
 
-                <button type="submit" class="btn btn-primary w-100">Зберегти</button>
-            </form>
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
 
-            <a href="{% url 'profile' %}" class="btn btn-secondary w-100 mt-3">
-                Назад до профілю
-            </a>
+  /* ⚠️ Помилки */
+  .alert-danger {
+    background: var(--error-bg);
+    color: var(--danger-color);
+    padding: 10px 14px;
+    border-radius: 6px;
+    border-left: 3px solid var(--danger-color);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+  }
 
-        </div>
+  /* 🎬 Кнопки */
+  .btn-edit {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-primary {
+    background: var(--primary-color);
+    color: white;
+    margin-bottom: 10px;
+  }
+
+  .btn-primary:hover {
+    background: #1d4ed8;
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+  }
+
+  .btn-secondary:hover {
+    background: var(--header-bg);
+    color: var(--dark-text);
+    text-decoration: none;
+  }
+
+  /* 📱 Адаптивність */
+  @media (max-width: 768px) {
+    .edit-container {
+      padding: 0 1rem;
+      margin: 2rem auto;
+    }
+
+    .edit-header {
+      padding: 20px;
+    }
+
+    .edit-header h2 {
+      font-size: 1.3rem;
+    }
+
+    .edit-body {
+      padding: 20px;
+    }
+  }
+</style>
+
+<div class="edit-container">
+  <div class="edit-card">
+    <div class="edit-header">
+      <h2>
+        <span>✏️</span>
+        <span>Редагування профілю</span>
+      </h2>
     </div>
+
+    <form method="post">
+      <div class="edit-body">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="alert-danger">
+          {% for error in form.non_field_errors %}
+            {{ error }}<br>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+          {{ form.username.label_tag }}
+          {{ form.username }}
+          {% if form.username.errors %}
+          <div class="alert-danger">
+            {{ form.username.errors|join:", " }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          {{ form.first_name.label_tag }}
+          {{ form.first_name }}
+          {% if form.first_name.errors %}
+          <div class="alert-danger">
+            {{ form.first_name.errors|join:", " }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          {{ form.last_name.label_tag }}
+          {{ form.last_name }}
+          {% if form.last_name.errors %}
+          <div class="alert-danger">
+            {{ form.last_name.errors|join:", " }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          {{ form.phone.label_tag }}
+          {{ form.phone }}
+          {% if form.phone.errors %}
+          <div class="alert-danger">
+            {{ form.phone.errors|join:", " }}
+          </div>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="btn-edit btn-primary">Зберегти</button>
+        <a href="{% url 'profile' %}" class="btn-edit btn-secondary">Назад до профілю</a>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

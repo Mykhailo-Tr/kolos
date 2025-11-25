@@ -1,5 +1,6 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib import messages
 from .models import Balance
 from .forms import BalanceForm
@@ -9,22 +10,29 @@ class BalanceListView(ListView):
     model = Balance
     template_name = "balances/list.html"
     context_object_name = "balances"
+    paginate_by = 10  # Кількість записів на сторінку
 
     def get_queryset(self):
         qs = super().get_queryset().select_related("place", "culture")
         order = self.request.GET.get("order")
-        if order in ["id", "-id", "place__name", "-place__name",
-                     "culture__name", "-culture__name", "balance_type", "-balance_type",
-                     "quantity", "-quantity"]:
+        valid_orders = [
+            "id", "-id",
+            "place__name", "-place__name",
+            "culture__name", "-culture__name",
+            "balance_type", "-balance_type",
+            "quantity", "-quantity"
+        ]
+        if order in valid_orders:
             qs = qs.order_by(order)
         else:
             qs = qs.order_by("-id")
         return qs
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["model_name"] = "Журнал залишків"
-        return ctx
+        context = super().get_context_data(**kwargs)
+        context["model_name"] = "Журнал залишків"
+        return context
+
 
 
 class BalanceCreateView(CreateView):

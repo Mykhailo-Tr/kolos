@@ -2,148 +2,181 @@
 {% load custom_tags %}
 {% block content %}
 <style>
-  .admin-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
+  /* 🎨 Загальні змінні */
+  :root {
+    --primary-color: #2563eb;
+    --secondary-color: #64748b;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --border-color: #e2e8f0;
+    --header-bg: #f8fafc;
+    --dark-text: #1e293b;
   }
 
+  /* 📋 Заголовок сторінки */
   .page-header {
+    background: white;
+    border-bottom: 3px solid var(--primary-color);
+    padding: 20px 25px;
+    margin-bottom: 25px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 2px solid #e5e7eb;
+    flex-wrap: wrap;
+    gap: 15px;
   }
 
   .page-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
+    font-size: 1.6rem;
+    font-weight: 600;
     margin: 0;
+    color: var(--dark-text);
   }
 
-  .btn-add {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  .btn-add-new {
+    background: var(--primary-color);
+    border: none;
     color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
+    padding: 10px 25px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background 0.2s ease;
     text-decoration: none;
-    font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
-  }
-
-  .btn-add:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
-    color: white;
-  }
-
-  .table-wrapper {
-    background: white;
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0;
-  }
-
-  .data-table thead {
-    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-  }
-
-  .data-table thead th {
-    padding: 1rem 1.5rem;
-    text-align: left;
-    font-weight: 600;
-    color: white;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border: none;
-  }
-
-  .data-table tbody tr {
-    border-bottom: 1px solid #e5e7eb;
-    transition: all 0.2s ease;
-  }
-
-  .data-table tbody tr:hover {
-    background: #f9fafb;
-    transform: scale(1.01);
-  }
-
-  .data-table tbody tr:last-child {
-    border-bottom: none;
-  }
-
-  .data-table tbody td {
-    padding: 1rem 1.5rem;
-    color: #4b5563;
+    gap: 8px;
     font-size: 0.95rem;
   }
 
-  .data-table tbody td:first-child {
-    font-weight: 600;
-    color: #1f2937;
+  .btn-add-new:hover {
+    background: #1d4ed8;
+    color: white;
+    text-decoration: none;
   }
 
-  .actions-cell {
+  /* 📊 Контейнер таблиці */
+  .table-container {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* 🎯 Стилі таблиці */
+  .professional-table {
+    margin-bottom: 0;
+    border: none;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+
+  .professional-table thead {
+    background: var(--header-bg);
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  .professional-table thead th {
+    border: none;
+    padding: 14px 12px;
+    font-weight: 600;
+    color: var(--dark-text);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--header-bg);
+    text-align: left;
+  }
+
+  .professional-table thead th:first-child {
+    text-align: center;
+  }
+
+  .professional-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s ease;
+  }
+
+  .professional-table tbody tr:hover {
+    background: #dbeafe;
+  }
+
+  .professional-table tbody tr:hover td {
+    background: #dbeafe;
+  }
+
+  .professional-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .professional-table tbody td {
+    padding: 12px;
+    vertical-align: middle;
+    border: none;
+    color: var(--dark-text);
+  }
+
+  /* 🔢 Номер рядка */
+  .row-number {
+    width: 50px;
+    font-weight: 600;
+    color: var(--secondary-color);
+    text-align: center;
+  }
+
+  /* 💰 Перша колонка (зазвичай назва/ID) */
+  .professional-table tbody td:nth-child(2) {
+    font-weight: 600;
+    color: var(--dark-text);
+  }
+
+  /* 🎬 Кнопки дій */
+  .action-buttons {
     display: flex;
-    gap: 0.5rem;
-    align-items: center;
+    gap: 6px;
+    justify-content: center;
   }
 
   .btn-action {
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.375rem;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2.5rem;
+    border: 1px solid;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    text-decoration: none;
+    background: white;
   }
 
-  .btn-edit {
-    background: #fbbf24;
+  .btn-action.btn-edit {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+  }
+
+  .btn-action.btn-edit:hover {
+    background: var(--warning-color);
     color: white;
   }
 
-  .btn-edit:hover {
-    background: #f59e0b;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.4);
+  .btn-action.btn-delete {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
   }
 
-  .btn-delete {
-    background: #ef4444;
+  .btn-action.btn-delete:hover {
+    background: var(--danger-color);
     color: white;
   }
 
-  .btn-delete:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.4);
-  }
-
-  .empty-placeholder {
-    color: #9ca3af;
-    font-style: italic;
-  }
-
+  /* 📱 Посилання на телефон */
   .phone-link {
-    color: #3b82f6;
+    color: var(--primary-color);
     text-decoration: none;
     font-weight: 500;
   }
@@ -152,69 +185,128 @@
     text-decoration: underline;
   }
 
+  /* ℹ️ Порожнє значення */
+  .empty-placeholder {
+    color: #9ca3af;
+    font-style: italic;
+  }
+
+  /* 📱 Адаптивність */
   @media (max-width: 768px) {
-    .admin-container {
-      padding: 1rem;
-    }
-
     .page-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1rem;
+      padding: 15px 20px;
     }
 
-    .data-table {
-      font-size: 0.875rem;
+    .page-title {
+      font-size: 1.3rem;
     }
 
-    .data-table thead th,
-    .data-table tbody td {
-      padding: 0.75rem;
+    .btn-add-new {
+      padding: 8px 20px;
+      font-size: 0.9rem;
+    }
+
+    .professional-table {
+      font-size: 0.85rem;
+    }
+
+    .professional-table thead th {
+      padding: 10px 8px;
+      font-size: 0.75rem;
+    }
+
+    .professional-table tbody td {
+      padding: 10px 8px;
+    }
+
+    .btn-action {
+      width: 28px;
+      height: 28px;
+      font-size: 0.85rem;
     }
   }
 </style>
 
-<div class="admin-container">
+<div class="container mt-4">
+  <!-- 📋 Заголовок сторінки -->
   <div class="page-header">
-    <h1 class="page-title">{{ model_verbose }}</h1>
-    <a href="{{ create_url }}" class="btn-add">
+    <h2 class="page-title">{{ model_verbose }}</h2>
+    <a href="{{ create_url }}" class="btn-add-new">
       <span>➕</span>
       <span>Додати</span>
     </a>
   </div>
 
-  <div class="table-wrapper">
-    <table class="data-table">
-      <thead>
-        <tr>
-          {% for field in fields %}
-            <th>{{ field.verbose_name }}</th>
+  <!-- 📊 Таблиця з даними -->
+  <div class="table-container">
+    <div class="table-responsive">
+      <table class="table professional-table">
+        <thead>
+          <tr>
+            <th class="row-number">#</th>
+            {% for field in fields %}
+              <th>{{ field.verbose_name }}</th>
+            {% endfor %}
+            <th class="text-center">Дії</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td class="row-number">{{ forloop.counter0|add:page_obj.start_index }}</td>
+            {% for value in row.values %}
+              {% if value == None %}
+                <td class="empty-placeholder">—</td>
+              {% elif "380" in value %}
+                <td><a href="tel:{{ value }}" class="phone-link">{{ value }}</a></td>
+              {% else %}
+                <td>{{ value }}</td>
+              {% endif %}
+            {% endfor %}
+            <td>
+              <div class="action-buttons">
+                <a href="{{ row.update_url }}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                <a href="{{ row.delete_url }}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+              </div>
+            </td>
+          </tr>
           {% endfor %}
-          <th>Дії</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        <tr>
-          {% for value in row.values %}
-            {% if value == None %}
-              <td class="empty-placeholder">—</td>
-            {% elif "380" in value %}
-              <td><a href="tel:{{ value }}" class="phone-link">{{ value }}</a></td>
-            {% else %}
-              <td>{{ value }}</td>
-            {% endif %}
-          {% endfor %}
-          <td>
-            <div class="actions-cell">
-              <a href="{{ row.update_url }}" class="btn-action btn-edit" title="Редагувати">✏️</a>
-              <a href="{{ row.delete_url }}" class="btn-action btn-delete" title="Видалити">🗑️</a>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
+
+  <!-- 📄 Пагінація -->
+  {% if is_paginated %}
+  <nav aria-label="Page navigation" class="mt-3">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">‹</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">‹</span></li>
+      {% endif %}
+
+      {% for num in paginator.page_range %}
+        {% if num == page_obj.number %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% else %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">{{ num }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">›</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">›</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
 </div>
 {% endblock %}

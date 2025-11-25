@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
+  /* 🎨 Загальні змінні */
+  :root {
+    --danger-color: #ef4444;
+    --danger-dark: #dc2626;
+    --warning-color: #f59e0b;
+    --border-color: #e2e8f0;
+    --dark-text: #1e293b;
+    --secondary-color: #64748b;
+  }
+
+  /* 📋 Контейнер форми видалення */
   .delete-container {
     max-width: 700px;
     margin: 2rem auto;
@@ -9,121 +20,133 @@
 
   .delete-card {
     background: white;
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
     overflow: hidden;
     border: 2px solid #fee2e2;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);
   }
 
+  /* 🗑️ Заголовок */
   .delete-header {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    padding: 1.5rem 2rem;
+    background: white;
+    padding: 20px 25px;
+    border-bottom: 3px solid var(--danger-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .delete-title {
-    color: white;
-    font-size: 1.25rem;
-    font-weight: 700;
+    color: var(--dark-text);
+    font-size: 1.4rem;
+    font-weight: 600;
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 10px;
   }
 
   .model-badge {
-    background: white;
-    color: #dc2626;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 700;
+    background: #fee2e2;
+    color: var(--danger-dark);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.3px;
+    border: 1px solid #fecaca;
   }
 
+  /* 📄 Тіло форми */
   .delete-body {
-    padding: 2rem;
+    padding: 30px 25px;
   }
 
   .delete-question {
-    font-size: 1.125rem;
-    color: #1f2937;
+    font-size: 1.05rem;
+    color: var(--dark-text);
     margin-bottom: 1.5rem;
+    line-height: 1.6;
   }
 
   .delete-question strong {
-    color: #dc2626;
+    color: var(--danger-color);
+    font-weight: 600;
   }
 
+  /* ⚠️ Попередження про об'єкт */
   .object-alert {
     background: #fef3c7;
-    border-left: 4px solid #f59e0b;
-    padding: 1rem 1.25rem;
-    border-radius: 0.5rem;
+    border-left: 4px solid var(--warning-color);
+    padding: 14px 18px;
+    border-radius: 6px;
     margin-bottom: 1.5rem;
   }
 
   .object-alert strong {
     color: #92400e;
     font-size: 1.05rem;
+    font-weight: 600;
   }
 
+  /* 🎬 Кнопки дій */
   .delete-actions {
     display: flex;
-    gap: 1rem;
+    gap: 12px;
   }
 
   .btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
+    padding: 10px 25px;
+    border-radius: 6px;
     text-decoration: none;
-    font-weight: 600;
-    font-size: 1rem;
+    font-weight: 500;
+    font-size: 0.95rem;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
     border: none;
     cursor: pointer;
+    flex: 1;
   }
 
   .btn-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: var(--danger-color);
     color: white;
-    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
   }
 
   .btn-danger:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(239, 68, 68, 0.4);
+    background: var(--danger-dark);
   }
 
   .btn-secondary {
-    background: #f3f4f6;
-    color: #4b5563;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    background: white;
+    color: var(--secondary-color);
+    border: 1px solid var(--border-color);
   }
 
   .btn-secondary:hover {
-    background: #e5e7eb;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: #f8fafc;
+    color: var(--dark-text);
   }
 
+  /* ⚠️ Футер з попередженням */
   .delete-footer {
     background: #fef2f2;
-    padding: 1rem 2rem;
+    padding: 14px 25px;
     border-top: 1px solid #fee2e2;
     color: #991b1b;
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
   }
 
+  /* 📱 Адаптивність */
   @media (max-width: 768px) {
     .delete-container {
       padding: 0 1rem;
@@ -131,13 +154,17 @@
     }
 
     .delete-header {
+      padding: 15px 20px;
       flex-direction: column;
       align-items: flex-start;
-      gap: 0.75rem;
+    }
+
+    .delete-title {
+      font-size: 1.2rem;
     }
 
     .delete-body {
-      padding: 1.5rem;
+      padding: 20px;
     }
 
     .delete-actions {
@@ -146,7 +173,11 @@
 
     .btn {
       width: 100%;
-      justify-content: center;
+    }
+
+    .delete-footer {
+      padding: 12px 20px;
+      font-size: 0.85rem;
     }
   }
 </style>

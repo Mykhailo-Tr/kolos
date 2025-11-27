@@ -31,6 +31,7 @@ class BalanceListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["model_name"] = "Журнал залишків"
+        context["page"] = "balances"
         return context
 
 
@@ -53,6 +54,7 @@ class BalanceCreateView(CreateView):
         context = super().get_context_data(**kwargs)
         context["model_name"] = self.model._meta.verbose_name
         context["url_name"] = "balance"
+        context["page"] = "balances"
         return context
 
 
@@ -74,6 +76,7 @@ class BalanceUpdateView(UpdateView):
         context = super().get_context_data(**kwargs)
         context["model_name"] = self.model._meta.verbose_name
         context["url_name"] = "balance"
+        context["page"] = "balances"
         return context
 
 
@@ -90,4 +93,5 @@ class BalanceDeleteView(DeleteView):
         context = super().get_context_data(**kwargs)
         context["cancel_url"] = self.success_url
         context["model_name"] = self.model._meta.verbose_name
+        context["page"] = "balances"
         return context

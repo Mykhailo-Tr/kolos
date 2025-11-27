@@ -312,12 +312,20 @@ class FieldsIncome(BaseJournal):
         """Відкат змін балансу (для видалення або редагування)"""
         original_weight_net = self.get_original_value('weight_net')
         if original_weight_net is not None and self.place_to:
-            BalanceService.adjust_balance(
-                place=self.place_to,
-                culture=self.culture,
-                balance_type=BalanceType.STOCK,
-                delta=-original_weight_net,
-            )
+            try:
+                BalanceService.adjust_balance(
+                    place=self.place_to,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    delta=-original_weight_net,
+                )
+            except ValueError:
+                BalanceService.set_balance(
+                    place=self.place_to,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    quantity=0,
+                )
             
     def update_balance(self):
         weight_net = self.weight_net

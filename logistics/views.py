@@ -19,6 +19,8 @@ class BaseJournalViewMixin:
         context['url_name'] = self.model._meta.model_name
         context["model_name"] = model.verbose_name
         context["model_verbose"] = model.verbose_name_plural
+        context["page"] = self.model._meta.model_name
+        print(context)
         return context
 
 

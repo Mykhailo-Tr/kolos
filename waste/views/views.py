@@ -5,7 +5,7 @@ from django.views import View
 from balances.models import Balance, BalanceType
 from ..models import Utilization, Recycling
 from ..forms import UtilizationForm, RecyclingForm
-from ..mixins import BalanceMixin, WasteOperationMixin, WasteFormHandlerMixin
+from ..mixins import BalanceMixin, WasteOperationMixin, WasteFormHandlerMixin, PageContextMixin
 
 
 class WasteJournalListView(ListView):
@@ -31,5 +31,7 @@ class WasteJournalListView(ListView):
                 balance_type=BalanceType.WASTE,
                 quantity__gt=0
                 ),
+            "page": "wastejournal"
         })
+        
         return context

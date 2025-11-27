@@ -4,6 +4,17 @@ from django.urls import reverse_lazy
 from balances.models import Balance, BalanceType
 
 
+class PageContextMixin:
+    """Mixin для додавання контексту сторінки"""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            "page": "wastejournal"
+        })
+        print(context)
+        return context
+
 class BalanceContextMixin:
     """Mixin для отримання балансу в контексті"""
     
@@ -50,6 +61,7 @@ class WasteOperationMixin(BalanceContextMixin):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["page"] = "wastejournal"
         context.update(self.get_operation_context())
         return context
     

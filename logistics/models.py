@@ -231,12 +231,20 @@ class ShipmentJournal(BaseJournal):
                 delta=self.weight_net,
             )
         elif self.action_type == ShipmentAction.EXPORT and self.place_from:
-            BalanceService.adjust_balance(
-                place=self.place_from,
-                culture=self.culture,
-                balance_type=BalanceType.STOCK,
-                delta=-self.weight_net,
-            )
+            try:
+                BalanceService.adjust_balance(
+                    place=self.place_from,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    delta=-self.weight_net,
+                )
+            except ValueError as e:
+                BalanceService.set_balance(
+                    place=self.place_from,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    quantity=0
+                )
             
     def clean(self):
         """Валідація залежно від типу дії."""

@@ -23,9 +23,26 @@ class BaseJournal(models.Model):
     weight_net = models.DecimalField(max_digits=12, decimal_places=3, editable=False, verbose_name="Вага нетто (тонн)")
     note = models.TextField(blank=True, null=True, verbose_name="Примітка")
 
+    _original_values = None
+    
     class Meta:
         abstract = True  # це важливо — Django не створюватиме таблицю для базового класу
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.pk:
+            self._original_values = self._get_operation_values()
+            
+    def _get_operation_values(self):
+        return {
+            'weight_net': self.weight_net,
+        }
+    
+    def get_original_value(self, field_name, default=None):
+        if self._original_values and field_name in self._original_values:
+            return self._original_values[field_name]
+        return default
+    
     def save(self, *args, **kwargs):
         if self.weight_loss:
             self.weight_net = self.weight_gross - self.weight_tare - self.weight_loss
@@ -203,13 +220,39 @@ class FieldsIncome(BaseJournal):
     def __str__(self):
         return f"Надходження {self.document_number} ({self.culture.name}) з поля {self.field.name} до {self.place_to.name}: {self.weight_net} тонн"
     
+    def revert_balance(self):
+        """Відкат змін балансу (для видалення або редагування)"""
+        original_weight_net = self.get_original_value('weight_net')
+        if original_weight_net is not None and self.place_to:
+            BalanceService.adjust_balance(
+                place=self.place_to,
+                culture=self.culture,
+                balance_type=BalanceType.STOCK,
+                delta=-original_weight_net,
+            )
+            
+    def update_balance(self):
+        weight_net = self.weight_net
+        if self.place_to:
+            BalanceService.adjust_balance(
+                place=self.place_to,
+                culture=self.culture,
+                balance_type=BalanceType.STOCK,
+                delta=weight_net,
+            )
+    
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
+
+        if not is_new:
+            self.revert_balance()
+
         super().save(*args, **kwargs)
-        BalanceService.adjust_balance(
-            place=self.place_to,
-            culture=self.culture,
-            balance_type=BalanceType.STOCK,
-            delta=self.weight_net
-        )    
+
+        self.update_balance()
+        
+    def delete(self, *args, **kwargs):
+        self.revert_balance()
+        super().delete(*args, **kwargs)
         
 

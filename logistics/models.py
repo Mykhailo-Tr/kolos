@@ -77,9 +77,33 @@ class WeigherJournal(BaseJournal):
     def __str__(self):
         return f"Внутрішнє переміщення {self.document_number} ({self.culture.name}): {self.weight_net} тонн"
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Зменшуємо залишок в місці відправлення
+    def revert_balance(self):
+        original_weight_net = self.get_original_value('weight_net')
+        if original_weight_net is not None:
+            if self.from_place:
+                BalanceService.adjust_balance(
+                    place=self.from_place,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    delta=original_weight_net
+                )
+            if self.to_place:
+                try:
+                    BalanceService.adjust_balance(
+                        place=self.to_place,
+                        culture=self.culture,
+                        balance_type=BalanceType.STOCK,
+                        delta=-original_weight_net
+                    )
+                except ValueError:
+                    BalanceService.set_balance(
+                        place=self.to_place,
+                        culture=self.culture,
+                        balance_type=BalanceType.STOCK,
+                        quantity=0
+                    )
+                
+    def update_balance(self):
         if self.from_place:
             BalanceService.adjust_balance(
                 place=self.from_place,
@@ -87,7 +111,6 @@ class WeigherJournal(BaseJournal):
                 balance_type=BalanceType.STOCK,
                 delta=-self.weight_net
             )
-        # Збільшуємо залишок в місці призначення
         if self.to_place:
             BalanceService.adjust_balance(
                 place=self.to_place,
@@ -95,6 +118,19 @@ class WeigherJournal(BaseJournal):
                 balance_type=BalanceType.STOCK,
                 delta=self.weight_net
             )
+                
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        if not is_new:
+            self.revert_balance()
+            
+        super().save(*args, **kwargs)
+        
+        self.update_balance()
+            
+    def delete(self, *args, **kwargs):
+        self.revert_balance()
+        super().delete(*args, **kwargs)
 
 
 class ShipmentAction(models.TextChoices):

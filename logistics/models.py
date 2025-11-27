@@ -193,11 +193,7 @@ class ShipmentJournal(BaseJournal):
     
     def revert_balance(self):
         original_weight_net = self.get_original_value('weight_net')
-        print(f"{original_weight_net = }")
-        print(f"{self.weight_net = }")
-        print(f"{self.action_type = }")
-        print(f"{self.place_from = }")
-        print(f"{self.place_to = }")
+
         if self.action_type == ShipmentAction.IMPORT and self.place_to:
             try:
                 BalanceService.adjust_balance(

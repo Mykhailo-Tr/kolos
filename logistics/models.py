@@ -190,24 +190,39 @@ class ShipmentJournal(BaseJournal):
             f"{self.weight_net} тонн"
         )
         
-    def clean(self):
-        """Валідація залежно від типу дії."""
-        from django.core.exceptions import ValidationError
+    
+    def revert_balance(self):
+        original_weight_net = self.get_original_value('weight_net')
+        print(f"{original_weight_net = }")
+        print(f"{self.weight_net = }")
+        print(f"{self.action_type = }")
+        print(f"{self.place_from = }")
+        print(f"{self.place_to = }")
+        if self.action_type == ShipmentAction.IMPORT and self.place_to:
+            try:
+                BalanceService.adjust_balance(
+                    place=self.place_to,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    delta=-original_weight_net,
+                )
+            except ValueError as e:
+                BalanceService.set_balance(
+                    place=self.place_to,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    quantity=0
+                )
+        elif self.action_type == ShipmentAction.EXPORT and self.place_from:
+            BalanceService.adjust_balance(
+                place=self.place_from,
+                culture=self.culture,
+                balance_type=BalanceType.STOCK,
+                delta=original_weight_net,
+            )
 
-        if self.action_type == ShipmentAction.IMPORT:
-            if not self.place_to:
-                raise ValidationError("Для ввезення потрібно вказати 'Місце до'.")
-        elif self.action_type == ShipmentAction.EXPORT:
-            if not self.place_from :
-                raise ValidationError("Для вивезення потрібно вказати 'Місце з'.")
-            
         
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-        self._update_balance()
-        
-    def _update_balance(self):
+    def update_balance(self):
         """Делегує бізнес-логіку в BalanceService."""
         if not self.culture or not self.weight_net:
             return
@@ -226,7 +241,40 @@ class ShipmentJournal(BaseJournal):
                 balance_type=BalanceType.STOCK,
                 delta=-self.weight_net,
             )
+            
+    def clean(self):
+        """Валідація залежно від типу дії."""
+        from django.core.exceptions import ValidationError
 
+        if self.action_type == ShipmentAction.IMPORT:
+            if not self.place_to:
+                raise ValidationError("Для ввезення потрібно вказати 'Місце до'.")
+        elif self.action_type == ShipmentAction.EXPORT:
+            if not self.place_from :
+                raise ValidationError("Для вивезення потрібно вказати 'Місце з'.")
+            
+        
+    def save(self, *args, **kwargs):
+        """Збереження з коректним оновленням балансу"""
+        self.full_clean()
+        is_new = self._state.adding
+
+        if not is_new:
+            # Для існуючого запису - спочатку відкатуємо старі зміни
+            self.revert_balance()
+
+        super().save(*args, **kwargs)
+
+        # Застосовуємо нові зміни балансу
+        self.update_balance()
+
+        # Оновлюємо початкові значення
+        self._original_values = self._get_operation_values()
+
+    def delete(self, *args, **kwargs):
+        """Видалення з поверненням балансу"""
+        self.revert_balance()
+        super().delete(*args, **kwargs)
         
 
 class FieldsIncome(BaseJournal):

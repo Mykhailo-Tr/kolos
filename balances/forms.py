@@ -1,5 +1,5 @@
 from django import forms
-from .models import Balance, BalanceSnapshot
+from .models import Balance, BalanceSnapshot, BalanceHistory
 
 
 class BalanceForm(forms.ModelForm):
@@ -102,3 +102,51 @@ class BalanceSnapshotForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             # Форматуємо дату для відображення в полі datetime-local
             self.initial['snapshot_date'] = self.instance.snapshot_date.strftime('%Y-%m-%dT%H:%M')
+
+
+class BalanceHistoryForm(forms.ModelForm):
+    """Форма для редагування окремого запису в історії."""
+    
+    class Meta:
+        model = BalanceHistory
+        fields = ['place_name', 'culture_name', 'balance_type', 'quantity']
+        widgets = {
+            'place_name': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Місце зберігання',
+                }
+            ),
+            'culture_name': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Культура',
+                }
+            ),
+            'balance_type': forms.Select(
+                attrs={
+                    'class': 'form-select',
+                }
+            ),
+            'quantity': forms.NumberInput(
+                attrs={
+                    'class': 'form-control',
+                    'step': '0.001',
+                    'min': '0',
+                    'placeholder': '0.000',
+                }
+            ),
+        }
+        labels = {
+            'place_name': 'Місце зберігання',
+            'culture_name': 'Культура',
+            'balance_type': 'Тип балансу',
+            'quantity': 'Кількість (т)',
+        }
+    
+    def clean_quantity(self):
+        """Валідація кількості."""
+        quantity = self.cleaned_data.get('quantity')
+        if quantity is not None and quantity < 0:
+            raise forms.ValidationError("Кількість не може бути від'ємною.")
+        return quantity

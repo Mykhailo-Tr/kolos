@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/journal.css' %}">
+
+<style>
+.snapshot-info-card {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.35rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.snapshot-info-card h5 {
+    color: #1f2937;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.form-control, .form-select {
+    border: 1px solid #d1d5db;
+    border-radius: 0.35rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+.stats-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 0.5rem 1rem;
+    border-radius: 0.35rem;
+    font-weight: 600;
+    display: inline-block;
+    font-size: 0.9rem;
+}
+
+.delete-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-checkbox-wrapper input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.journal-table tbody tr.marked-for-delete {
+    background: #fee2e2 !important;
+    opacity: 0.6;
+}
+
+.journal-table tbody tr.marked-for-delete:hover {
+    background: #fecaca !important;
+}
+
+.btn-save-all {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 0.35rem;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.25s ease;
+    cursor: pointer;
+}
+
+.btn-save-all:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+}
+
+.btn-cancel {
+    background: #6b7280;
+    color: white;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 0.35rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.25s ease;
+}
+
+.btn-cancel:hover {
+    background: #4b5563;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.input-in-table {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.input-in-table:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.select-in-table {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.select-in-table:focus {
+    border-color: #3b82f6;
+    outline: none;
+}
+
+.actions-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+</style>
+
+<div class="journal-container">
+  <div class="page-header">
+    <h1 class="page-title">✏️ {{ model_name }}</h1>
+    <a href="{% url 'balance_snapshot_detail' snapshot.pk %}" class="btn-add" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
+      <span>↩️</span>
+      <span>Скасувати</span>
+    </a>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    
+    <!-- Інформація про зліпок -->
+    <div class="snapshot-info-card">
+      <h5>📊 Інформація про зліпок</h5>
+      
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" style="font-size: 0.9rem; color: #374151;">
+            {{ snapshot_form.snapshot_date.label }}
+          </label>
+          {{ snapshot_form.snapshot_date }}
+          {% if snapshot_form.snapshot_date.errors %}
+            <small class="text-danger d-block mt-1">{{ snapshot_form.snapshot_date.errors }}</small>
+          {% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" style="font-size: 0.9rem; color: #374151;">
+            {{ snapshot_form.description.label }}
+          </label>
+          {{ snapshot_form.description }}
+          {% if snapshot_form.description.errors %}
+            <small class="text-danger d-block mt-1">{{ snapshot_form.description.errors }}</small>
+          {% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" style="font-size: 0.9rem; color: #374151;">
+            {{ snapshot_form.created_by.label }}
+          </label>
+          {{ snapshot_form.created_by }}
+          {% if snapshot_form.created_by.errors %}
+            <small class="text-danger d-block mt-1">{{ snapshot_form.created_by.errors }}</small>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="mt-2">
+        <span class="stats-badge">📦 Всього записів: {{ formset.total_form_count }}</span>
+      </div>
+    </div>
+
+    <!-- Management form для formset -->
+    {{ formset.management_form }}
+
+    <!-- Таблиця записів -->
+    {% if formset %}
+      <div class="table-wrapper">
+        <table class="journal-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>Місце зберігання</th>
+              <th>Культура</th>
+              <th style="width: 180px;">Тип балансу</th>
+              <th style="width: 150px;">Кількість (т)</th>
+              <th style="width: 100px;">Видалити</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for form in formset %}
+            <tr class="formset-row" data-form-index="{{ forloop.counter0 }}">
+              <td class="text-center">
+                {{ forloop.counter }}
+                {{ form.id }}
+              </td>
+              <td>
+                <input type="text" name="{{ form.place_name.html_name }}" 
+                       value="{{ form.place_name.value|default:'' }}" 
+                       class="input-in-table" 
+                       placeholder="Місце зберігання">
+                {% if form.place_name.errors %}
+                  <small class="text-danger d-block mt-1" style="font-size: 0.8rem;">{{ form.place_name.errors }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <input type="text" name="{{ form.culture_name.html_name }}" 
+                       value="{{ form.culture_name.value|default:'' }}" 
+                       class="input-in-table" 
+                       placeholder="Культура">
+                {% if form.culture_name.errors %}
+                  <small class="text-danger d-block mt-1" style="font-size: 0.8rem;">{{ form.culture_name.errors }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <select name="{{ form.balance_type.html_name }}" class="select-in-table">
+                  <option value="stock" {% if form.balance_type.value == 'stock' %}selected{% endif %}>Зерно</option>
+                  <option value="waste" {% if form.balance_type.value == 'waste' %}selected{% endif %}>Відходи</option>
+                </select>
+                {% if form.balance_type.errors %}
+                  <small class="text-danger d-block mt-1" style="font-size: 0.8rem;">{{ form.balance_type.errors }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <input type="number" name="{{ form.quantity.html_name }}" 
+                       value="{{ form.quantity.value|default:'0.000' }}" 
+                       class="input-in-table" 
+                       step="0.001" 
+                       min="0"
+                       style="text-align: right;"
+                       placeholder="0.000">
+                {% if form.quantity.errors %}
+                  <small class="text-danger d-block mt-1" style="font-size: 0.8rem;">{{ form.quantity.errors }}</small>
+                {% endif %}
+              </td>
+              <td class="delete-checkbox-wrapper">
+                <input type="checkbox" name="{{ form.DELETE.html_name }}" 
+                       class="delete-checkbox"
+                       {% if form.DELETE.value %}checked{% endif %}>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer з кнопками -->
+      <div class="actions-footer">
+        <a href="{% url 'balance_history_create' snapshot.pk %}" class="btn-add" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+          <span>➕</span>
+          <span>Додати новий запис</span>
+        </a>
+        
+        <div style="display: flex; gap: 0.75rem;">
+          <a href="{% url 'balance_snapshot_detail' snapshot.pk %}" class="btn-cancel">
+            Скасувати
+          </a>
+          <button type="submit" class="btn-save-all">
+            💾 Зберегти всі зміни
+          </button>
+        </div>
+      </div>
+    {% else %}
+      <div class="alert-info">У цьому зліпку немає записів.</div>
+    {% endif %}
+  </form>
+</div>
+
+<script>
+// Підсвічування записів, позначених для видалення
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteCheckboxes = document.querySelectorAll('.delete-checkbox');
+    
+    deleteCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const row = this.closest('tr');
+            if (this.checked) {
+                row.classList.add('marked-for-delete');
+            } else {
+                row.classList.remove('marked-for-delete');
+            }
+        });
+        
+        // Перевіряємо при завантаженні
+        if (checkbox.checked) {
+            checkbox.closest('tr').classList.add('marked-for-delete');
+        }
+    });
+});
+</script>
+
+{% endblock %}

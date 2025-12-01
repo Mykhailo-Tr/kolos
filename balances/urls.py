@@ -13,4 +13,7 @@ urlpatterns = [
     path('history/<int:pk>/', views.BalanceSnapshotDetailView.as_view(), name='balance_snapshot_detail'),
     path('history/<int:pk>/edit/', views.BalanceSnapshotUpdateView.as_view(), name='balance_snapshot_update'),
     path('history/<int:pk>/delete/', views.BalanceSnapshotDeleteView.as_view(), name='balance_snapshot_delete'),
+    
+    # Додавання нового запису до зліпку
+    path('history/<int:snapshot_pk>/add-record/', views.BalanceHistoryCreateView.as_view(), name='balance_history_create'),
 ]

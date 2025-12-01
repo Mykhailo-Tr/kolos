@@ -1,10 +1,11 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.views import View
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib import messages
+from django.forms import formset_factory, modelformset_factory
 from .models import Balance, BalanceSnapshot, BalanceHistory
-from .forms import BalanceForm, BalanceSnapshotForm
+from .forms import BalanceForm, BalanceSnapshotForm, BalanceHistoryForm
 
 
 class BalanceListView(ListView):
@@ -149,28 +150,77 @@ class BalanceSnapshotDetailView(ListView):
         return context
 
 
-class BalanceSnapshotUpdateView(UpdateView):
-    """Редагування зліпку (опису та created_by)."""
-    model = BalanceSnapshot
-    form_class = BalanceSnapshotForm
-    template_name = "balances/snapshot_form.html"
+class BalanceSnapshotUpdateView(View):
+    """Повне редагування зліпку з усіма записами."""
     
-    def get_success_url(self):
-        return reverse_lazy('balance_snapshot_detail', kwargs={'pk': self.object.pk})
-
-    def form_valid(self, form):
-        messages.success(self.request, "✅ Зліпок успішно оновлено.")
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        messages.error(self.request, "❌ Не вдалося оновити зліпок.")
-        return super().form_invalid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["model_name"] = "Редагування зліпку"
-        context["page"] = "balanceshistory"
-        return context
+    def get(self, request, pk):
+        snapshot = get_object_or_404(BalanceSnapshot, pk=pk)
+        snapshot_form = BalanceSnapshotForm(instance=snapshot)
+        
+        # Створюємо formset для всіх історичних записів
+        HistoryFormSet = modelformset_factory(
+            BalanceHistory,
+            form=BalanceHistoryForm,
+            extra=0,
+            can_delete=True
+        )
+        
+        formset = HistoryFormSet(
+            queryset=BalanceHistory.objects.filter(snapshot=snapshot).order_by('place_name', 'culture_name')
+        )
+        
+        context = {
+            'snapshot': snapshot,
+            'snapshot_form': snapshot_form,
+            'formset': formset,
+            'model_name': 'Редагування зліпку',
+            'page': 'balanceshistory',
+        }
+        
+        return render(request, 'balances/snapshot_edit_full.html', context)
+    
+    def post(self, request, pk):
+        snapshot = get_object_or_404(BalanceSnapshot, pk=pk)
+        snapshot_form = BalanceSnapshotForm(request.POST, instance=snapshot)
+        
+        HistoryFormSet = modelformset_factory(
+            BalanceHistory,
+            form=BalanceHistoryForm,
+            extra=0,
+            can_delete=True
+        )
+        
+        formset = HistoryFormSet(request.POST)
+        
+        if snapshot_form.is_valid() and formset.is_valid():
+            # Зберігаємо зліпок
+            snapshot_form.save()
+            
+            # Зберігаємо всі зміни в історичних записах
+            instances = formset.save(commit=False)
+            
+            for instance in instances:
+                instance.snapshot = snapshot
+                instance.save()
+            
+            # Видаляємо позначені записи
+            for obj in formset.deleted_objects:
+                obj.delete()
+            
+            messages.success(request, f"✅ Зліпок успішно оновлено! Оновлено {len(instances)} записів.")
+            return redirect('balance_snapshot_detail', pk=snapshot.pk)
+        else:
+            messages.error(request, "❌ Помилка при збереженні. Перевірте введені дані.")
+            
+            context = {
+                'snapshot': snapshot,
+                'snapshot_form': snapshot_form,
+                'formset': formset,
+                'model_name': 'Редагування зліпку',
+                'page': 'balanceshistory',
+            }
+            
+            return render(request, 'balances/snapshot_edit_full.html', context)
 
 
 class BalanceSnapshotDeleteView(DeleteView):
@@ -187,4 +237,29 @@ class BalanceSnapshotDeleteView(DeleteView):
         context["cancel_url"] = self.success_url
         context["model_name"] = "Зліпок залишків"
         context["page"] = "balanceshistory"
+        return context
+
+
+# ===== ДОДАВАННЯ НОВОГО ЗАПИСУ ДО ЗЛІПКУ =====
+
+class BalanceHistoryCreateView(CreateView):
+    """Додавання нового запису до існуючого зліпку."""
+    model = BalanceHistory
+    form_class = BalanceHistoryForm
+    template_name = "balances/history_form.html"
+    
+    def get_success_url(self):
+        return reverse_lazy('balance_snapshot_detail', kwargs={'pk': self.kwargs['snapshot_pk']})
+    
+    def form_valid(self, form):
+        snapshot = get_object_or_404(BalanceSnapshot, pk=self.kwargs['snapshot_pk'])
+        form.instance.snapshot = snapshot
+        messages.success(self.request, "✅ Новий запис успішно додано до зліпку.")
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['snapshot'] = get_object_or_404(BalanceSnapshot, pk=self.kwargs['snapshot_pk'])
+        context['model_name'] = 'Додати запис до зліпку'
+        context['page'] = 'balanceshistory'
         return context

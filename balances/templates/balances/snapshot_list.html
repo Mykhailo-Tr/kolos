@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/journal.css' %}">
+
+<div class="journal-container">
+  <div class="page-header">
+    <h1 class="page-title">📊 {{ model_name }}</h1>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{% url 'balance_list' %}" class="btn-add" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
+        <span>↩️</span>
+        <span>До залишків</span>
+      </a>
+      <button type="button" class="btn-add" data-bs-toggle="modal" data-bs-target="#createSnapshotModal">
+        <span>💾</span>
+        <span>Створити зліпок</span>
+      </button>
+    </div>
+  </div>
+
+  {% if snapshots %}
+    <div class="table-wrapper">
+      <table class="journal-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Дата і час</th>
+            <th>Опис</th>
+            <th>Створено</th>
+            <th>Кількість записів</th>
+            <th>Загальна кількість (т)</th>
+            <th>Дії</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for snapshot in snapshots %}
+          <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ snapshot.snapshot_date|date:"d.m.Y H:i" }}</td>
+            <td>{{ snapshot.description|default:"—" }}</td>
+            <td>{{ snapshot.created_by }}</td>
+            <td class="text-center">{{ snapshot.total_records }}</td>
+            <td class="text-end">
+              <span class="quantity-value">{{ snapshot.total_quantity|floatformat:3 }}</span>
+            </td>
+            <td>
+              <div class="actions-cell">
+                <a href="{% url 'balance_snapshot_detail' snapshot.pk %}" class="btn-action" style="background: #3b82f6; color: white;" title="Переглянути">👁️</a>
+                <a href="{% url 'balance_snapshot_update' snapshot.pk %}" class="btn-action" style="background: #10b981; color: white;" title="Редагувати">✏️</a>
+                <a href="{% url 'balance_snapshot_delete' snapshot.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Пагінація -->
+    {% if is_paginated %}
+    <nav aria-label="Навігація по сторінках" class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1">Перша</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Попередня</a>
+          </li>
+        {% endif %}
+
+        <li class="page-item active">
+          <span class="page-link">Сторінка {{ page_obj.number }} з {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Наступна</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Остання</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  {% else %}
+    <div class="alert-info">
+      Поки що немає збережених зліпків залишків. Натисніть кнопку "Створити зліпок" для збереження поточного стану.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Модальне вікно для створення зліпку -->
+<div class="modal fade" id="createSnapshotModal" tabindex="-1" aria-labelledby="createSnapshotModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createSnapshotModalLabel">💾 Створити зліпок залишків</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
+      </div>
+      <form method="post" action="{% url 'balance_snapshot_create' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="description" class="form-label">Опис зліпку (необов'язково)</label>
+            <input type="text" class="form-control" id="description" name="description" placeholder="Наприклад: Залишки на кінець місяця">
+            <div class="form-text">Додайте опис, щоб легко знайти цей зліпок пізніше</div>
+          </div>
+          <div class="alert alert-info mb-0">
+            <strong>ℹ️ Інформація:</strong> Буде збережено поточний стан всіх залишків на складах.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+          <button type="submit" class="btn btn-primary">💾 Створити зліпок</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

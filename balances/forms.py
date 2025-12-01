@@ -1,5 +1,6 @@
 from django import forms
-from .models import Balance
+from .models import Balance, BalanceSnapshot
+
 
 class BalanceForm(forms.ModelForm):
     """Форма для створення та редагування записів про залишки зерна або відходів."""
@@ -34,10 +35,10 @@ class BalanceForm(forms.ModelForm):
         }
 
     def clean_quantity(self):
-        """Валідація кількості — не може бути від’ємною."""
+        """Валідація кількості — не може бути від'ємною."""
         quantity = self.cleaned_data.get("quantity")
         if quantity is not None and quantity < 0:
-            raise forms.ValidationError("Кількість не може бути від’ємною.")
+            raise forms.ValidationError("Кількість не може бути від'ємною.")
         return quantity
 
     def clean(self):
@@ -61,4 +62,43 @@ class BalanceForm(forms.ModelForm):
                 )
 
         return cleaned_data
+
+
+class BalanceSnapshotForm(forms.ModelForm):
+    """Форма для редагування зліпку залишків."""
     
+    class Meta:
+        model = BalanceSnapshot
+        fields = ['description', 'created_by', 'snapshot_date']
+        widgets = {
+            'description': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Опис зліпку',
+                }
+            ),
+            'created_by': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Хто створив',
+                }
+            ),
+            'snapshot_date': forms.DateTimeInput(
+                attrs={
+                    'class': 'form-control',
+                    'type': 'datetime-local',
+                },
+                format='%Y-%m-%dT%H:%M'
+            ),
+        }
+        labels = {
+            'description': 'Опис',
+            'created_by': 'Створено',
+            'snapshot_date': 'Дата і час зліпку',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            # Форматуємо дату для відображення в полі datetime-local
+            self.initial['snapshot_date'] = self.instance.snapshot_date.strftime('%Y-%m-%dT%H:%M')

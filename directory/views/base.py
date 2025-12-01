@@ -4,9 +4,26 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 class BaseListView(ListView):
     template_name = "directory/list.html"
     context_object_name = "items"
-    paginate_by = 10  # пагінація — опціонально
+    paginate_by = 10  # пагінація — опційно
 
-    
+    # список полів для сортування можна задавати у класах-нащадках
+    sortable_fields = []
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        order = self.request.GET.get("order")
+        if self.sortable_fields:
+            valid_orders = self.sortable_fields + [f"-{f}" for f in self.sortable_fields]
+        else:
+            # якщо sortable_fields не заданий, можна сортувати по id
+            valid_orders = ["id", "-id"]
+
+        if order in valid_orders:
+            qs = qs.order_by(order)
+        else:
+            qs = qs.order_by("-id")
+        return qs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         model = self.model
@@ -36,9 +53,11 @@ class BaseListView(ListView):
         context.update({
             "model_verbose": model._meta.verbose_name_plural,
             "fields": fields,
-            "rows": rows,  # ← ось це важливо!
+            "rows": rows,  # ← важливо
             "create_url": reverse_lazy(f"{model._meta.model_name}_create"),
             "page": model._meta.model_name + "s",
+            "current_order": self.request.GET.get("order", "-id"),  # для підсвічування поточного сортування
+            "sortable_fields": self.sortable_fields,
         })
         return context
 

@@ -5,6 +5,7 @@ from .base import BaseListView, BaseCreateView, BaseUpdateView, BaseDeleteView
 
 class DriverListView(BaseListView):
     model = Driver
+    sortable_fields = ["full_name", "phone"]
 
 
 class DriverCreateView(BaseCreateView):

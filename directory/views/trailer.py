@@ -5,6 +5,8 @@ from .base import BaseListView, BaseCreateView, BaseUpdateView, BaseDeleteView
 
 class TrailerListView(BaseListView):
     model = Trailer
+    sortable_fields = ["number", "comment"]
+
 
 
 class TrailerCreateView(BaseCreateView):

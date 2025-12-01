@@ -5,6 +5,7 @@ from .base import BaseListView, BaseCreateView, BaseUpdateView, BaseDeleteView
 
 class FieldListView(BaseListView):
     model = Field
+    sortable_fields = ["name"]
 
 
 class FieldCreateView(BaseCreateView):

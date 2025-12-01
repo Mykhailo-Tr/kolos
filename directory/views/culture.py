@@ -5,6 +5,7 @@ from .base import BaseListView, BaseCreateView, BaseUpdateView, BaseDeleteView
 
 class CultureListView(BaseListView):
     model = Culture
+    sortable_fields = ["name", "parent"]
 
 
 class CultureCreateView(BaseCreateView):

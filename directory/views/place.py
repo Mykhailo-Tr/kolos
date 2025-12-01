@@ -5,6 +5,7 @@ from .base import BaseListView, BaseCreateView, BaseUpdateView, BaseDeleteView
 
 class PlaceListView(BaseListView):
     model = Place
+    sortable_fields = ["name", "place_type"]
 
 
 class PlaceCreateView(BaseCreateView):

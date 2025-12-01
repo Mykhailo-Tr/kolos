@@ -5,7 +5,8 @@ from .base import BaseListView, BaseCreateView, BaseUpdateView, BaseDeleteView
 
 class CarListView(BaseListView):
     model = Car
-
+    sortable_fields = ["number", "name", "default_driver"]
+    
 
 class CarCreateView(BaseCreateView):
     model = Car

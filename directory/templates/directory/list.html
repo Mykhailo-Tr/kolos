@@ -2,7 +2,6 @@
 {% load custom_tags %}
 {% block content %}
 <style>
-  /* 🎨 Загальні змінні */
   :root {
     --primary-color: #2563eb;
     --secondary-color: #64748b;
@@ -14,7 +13,6 @@
     --dark-text: #1e293b;
   }
 
-  /* 📋 Заголовок сторінки */
   .page-header {
     background: white;
     border-bottom: 3px solid var(--primary-color);
@@ -32,6 +30,9 @@
     font-weight: 600;
     margin: 0;
     color: var(--dark-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
   .btn-add-new {
@@ -52,10 +53,8 @@
   .btn-add-new:hover {
     background: #1d4ed8;
     color: white;
-    text-decoration: none;
   }
 
-  /* 📊 Контейнер таблиці */
   .table-container {
     background: white;
     border: 1px solid var(--border-color);
@@ -63,7 +62,6 @@
     overflow: hidden;
   }
 
-  /* 🎯 Стилі таблиці */
   .professional-table {
     margin-bottom: 0;
     border: none;
@@ -88,11 +86,6 @@
     top: 0;
     z-index: 10;
     background: var(--header-bg);
-    text-align: left;
-  }
-
-  .professional-table thead th:first-child {
-    text-align: center;
   }
 
   .professional-table tbody tr {
@@ -104,14 +97,6 @@
     background: #dbeafe;
   }
 
-  .professional-table tbody tr:hover td {
-    background: #dbeafe;
-  }
-
-  .professional-table tbody tr:last-child {
-    border-bottom: none;
-  }
-
   .professional-table tbody td {
     padding: 12px;
     vertical-align: middle;
@@ -119,7 +104,6 @@
     color: var(--dark-text);
   }
 
-  /* 🔢 Номер рядка */
   .row-number {
     width: 50px;
     font-weight: 600;
@@ -127,13 +111,36 @@
     text-align: center;
   }
 
-  /* 💰 Перша колонка (зазвичай назва/ID) */
-  .professional-table tbody td:nth-child(2) {
+  .balance-type-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: var(--dark-text);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1px solid;
   }
 
-  /* 🎬 Кнопки дій */
+  .badge-grain {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #10b981;
+  }
+
+  .badge-waste {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #f59e0b;
+  }
+
+  .quantity-value {
+    font-weight: 600;
+    color: var(--dark-text);
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+  }
+
   .action-buttons {
     display: flex;
     gap: 6px;
@@ -150,7 +157,6 @@
     border: 1px solid;
     transition: all 0.2s ease;
     font-size: 0.95rem;
-    text-decoration: none;
     background: white;
   }
 
@@ -174,24 +180,26 @@
     color: white;
   }
 
-  /* 📱 Посилання на телефон */
-  .phone-link {
-    color: var(--primary-color);
+  .sort-link {
+    color: var(--dark-text) !important;
     text-decoration: none;
-    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
   }
 
-  .phone-link:hover {
-    text-decoration: underline;
+  .sort-link:hover {
+    color: var(--primary-color) !important;
+    background: rgba(37, 99, 235, 0.05);
   }
 
-  /* ℹ️ Порожнє значення */
-  .empty-placeholder {
-    color: #9ca3af;
-    font-style: italic;
+  .sort-icon {
+    font-size: 0.9rem;
+    color: var(--primary-color);
   }
 
-  /* 📱 Адаптивність */
   @media (max-width: 768px) {
     .page-header {
       padding: 15px 20px;
@@ -228,85 +236,104 @@
 </style>
 
 <div class="container mt-4">
-  <!-- 📋 Заголовок сторінки -->
   <div class="page-header">
-    <h2 class="page-title">{{ model_verbose }}</h2>
+    <h2 class="page-title">
+      <span class="page-title-icon">📦</span>
+      {{ model_verbose }}
+    </h2>
     <a href="{{ create_url }}" class="btn-add-new">
       <span>➕</span>
-      <span>Додати</span>
+      <span>Додати запис</span>
     </a>
   </div>
 
-  <!-- 📊 Таблиця з даними -->
-  <div class="table-container">
-    <div class="table-responsive">
-      <table class="table professional-table">
-        <thead>
-          <tr>
-            <th class="row-number">#</th>
-            {% for field in fields %}
-              <th>{{ field.verbose_name }}</th>
+  {% if rows %}
+    <div class="table-container">
+      <div class="table-responsive">
+        <table class="table professional-table">
+          <thead class="text-center">
+            <tr>
+              <th class="row-number">#</th>
+              {% for field in fields %}
+                {% with field_name=field.name %}
+                  {% if field_name in sortable_fields %}
+                    <th class="text-start">
+                      <a href="?order={% if current_order == field_name %}-{{ field_name }}{% else %}{{ field_name }}{% endif %}" class="sort-link">
+                        {{ field.verbose_name }}
+                        <span class="sort-icon">
+                          {% if current_order == field_name %}
+                            ▲
+                          {% elif current_order == "-"|add:field_name %}
+                            ▼
+                          {% else %}
+                            ⇅
+                          {% endif %}
+                        </span>
+                      </a>
+                    </th>
+                  {% else %}
+                    <th class="text-start">{{ field.verbose_name }}</th>
+                  {% endif %}
+                {% endwith %}
+              {% endfor %}
+              <th>Дії</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td class="row-number">{{ forloop.counter0|add:page_obj.start_index }}</td>
+              {% for value in row.values %}
+                {% if value == None %}
+                  <td class="empty-placeholder">—</td>
+                {% else %}
+                  <td>{{ value }}</td>
+                {% endif %}
+              {% endfor %}
+              <td>
+                <div class="action-buttons">
+                  <a href="{{ row.update_url }}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                  <a href="{{ row.delete_url }}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+                </div>
+              </td>
+            </tr>
             {% endfor %}
-            <th class="text-center">Дії</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-          <tr>
-            <td class="row-number">{{ forloop.counter0|add:page_obj.start_index }}</td>
-            {% for value in row.values %}
-              {% if value == None %}
-                <td class="empty-placeholder">—</td>
-              {% elif "380" in value %}
-                <td><a href="tel:{{ value }}" class="phone-link">{{ value }}</a></td>
-              {% else %}
-                <td>{{ value }}</td>
-              {% endif %}
-            {% endfor %}
-            <td>
-              <div class="action-buttons">
-                <a href="{{ row.update_url }}" class="btn-action btn-edit" title="Редагувати">✏️</a>
-                <a href="{{ row.delete_url }}" class="btn-action btn-delete" title="Видалити">🗑️</a>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-  <!-- 📄 Пагінація -->
-  {% if is_paginated %}
-  <nav aria-label="Page navigation" class="mt-3">
-    <ul class="pagination justify-content-center">
-      {% if page_obj.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">‹</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">‹</span></li>
-      {% endif %}
-
-      {% for num in paginator.page_range %}
-        {% if num == page_obj.number %}
-          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-3">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">‹</a></li>
         {% else %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ num }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">{{ num }}</a>
-          </li>
+          <li class="page-item disabled"><span class="page-link">‹</span></li>
         {% endif %}
-      {% endfor %}
 
-      {% if page_obj.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">›</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">›</span></li>
-      {% endif %}
-    </ul>
-  </nav>
+        {% for num in paginator.page_range %}
+          {% if num == page_obj.number %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% else %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">›</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">›</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">📦</div>
+      <h3 class="empty-state-title">Записів поки що немає</h3>
+      <p class="empty-state-text">Додайте перший запис, щоб почати роботу</p>
+    </div>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,47 +1,64 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block content %}
-<div class="container mt-4">
-    <h3 class="mb-3">♻️ Залишки відходів</h3>
+<link rel="stylesheet" href="{% static 'css/journal.css' %}">
 
-    <!-- Таблиця залишків відходів -->
-    <table class="table table-striped table-hover align-middle shadow-sm rounded">
-        <thead class="table-dark">
-            <tr class="text-center">
-                <th>#</th>
-                <th>Місце</th>
-                <th>Культура</th>
-                <th>Кількість (тонн)</th>
-                <th>Дії</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in waste_balances %}
-                <tr class="text-center">
-                    <td class="">{{ forloop.counter }}</td>
-                    <td>{{ item.place.name }}</td>
-                    <td>Відходи - {{ item.culture.name }}</td>
-                    <td class="text-center">{{ item.quantity }}</td>
-                    <td>
-                        <a href="{% url 'recycling_add' item.pk %}" class="btn btn-sm btn-outline-secondary">
-                            Переробка
-                        </a>
+<div class="journal-container">
+  <div class="page-header">
+    <h3 class="page-title">♻️ Залишки відходів</h3>
+  </div>
 
-                        <a href="{% url 'utilization_add' item.pk %}" class="btn btn-sm btn-outline-primary">
-                            Утилізація
-                        </a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center text-muted py-3">Немає відходів</td>
-                </tr>
-            {% endfor %}
-        </tbody>
+  {% if waste_balances %}
+  <div class="table-wrapper">
+    <table class="journal-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Місце</th>
+          <th>Культура</th>
+          <th>Кількість (тонн)</th>
+          <th>Дії</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in waste_balances %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ item.place.name }}</td>
+            <td>Відходи - {{ item.culture.name }}</td>
+            <td class="quantity-value text-center">{{ item.quantity }}</td>
+            <td class="actions-cell">
+                <a href="{% url 'recycling_add' item.pk %}" class="btn-add" 
+                style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                        color: white;
+                        padding: 0.4rem 0.8rem; 
+                        font-size: 0.85rem;">
+                    ♻️ Переробка
+                </a>
+                <a href="{% url 'utilization_add' item.pk %}" class="btn-add" 
+                style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                        color: white;
+                        padding: 0.4rem 0.8rem; 
+                        font-size: 0.85rem;">
+                    🗑️ Утилізація
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-3">Немає відходів</td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
+  </div>
+  {% else %}
+  <div class="alert-info">Немає відходів</div>
+  {% endif %}
 
-    <hr class="my-4">
+  <hr class="my-4">
 
-    <!-- Підключення універсального списку -->
-    {% include "waste/list.html" %}
+  {% include "waste/list.html" %}
 </div>
 {% endblock %}

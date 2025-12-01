@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/journal.css' %}">
+
+<div class="journal-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">📊 {{ model_name }}</h1>
+      <p class="text-muted mb-0" style="font-size: 0.95rem;">
+        <strong>Дата:</strong> {{ snapshot.snapshot_date|date:"d.m.Y H:i" }} | 
+        <strong>Опис:</strong> {{ snapshot.description|default:"—" }} | 
+        <strong>Створено:</strong> {{ snapshot.created_by }}
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{% url 'balance_snapshot_update' snapshot.pk %}" class="btn-add" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+        <span>✏️</span>
+        <span>Редагувати</span>
+      </a>
+      <a href="{% url 'balance_snapshot_list' %}" class="btn-add" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
+        <span>↩️</span>
+        <span>До історії</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Статистика -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card border-primary">
+        <div class="card-body text-center">
+          <h5 class="card-title text-primary">📦 Всього записів</h5>
+          <h2 class="mb-0">{{ snapshot.total_records }}</h2>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-success">
+        <div class="card-body text-center">
+          <h5 class="card-title text-success">⚖️ Загальна кількість</h5>
+          <h2 class="mb-0">{{ snapshot.total_quantity|floatformat:3 }} т</h2>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-info">
+        <div class="card-body text-center">
+          <h5 class="card-title text-info">🕒 Дата збереження</h5>
+          <h2 class="mb-0" style="font-size: 1.3rem;">{{ snapshot.snapshot_date|date:"d.m.Y" }}</h2>
+          <small class="text-muted">{{ snapshot.snapshot_date|date:"H:i" }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if history_records %}
+    <div class="table-wrapper">
+      <table class="journal-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Місце зберігання</th>
+            <th>Культура</th>
+            <th>Тип балансу</th>
+            <th>Кількість (тонн)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in history_records %}
+          <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ record.place_name }}</td>
+            <td>{{ record.culture_name }}</td>
+            <td>
+              {% if record.balance_type == 'stock' %}
+                <span class="badge bg-success">Зерно</span>
+              {% else %}
+                <span class="badge bg-warning">Відходи</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <span class="quantity-value">{{ record.quantity|floatformat:3 }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Пагінація -->
+    {% if is_paginated %}
+    <nav aria-label="Навігація по сторінках" class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1">Перша</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Попередня</a>
+          </li>
+        {% endif %}
+
+        <li class="page-item active">
+          <span class="page-link">Сторінка {{ page_obj.number }} з {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Наступна</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Остання</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  {% else %}
+    <div class="alert-info">У цьому зліпку немає записів.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

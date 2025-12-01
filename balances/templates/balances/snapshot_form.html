@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/journal.css' %}">
+
+<div class="journal-container">
+  <div class="page-header">
+    <h1 class="page-title">✏️ {{ model_name }}</h1>
+    <a href="{% url 'balance_snapshot_detail' object.pk %}" class="btn-add" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
+      <span>↩️</span>
+      <span>Назад</span>
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <div class="mb-3">
+          <label for="{{ form.snapshot_date.id_for_label }}" class="form-label">
+            {{ form.snapshot_date.label }}
+            <span class="text-danger">*</span>
+          </label>
+          {{ form.snapshot_date }}
+          {% if form.snapshot_date.errors %}
+            <div class="invalid-feedback d-block">
+              {{ form.snapshot_date.errors }}
+            </div>
+          {% endif %}
+          <small class="form-text text-muted">Дата та час створення зліпку</small>
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.description.id_for_label }}" class="form-label">
+            {{ form.description.label }}
+          </label>
+          {{ form.description }}
+          {% if form.description.errors %}
+            <div class="invalid-feedback d-block">
+              {{ form.description.errors }}
+            </div>
+          {% endif %}
+          <small class="form-text text-muted">Короткий опис зліпку для легкої ідентифікації</small>
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.created_by.id_for_label }}" class="form-label">
+            {{ form.created_by.label }}
+          </label>
+          {{ form.created_by }}
+          {% if form.created_by.errors %}
+            <div class="invalid-feedback d-block">
+              {{ form.created_by.errors }}
+            </div>
+          {% endif %}
+          <small class="form-text text-muted">Ім'я користувача або системи, що створив зліпок</small>
+        </div>
+
+        <div class="alert alert-info">
+          <strong>ℹ️ Увага:</strong> Історичні дані залишків (записи в зліпку) залишаться незмінними. 
+          Ви змінюєте лише інформацію про сам зліпок.
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end mt-4">
+          <a href="{% url 'balance_snapshot_detail' object.pk %}" class="btn btn-secondary">
+            Скасувати
+          </a>
+          <button type="submit" class="btn btn-primary">
+            💾 Зберегти зміни
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Інформація про зліпок -->
+  <div class="card mt-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">📊 Статистика зліпку</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <p class="mb-2"><strong>Кількість записів:</strong> {{ object.total_records }}</p>
+          <p class="mb-0"><strong>Загальна кількість:</strong> {{ object.total_quantity|floatformat:3 }} тонн</p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-2"><strong>Дата створення:</strong> {{ object.snapshot_date|date:"d.m.Y H:i" }}</p>
+          <p class="mb-0"><strong>Опис:</strong> {{ object.description|default:"—" }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

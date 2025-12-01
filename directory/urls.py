@@ -2,6 +2,7 @@ from django.urls import path
 from .views import driver, car, trailer, culture, place, field
 
 urlpatterns = [
+
     # Driver
     path("drivers/", driver.DriverListView.as_view(), name="driver_list"),
     path("drivers/add/", driver.DriverCreateView.as_view(), name="driver_create"),

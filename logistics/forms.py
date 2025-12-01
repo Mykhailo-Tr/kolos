@@ -27,12 +27,20 @@ class ForeignKeyQuerysetMixin:
             if field_name in self.fields:
                 self.fields[field_name].queryset = model.objects.all()
                 
+                
+
          
 class BaseJournalForm(ForeignKeyQuerysetMixin, forms.ModelForm):
     """
     Базова форма для журналів зважування.
     Містить спільні поля, валідацію та логіку розрахунку ваги нетто.
     """
+    SMART_FIELDS = {
+        "driver", "car", "trailer", "culture",
+        "from_place", "to_place",
+        "place_from", "place_to",
+        "field"
+    }
 
     class Meta:
         # model визначатиметься у дочірніх класах
@@ -93,6 +101,20 @@ class BaseJournalForm(ForeignKeyQuerysetMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.set_foreignkey_querysets()
 
+        # додамо smart_model для кожного SMART поля
+        for name, field in self.fields.items():
+            print(f"{name}, {field}")
+            if name in self.SMART_FIELDS:
+                print("!")
+                qs = getattr(field, "queryset", None)
+                print(qs)
+                if qs is not None:
+                    model = qs.model
+                    field.smart_model = model._meta.model_name # або 
+                    print(f"{field.smart_model = }")
+                else:
+                    field.smart_model = ""
+
     def clean(self):
         """Перевіряє правильність вагових значень."""
         cleaned_data = super().clean()
@@ -112,7 +134,7 @@ class BaseJournalForm(ForeignKeyQuerysetMixin, forms.ModelForm):
         if commit:
             instance.save()
         return instance
-
+    
          
 class WeigherJournalForm(BaseJournalForm):
     """ Форма для внутрішніх переміщень (WeigherJournal). """

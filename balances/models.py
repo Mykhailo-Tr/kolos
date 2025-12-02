@@ -46,6 +46,7 @@ class Balance(models.Model):
     @classmethod
     def create_snapshot(cls, description=""):
         """Створює зліпок всіх поточних залишків."""
+        
         snapshot = BalanceSnapshot.objects.create(
             snapshot_date=timezone.now(),
             description=description
@@ -56,8 +57,8 @@ class Balance(models.Model):
         for balance in balances:
             BalanceHistory.objects.create(
                 snapshot=snapshot,
-                place_name=balance.place.name,
-                culture_name=balance.culture.name,
+                place=balance.place,       # FK
+                culture=balance.culture,   # FK
                 balance_type=balance.balance_type,
                 quantity=balance.quantity,
             )
@@ -109,28 +110,46 @@ class BalanceHistory(models.Model):
         on_delete=models.CASCADE,
         related_name='history_records',
         verbose_name="Зліпок",
-        null=True,  # Тимчасово для міграції
-        blank=True
+        null=True,
+        blank=True,
     )
-    place_name = models.CharField(max_length=255, default="", verbose_name="Місце зберігання")
-    culture_name = models.CharField(max_length=255, default="", verbose_name="Культура")
+    place = models.ForeignKey(
+        'directory.Place',
+        on_delete=models.PROTECT,
+        related_name='balance_history',
+        verbose_name="Місце зберігання",
+        null=True,
+        blank=True,
+    )
+    culture = models.ForeignKey(
+        'directory.Culture',
+        on_delete=models.PROTECT,
+        related_name='balance_history',
+        verbose_name="Культура",
+        null=True,
+        blank=True,
+    )
     balance_type = models.CharField(
         max_length=10,
         choices=BalanceType.choices,
         default=BalanceType.STOCK,
         verbose_name="Тип балансу",
+        null=True,
+        blank=True,
     )
     quantity = models.DecimalField(
         max_digits=12,
         decimal_places=3,
         default=0,
-        verbose_name="Кількість (тонн)"
+        verbose_name="Кількість (тонн)",
+        null=True,
+        blank=True,
     )
 
     class Meta:
         verbose_name = "Історія залишків"
         verbose_name_plural = "Історія залишків"
-        ordering = ['place_name', 'culture_name']
+        ordering = ['place', 'culture']
 
     def __str__(self):
-        return f"{self.place_name} — {self.culture_name}: {self.quantity} т"
+        return f"{self.place.name} — {self.culture.name}: {self.quantity} т"

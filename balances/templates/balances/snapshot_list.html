@@ -3,6 +3,51 @@
 {% load static %}
 
 {% block content %}
+<style>
+/* Стилі для сортування */
+.sort-link {
+    color: inherit; /* забирає стандартний синій колір */
+    text-decoration: none; /* прибирає підкреслення */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 500;
+    transition: all 0.1s ease;
+}
+
+.sort-link:hover {
+    color: #2563eb; /* можна зробити підсвічування при наведенні */
+}
+
+.sort-icon {
+    font-size: 0.8rem;
+}
+
+/* Застосовуємо до таблиці журналу */
+.journal-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto; /* ширина підлаштовується під вміст */
+}
+
+.journal-table th, .journal-table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+    text-align: left;
+    word-break: break-word; /* текст не вилітає за межі */
+}
+
+/* Налаштування ширини колонок */
+.journal-table th:nth-child(1), .journal-table td:nth-child(1) { width: 3%; text-align: center; }  /* # */
+.journal-table th:nth-child(2), .journal-table td:nth-child(2) { width: 15%; text-align: center; }  /* Дата */
+.journal-table th:nth-child(3), .journal-table td:nth-child(3) { width: 35%; text-align: center; }  /* Опис */
+.journal-table th:nth-child(4), .journal-table td:nth-child(4) { width: 15%; text-align: center; }  /* Створено ким */
+.journal-table th:nth-child(5), .journal-table td:nth-child(5) { width: 10%; text-align: center; }  /* Кількість записів */
+.journal-table th:nth-child(6), .journal-table td:nth-child(6) { width: 15%; text-align: center; }  /* Загальна кількість */
+.journal-table th:nth-child(7), .journal-table td:nth-child(7) { width: 7%; text-align: center; }   /* Дії */
+
+</style>
+
 <link rel="stylesheet" href="{% static 'css/journal.css' %}">
 
 <div class="journal-container">
@@ -26,29 +71,38 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>Дата і час</th>
-            <th>Опис</th>
-            <th>Створено</th>
-            <th>Кількість записів</th>
-            <th>Загальна кількість (т)</th>
+            {% for field, label in sortable_fields_verbose.items %}
+              <th>
+                <a href="?order={% if current_order == field %}-{{ field }}{% else %}{{ field }}{% endif %}" class="sort-link">
+                  {{ label }}
+                  <span class="sort-icon">
+                    {% if current_order == field %}
+                      ▲
+                    {% elif current_order == "-"|add:field %}
+                      ▼
+                    {% else %}
+                      ⇅
+                    {% endif %}
+                  </span>
+                </a>
+              </th>
+            {% endfor %}
             <th>Дії</th>
           </tr>
         </thead>
         <tbody>
           {% for snapshot in snapshots %}
           <tr>
-            <td class="text-center">{{ forloop.counter }}</td>
+            <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
             <td>{{ snapshot.snapshot_date|date:"d.m.Y H:i" }}</td>
             <td>{{ snapshot.description|default:"—" }}</td>
             <td>{{ snapshot.created_by }}</td>
             <td class="text-center">{{ snapshot.total_records }}</td>
-            <td class="text-end">
-              <span class="quantity-value">{{ snapshot.total_quantity|floatformat:3 }}</span>
-            </td>
+            <td class="text-end">{{ snapshot.total_quantity|floatformat:3 }}</td>
             <td>
               <div class="actions-cell">
                 <a href="{% url 'balance_snapshot_detail' snapshot.pk %}" class="btn-action" style="background: #3b82f6; color: white;" title="Переглянути">👁️</a>
-                <a href="{% url 'balance_snapshot_update' snapshot.pk %}" class="btn-action" style="background: #10b981; color: white;" title="Редагувати">✏️</a>
+                <a href="{% url 'balance_snapshot_update' snapshot.pk %}" class="btn-action" style="background: #fbbf24; color: white;" title="Редагувати">✏️</a>
                 <a href="{% url 'balance_snapshot_delete' snapshot.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
               </div>
             </td>
@@ -58,38 +112,34 @@
       </table>
     </div>
 
-    <!-- Пагінація -->
+    <!-- ===== Пагінація ===== -->
     {% if is_paginated %}
-    <nav aria-label="Навігація по сторінках" class="mt-4">
-      <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-          <li class="page-item">
-            <a class="page-link" href="?page=1">Перша</a>
-          </li>
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Попередня</a>
-          </li>
-        {% endif %}
+      <nav aria-label="Page navigation" class="mt-3">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">‹</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">‹</span></li>
+          {% endif %}
 
-        <li class="page-item active">
-          <span class="page-link">Сторінка {{ page_obj.number }} з {{ page_obj.paginator.num_pages }}</span>
-        </li>
+          {% for num in paginator.page_range %}
+            {% if num == page_obj.number %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
 
-        {% if page_obj.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Наступна</a>
-          </li>
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Остання</a>
-          </li>
-        {% endif %}
-      </ul>
-    </nav>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">›</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">›</span></li>
+          {% endif %}
+        </ul>
+      </nav>
     {% endif %}
   {% else %}
-    <div class="alert-info">
-      Поки що немає збережених зліпків залишків. Натисніть кнопку "Створити зліпок" для збереження поточного стану.
-    </div>
+    <div class="alert-info">Поки що немає збережених зліпків залишків.</div>
   {% endif %}
 </div>
 
@@ -121,5 +171,4 @@
     </div>
   </div>
 </div>
-
 {% endblock %}

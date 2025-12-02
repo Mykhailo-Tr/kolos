@@ -4,6 +4,7 @@ from django.views import View
 from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib import messages
 from django.forms import formset_factory, modelformset_factory
+from django.db.models import Count, Sum, F
 from .models import Balance, BalanceSnapshot, BalanceHistory
 from .forms import BalanceForm, BalanceSnapshotForm, BalanceHistoryForm
 
@@ -105,9 +106,23 @@ class BalanceSnapshotCreateView(View):
     
     def post(self, request):
         description = request.POST.get('description', 'Ручне збереження')
-        
         try:
-            snapshot = Balance.create_snapshot(description=description)
+            snapshot = BalanceSnapshot.objects.create(
+                description=description,
+                created_by=request.user.get_full_name() or request.user.username
+            )
+            
+            # Копіюємо всі залишки у BalanceHistory
+            balances = Balance.objects.select_related('place', 'culture').all()
+            for balance in balances:
+                BalanceHistory.objects.create(
+                    snapshot=snapshot,
+                    place=balance.place,
+                    culture=balance.culture,
+                    balance_type=balance.balance_type,
+                    quantity=balance.quantity,
+                )
+            
             messages.success(
                 request, 
                 f"✅ Зліпок успішно створено! Збережено {snapshot.total_records()} записів."
@@ -122,12 +137,40 @@ class BalanceSnapshotListView(ListView):
     model = BalanceSnapshot
     template_name = "balances/snapshot_list.html"
     context_object_name = "snapshots"
-    paginate_by = 20
+    paginate_by = 10
+
+    sortable_fields_verbose = {
+        'snapshot_date': 'Дата і час',
+        'description': 'Опис',
+        'created_by': 'Створено',
+        'total_records': 'Кількість записів',
+        'total_quantity': 'Загальна кількість (т)'
+    }
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        # Використовуємо правильний related_name
+        qs = qs.annotate(
+            total_records=Count('history_records'),
+            total_quantity=Sum('history_records__quantity')
+        )
+
+        order = self.request.GET.get('order')
+        if order in self.sortable_fields_verbose:
+            qs = qs.order_by(order)
+        elif order and order.startswith('-') and order[1:] in self.sortable_fields_verbose:
+            qs = qs.order_by(order)
+        else:
+            qs = qs.order_by('-snapshot_date')
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["model_name"] = "Історія залишків"
         context["page"] = "balanceshistory"
+        context["sortable_fields_verbose"] = self.sortable_fields_verbose
+        context["current_order"] = self.request.GET.get('order', '-snapshot_date')
         return context
 
 
@@ -135,93 +178,129 @@ class BalanceSnapshotDetailView(ListView):
     model = BalanceHistory
     template_name = "balances/snapshot_detail.html"
     context_object_name = "history_records"
-    paginate_by = 50
+    paginate_by = 10
+
+    # Дозволені поля для сортування
+    sortable_fields = [
+        "place__name", "-place__name",
+        "culture__name", "-culture__name",
+        "balance_type", "-balance_type",
+        "quantity", "-quantity"
+    ]
 
     def get_queryset(self):
         snapshot_id = self.kwargs['pk']
-        return BalanceHistory.objects.filter(snapshot_id=snapshot_id)
+        qs = BalanceHistory.objects.filter(snapshot_id=snapshot_id).select_related('place', 'culture')
+
+        # Отримуємо параметр сортування
+        order = self.request.GET.get("order")
+        if order in self.sortable_fields:
+            qs = qs.order_by(order)
+        else:
+            qs = qs.order_by("id")  # дефолтне сортування
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         snapshot_id = self.kwargs['pk']
-        context['snapshot'] = BalanceSnapshot.objects.get(pk=snapshot_id)
+        snapshot = get_object_or_404(BalanceSnapshot, pk=snapshot_id)
+        context['snapshot'] = snapshot
         context["model_name"] = "Деталі зліпку"
         context["page"] = "balanceshistory"
+        context["current_order"] = self.request.GET.get('order', 'id')  # для відображення стрілочок у шаблоні
+
+        # Підготовка словника для JS/шаблону сортування
+        context["sortable_fields"] = {
+            "place__name": "Місце зберігання",
+            "culture__name": "Культура",
+            "balance_type": "Тип балансу",
+            "quantity": "Кількість (т)"
+        }
         return context
 
 
 class BalanceSnapshotUpdateView(View):
-    """Повне редагування зліпку з усіма записами."""
-    
+    """Повне редагування зліпку з усіма записами з підтримкою сортування."""
+
+    sortable_fields = ['place__name', 'culture__name', 'balance_type', 'quantity']
+
     def get(self, request, pk):
         snapshot = get_object_or_404(BalanceSnapshot, pk=pk)
         snapshot_form = BalanceSnapshotForm(instance=snapshot)
-        
-        # Створюємо formset для всіх історичних записів
+
+        # Отримуємо параметр сортування з GET
+        order = request.GET.get('order', 'place__name')
+        if order.lstrip('-') not in [f.replace('__name','') for f in self.sortable_fields]:
+            order = 'place__name'  # дефолтне сортування
+
+        # Створюємо formset
         HistoryFormSet = modelformset_factory(
             BalanceHistory,
             form=BalanceHistoryForm,
             extra=0,
             can_delete=True
         )
-        
+
         formset = HistoryFormSet(
-            queryset=BalanceHistory.objects.filter(snapshot=snapshot).order_by('place_name', 'culture_name')
+            queryset=BalanceHistory.objects.filter(snapshot=snapshot)
+            .select_related('place', 'culture')
+            .order_by(order)
         )
-        
+
         context = {
             'snapshot': snapshot,
             'snapshot_form': snapshot_form,
             'formset': formset,
             'model_name': 'Редагування зліпку',
             'page': 'balanceshistory',
+            'current_order': order.replace('__name',''),  # передамо в шаблон для іконок
         }
-        
+
         return render(request, 'balances/snapshot_edit_full.html', context)
-    
+
     def post(self, request, pk):
         snapshot = get_object_or_404(BalanceSnapshot, pk=pk)
         snapshot_form = BalanceSnapshotForm(request.POST, instance=snapshot)
-        
+
         HistoryFormSet = modelformset_factory(
             BalanceHistory,
             form=BalanceHistoryForm,
             extra=0,
             can_delete=True
         )
-        
-        formset = HistoryFormSet(request.POST)
-        
+
+        formset = HistoryFormSet(request.POST, queryset=BalanceHistory.objects.filter(snapshot=snapshot))
+
         if snapshot_form.is_valid() and formset.is_valid():
-            # Зберігаємо зліпок
             snapshot_form.save()
-            
-            # Зберігаємо всі зміни в історичних записах
             instances = formset.save(commit=False)
-            
+
             for instance in instances:
                 instance.snapshot = snapshot
                 instance.save()
-            
-            # Видаляємо позначені записи
+
             for obj in formset.deleted_objects:
                 obj.delete()
-            
-            messages.success(request, f"✅ Зліпок успішно оновлено! Оновлено {len(instances)} записів.")
+
+            if len(instances):
+                messages.success(request, f"✅ Зліпок успішно оновлено! Оновлено {len(instances)} записів.")
+            else:
+                messages.success(request, "✅ Зліпок успішно оновлено!")
             return redirect('balance_snapshot_detail', pk=snapshot.pk)
         else:
             messages.error(request, "❌ Помилка при збереженні. Перевірте введені дані.")
-            
+
             context = {
                 'snapshot': snapshot,
                 'snapshot_form': snapshot_form,
                 'formset': formset,
                 'model_name': 'Редагування зліпку',
                 'page': 'balanceshistory',
+                'current_order': request.GET.get('order', 'place__name'),
             }
-            
-            return render(request, 'balances/snapshot_edit_full.html', context)
 
+            return render(request, 'balances/snapshot_edit_full.html', context)
+        
 
 class BalanceSnapshotDeleteView(DeleteView):
     model = BalanceSnapshot
@@ -246,7 +325,7 @@ class BalanceHistoryCreateView(CreateView):
     """Додавання нового запису до існуючого зліпку."""
     model = BalanceHistory
     form_class = BalanceHistoryForm
-    template_name = "balances/history_form.html"
+    template_name = "balances/snapshot_form.html"
     
     def get_success_url(self):
         return reverse_lazy('balance_snapshot_detail', kwargs={'pk': self.kwargs['snapshot_pk']})

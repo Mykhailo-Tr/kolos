@@ -109,18 +109,16 @@ class BalanceHistoryForm(forms.ModelForm):
     
     class Meta:
         model = BalanceHistory
-        fields = ['place_name', 'culture_name', 'balance_type', 'quantity']
+        fields = ['place', 'culture', 'balance_type', 'quantity']
         widgets = {
-            'place_name': forms.TextInput(
+            'place': forms.Select(
                 attrs={
-                    'class': 'form-control',
-                    'placeholder': 'Місце зберігання',
+                    'class': 'form-select',
                 }
             ),
-            'culture_name': forms.TextInput(
+            'culture': forms.Select(
                 attrs={
-                    'class': 'form-control',
-                    'placeholder': 'Культура',
+                    'class': 'form-select',
                 }
             ),
             'balance_type': forms.Select(
@@ -138,8 +136,8 @@ class BalanceHistoryForm(forms.ModelForm):
             ),
         }
         labels = {
-            'place_name': 'Місце зберігання',
-            'culture_name': 'Культура',
+            'place': 'Місце зберігання',
+            'culture': 'Культура',
             'balance_type': 'Тип балансу',
             'quantity': 'Кількість (т)',
         }

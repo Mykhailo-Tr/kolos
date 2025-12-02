@@ -136,6 +136,68 @@
     padding-top: 1.5rem;
     border-top: 1px solid #e5e7eb;
 }
+
+.sort-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 500;
+}
+
+.sort-link:hover {
+    color: #2563eb;
+}
+
+.sort-icon {
+    font-size: 0.8rem;
+}
+
+.journal-table {
+    width: 100%;
+    table-layout: fixed; /* щоб відсотки працювали */
+}
+
+.journal-table th,
+.journal-table td {
+    overflow: hidden; /* обрізає текст, якщо не влазить */
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Встановлюємо ширину колонок по відсотках */
+.journal-table th:nth-child(1),
+.journal-table td:nth-child(1) {
+    width: 5%; /* № */
+    text-align: center;
+}
+
+.journal-table th:nth-child(2),
+.journal-table td:nth-child(2) {
+    width: 32.5%; /* Місце зберігання */
+}
+
+.journal-table th:nth-child(3),
+.journal-table td:nth-child(3) {
+    width: 27.5%; /* Культура */
+}
+
+.journal-table th:nth-child(4),
+.journal-table td:nth-child(4) {
+    width: 15%; /* Тип балансу */
+}
+
+.journal-table th:nth-child(5),
+.journal-table td:nth-child(5) {
+    width: 15%; /* Кількість */
+}
+
+.journal-table th:nth-child(6){
+    width: 5%; /* Видалити */
+    text-align: center;
+}
+
 </style>
 
 <div class="journal-container">
@@ -153,43 +215,25 @@
     <!-- Інформація про зліпок -->
     <div class="snapshot-info-card">
       <h5>📊 Інформація про зліпок</h5>
-      
       <div class="row">
         <div class="col-md-4 mb-3">
-          <label class="form-label fw-semibold" style="font-size: 0.9rem; color: #374151;">
-            {{ snapshot_form.snapshot_date.label }}
-          </label>
+          <label class="form-label fw-semibold">{{ snapshot_form.snapshot_date.label }}</label>
           {{ snapshot_form.snapshot_date }}
-          {% if snapshot_form.snapshot_date.errors %}
-            <small class="text-danger d-block mt-1">{{ snapshot_form.snapshot_date.errors }}</small>
-          {% endif %}
         </div>
         <div class="col-md-4 mb-3">
-          <label class="form-label fw-semibold" style="font-size: 0.9rem; color: #374151;">
-            {{ snapshot_form.description.label }}
-          </label>
+          <label class="form-label fw-semibold">{{ snapshot_form.description.label }}</label>
           {{ snapshot_form.description }}
-          {% if snapshot_form.description.errors %}
-            <small class="text-danger d-block mt-1">{{ snapshot_form.description.errors }}</small>
-          {% endif %}
         </div>
         <div class="col-md-4 mb-3">
-          <label class="form-label fw-semibold" style="font-size: 0.9rem; color: #374151;">
-            {{ snapshot_form.created_by.label }}
-          </label>
+          <label class="form-label fw-semibold">{{ snapshot_form.created_by.label }}</label>
           {{ snapshot_form.created_by }}
-          {% if snapshot_form.created_by.errors %}
-            <small class="text-danger d-block mt-1">{{ snapshot_form.created_by.errors }}</small>
-          {% endif %}
         </div>
       </div>
-      
       <div class="mt-2">
         <span class="stats-badge">📦 Всього записів: {{ formset.total_form_count }}</span>
       </div>
     </div>
 
-    <!-- Management form для formset -->
     {{ formset.management_form }}
 
     <!-- Таблиця записів -->
@@ -198,64 +242,102 @@
         <table class="journal-table">
           <thead>
             <tr>
-              <th style="width: 50px;">#</th>
-              <th>Місце зберігання</th>
-              <th>Культура</th>
-              <th style="width: 180px;">Тип балансу</th>
-              <th style="width: 150px;">Кількість (т)</th>
-              <th style="width: 100px;">Видалити</th>
+              <th style="width:50px;">#</th>
+
+              {% comment %} Сортування по місцю зберігання {% endcomment %}
+              <th>
+                <a href="?order={% if current_order == 'place' %}-place{% elif current_order == '-place' %}place{% else %}place{% endif %}" class="sort-link">
+                  Місце зберігання
+                  <span class="sort-icon">
+                    {% if current_order == 'place' %}▲{% elif current_order == '-place' %}▼{% else %}⇅{% endif %}
+                  </span>
+                </a>
+              </th>
+
+              {% comment %} Сортування по культурі {% endcomment %}
+              <th>
+                <a href="?order={% if current_order == 'culture' %}-culture{% elif current_order == '-culture' %}culture{% else %}culture{% endif %}" class="sort-link">
+                  Культура
+                  <span class="sort-icon">
+                    {% if current_order == 'culture' %}▲{% elif current_order == '-culture' %}▼{% else %}⇅{% endif %}
+                  </span>
+                </a>
+              </th>
+
+              {% comment %} Тип балансу {% endcomment %}
+              <th>
+                <a href="?order={% if current_order == 'balance_type' %}-balance_type{% elif current_order == '-balance_type' %}balance_type{% else %}balance_type{% endif %}" class="sort-link">
+                  Тип балансу
+                  <span class="sort-icon">
+                    {% if current_order == 'balance_type' %}▲{% elif current_order == '-balance_type' %}▼{% else %}⇅{% endif %}
+                  </span>
+                </a>
+              </th>
+
+              {% comment %} Кількість {% endcomment %}
+              <th>
+                <a href="?order={% if current_order == 'quantity' %}-quantity{% elif current_order == '-quantity' %}quantity{% else %}quantity{% endif %}" class="sort-link">
+                  Кількість (т)
+                  <span class="sort-icon">
+                    {% if current_order == 'quantity' %}▲{% elif current_order == '-quantity' %}▼{% else %}⇅{% endif %}
+                  </span>
+                </a>
+              </th>
+
+              <th style="width:100px;">Видалити</th>
             </tr>
           </thead>
           <tbody>
             {% for form in formset %}
             <tr class="formset-row" data-form-index="{{ forloop.counter0 }}">
-              <td class="text-center">
-                {{ forloop.counter }}
-                {{ form.id }}
-              </td>
+              <td class="text-center">{{ forloop.counter }}{{ form.id }}</td>
+
+              <!-- Місце -->
               <td>
-                <input type="text" name="{{ form.place_name.html_name }}" 
-                       value="{{ form.place_name.value|default:'' }}" 
-                       class="input-in-table" 
-                       placeholder="Місце зберігання">
-                {% if form.place_name.errors %}
-                  <small class="text-danger d-block mt-1" style="font-size: 0.8rem;">{{ form.place_name.errors }}</small>
+                <select name="{{ form.place.html_name }}" class="select-in-table">
+                  {% for place in form.fields.place.queryset %}
+                    <option value="{{ place.pk }}" {% if form.instance.place and form.instance.place.pk == place.pk %}selected{% endif %}>
+                      {{ place.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                {% if form.place.errors %}
+                  <small class="text-danger d-block mt-1">{{ form.place.errors }}</small>
                 {% endif %}
               </td>
+
+              <!-- Культура -->
               <td>
-                <input type="text" name="{{ form.culture_name.html_name }}" 
-                       value="{{ form.culture_name.value|default:'' }}" 
-                       class="input-in-table" 
-                       placeholder="Культура">
-                {% if form.culture_name.errors %}
-                  <small class="text-danger d-block mt-1" style="font-size: 0.8rem;">{{ form.culture_name.errors }}</small>
+                <select name="{{ form.culture.html_name }}" class="select-in-table">
+                  {% for culture in form.fields.culture.queryset %}
+                    <option value="{{ culture.pk }}" {% if form.instance.culture and form.instance.culture.pk == culture.pk %}selected{% endif %}>
+                      {{ culture.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                {% if form.culture.errors %}
+                  <small class="text-danger d-block mt-1">{{ form.culture.errors }}</small>
                 {% endif %}
               </td>
+
+              <!-- Тип балансу -->
               <td>
                 <select name="{{ form.balance_type.html_name }}" class="select-in-table">
                   <option value="stock" {% if form.balance_type.value == 'stock' %}selected{% endif %}>Зерно</option>
                   <option value="waste" {% if form.balance_type.value == 'waste' %}selected{% endif %}>Відходи</option>
                 </select>
-                {% if form.balance_type.errors %}
-                  <small class="text-danger d-block mt-1" style="font-size: 0.8rem;">{{ form.balance_type.errors }}</small>
-                {% endif %}
               </td>
+
+              <!-- Кількість -->
               <td>
                 <input type="number" name="{{ form.quantity.html_name }}" 
                        value="{{ form.quantity.value|default:'0.000' }}" 
-                       class="input-in-table" 
-                       step="0.001" 
-                       min="0"
-                       style="text-align: right;"
-                       placeholder="0.000">
-                {% if form.quantity.errors %}
-                  <small class="text-danger d-block mt-1" style="font-size: 0.8rem;">{{ form.quantity.errors }}</small>
-                {% endif %}
+                       class="input-in-table" step="0.001" min="0" style="text-align:right;">
               </td>
+
+              <!-- Видалити -->
               <td class="delete-checkbox-wrapper">
-                <input type="checkbox" name="{{ form.DELETE.html_name }}" 
-                       class="delete-checkbox"
-                       {% if form.DELETE.value %}checked{% endif %}>
+                <input type="checkbox" name="{{ form.DELETE.html_name }}" class="delete-checkbox" {% if form.DELETE.value %}checked{% endif %}>
               </td>
             </tr>
             {% endfor %}
@@ -263,20 +345,15 @@
         </table>
       </div>
 
-      <!-- Footer з кнопками -->
       <div class="actions-footer">
         <a href="{% url 'balance_history_create' snapshot.pk %}" class="btn-add" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
           <span>➕</span>
           <span>Додати новий запис</span>
         </a>
-        
-        <div style="display: flex; gap: 0.75rem;">
-          <a href="{% url 'balance_snapshot_detail' snapshot.pk %}" class="btn-cancel">
-            Скасувати
-          </a>
-          <button type="submit" class="btn-save-all">
-            💾 Зберегти всі зміни
-          </button>
+
+        <div style="display:flex; gap:0.75rem;">
+          <a href="{% url 'balance_snapshot_detail' snapshot.pk %}" class="btn-cancel">Скасувати</a>
+          <button type="submit" class="btn-save-all">💾 Зберегти всі зміни</button>
         </div>
       </div>
     {% else %}
@@ -286,24 +363,15 @@
 </div>
 
 <script>
-// Підсвічування записів, позначених для видалення
 document.addEventListener('DOMContentLoaded', function() {
     const deleteCheckboxes = document.querySelectorAll('.delete-checkbox');
-    
     deleteCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const row = this.closest('tr');
-            if (this.checked) {
-                row.classList.add('marked-for-delete');
-            } else {
-                row.classList.remove('marked-for-delete');
-            }
+            if (this.checked) row.classList.add('marked-for-delete');
+            else row.classList.remove('marked-for-delete');
         });
-        
-        // Перевіряємо при завантаженні
-        if (checkbox.checked) {
-            checkbox.closest('tr').classList.add('marked-for-delete');
-        }
+        if (checkbox.checked) checkbox.closest('tr').classList.add('marked-for-delete');
     });
 });
 </script>

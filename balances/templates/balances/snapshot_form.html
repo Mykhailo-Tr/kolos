@@ -21,7 +21,7 @@
     <div class="card-body">
       <form method="post" novalidate>
         {% csrf_token %}
-        
+
         {% if form.non_field_errors %}
           <div class="alert alert-danger">
             {{ form.non_field_errors }}
@@ -30,27 +30,27 @@
 
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label for="{{ form.place_name.id_for_label }}" class="form-label">
-              {{ form.place_name.label }}
+            <label for="{{ form.place.id_for_label }}" class="form-label">
+              {{ form.place.label }}
               <span class="text-danger">*</span>
             </label>
-            {{ form.place_name }}
-            {% if form.place_name.errors %}
+            {{ form.place }}
+            {% if form.place.errors %}
               <div class="invalid-feedback d-block">
-                {{ form.place_name.errors }}
+                {{ form.place.errors }}
               </div>
             {% endif %}
           </div>
 
           <div class="col-md-6 mb-3">
-            <label for="{{ form.culture_name.id_for_label }}" class="form-label">
-              {{ form.culture_name.label }}
+            <label for="{{ form.culture.id_for_label }}" class="form-label">
+              {{ form.culture.label }}
               <span class="text-danger">*</span>
             </label>
-            {{ form.culture_name }}
-            {% if form.culture_name.errors %}
+            {{ form.culture }}
+            {% if form.culture.errors %}
               <div class="invalid-feedback d-block">
-                {{ form.culture_name.errors }}
+                {{ form.culture.errors }}
               </div>
             {% endif %}
           </div>

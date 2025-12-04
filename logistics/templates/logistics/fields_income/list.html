@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% load static %}
+{% load sort_tags %}
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/journal.css' %}">
+<link rel="stylesheet" href="{% static 'logistics/sort_link.css' %}">
 
 <style>
 /* --- МАЛИЙ ТУМБЛЕР ОДИНИЦЬ --- */
@@ -91,15 +93,15 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>Дата/Час</th>
-            <th>Документ</th>
-            <th>Культура</th>
-            <th>Поле</th>
-            <th>До місця</th>
-            <th>Вага брутто</th>
-            <th>Вага тара</th>
-            <th>Вага втрат</th>
-            <th>Вага нетто</th>
+            <th>{% sort_link request "date_time" "Дата і час" %}</th>
+            <th>{% sort_link request "document_number" "Документ" %}</th>
+            <th>{% sort_link request "culture__name" "Культура" %}</th>
+            <th>{% sort_link request "field__name" "Поле" %}</th>
+            <th>{% sort_link request "place_to__name" "До місця" %}</th>
+            <th>{% sort_link request "weight_gross" "Вага брутто" %}</th>
+            <th>{% sort_link request "weight_tare" "Вага тара" %}</th>
+            <th>{% sort_link request "weight_loss" "Вага втрат" %}</th>
+            <th>{% sort_link request "weight_net" "Вага нетто" %}</th>
             <th>Дії</th>
           </tr>
         </thead>

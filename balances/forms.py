@@ -3,148 +3,87 @@ from .models import Balance, BalanceSnapshot, BalanceHistory
 
 
 class BalanceForm(forms.ModelForm):
-    """Форма для створення та редагування записів про залишки зерна або відходів."""
-
     class Meta:
         model = Balance
-        fields = [
-            "place",
-            "culture",
-            "balance_type",
-            "quantity",
-        ]
+        fields = ['place', 'culture', 'balance_type', 'quantity']
         widgets = {
-            "place": forms.Select(attrs={"class": "form-select"}),
-            "culture": forms.Select(attrs={"class": "form-select"}),
-            "balance_type": forms.Select(attrs={"class": "form-select"}),
-            "quantity": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "1",
-                    "min": "0",
-                    "placeholder": "Вкажіть кількість у тоннах",
-                }
-            ),
-        }
-        labels = {
-            "date": "Дата запису",
-            "place": "Місце зберігання",
-            "culture": "Культура",
-            "balance_type": "Тип балансу",
-            "quantity": "Кількість (тонн)",
+            'place': forms.Select(attrs={'class': 'form-select'}),
+            'culture': forms.Select(attrs={'class': 'form-select'}),
+            'balance_type': forms.Select(attrs={'class': 'form-select'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
         }
 
     def clean_quantity(self):
-        """Валідація кількості — не може бути від'ємною."""
-        quantity = self.cleaned_data.get("quantity")
-        if quantity is not None and quantity < 0:
+        q = self.cleaned_data.get('quantity')
+        if q is not None and q < 0:
             raise forms.ValidationError("Кількість не може бути від'ємною.")
-        return quantity
-
-    def clean(self):
-        """Додаткова перевірка на дублікати записів."""
-        cleaned_data = super().clean()
-        date = cleaned_data.get("date")
-        place = cleaned_data.get("place")
-        culture = cleaned_data.get("culture")
-        balance_type = cleaned_data.get("balance_type")
-
-        if all([date, place, culture, balance_type]):
-            exists = Balance.objects.filter(
-                date=date,
-                place=place,
-                culture=culture,
-                balance_type=balance_type,
-            ).exclude(pk=self.instance.pk).exists()
-            if exists:
-                raise forms.ValidationError(
-                    "Запис із такими параметрами вже існує (ця дата, місце, культура та тип балансу)."
-                )
-
-        return cleaned_data
+        return q
 
 
 class BalanceSnapshotForm(forms.ModelForm):
-    """Форма для редагування зліпку залишків."""
-    
     class Meta:
         model = BalanceSnapshot
         fields = ['description', 'created_by', 'snapshot_date']
         widgets = {
-            'description': forms.TextInput(
-                attrs={
-                    'class': 'form-control',
-                    'placeholder': 'Опис зліпку',
-                }
-            ),
-            'created_by': forms.TextInput(
-                attrs={
-                    'class': 'form-control',
-                    'placeholder': 'Хто створив',
-                }
-            ),
-            'snapshot_date': forms.DateTimeInput(
-                attrs={
-                    'class': 'form-control',
-                    'type': 'datetime-local',
-                },
-                format='%Y-%m-%dT%H:%M'
-            ),
+            'description': forms.TextInput(attrs={'class': 'form-control'}),
+            'created_by': forms.TextInput(attrs={'class': 'form-control'}),
+            'snapshot_date': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M')
         }
-        labels = {
-            'description': 'Опис',
-            'created_by': 'Створено',
-            'snapshot_date': 'Дата і час зліпку',
-        }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
-            # Форматуємо дату для відображення в полі datetime-local
             self.initial['snapshot_date'] = self.instance.snapshot_date.strftime('%Y-%m-%dT%H:%M')
 
 
 class BalanceHistoryForm(forms.ModelForm):
-    """Форма для редагування окремого запису в історії."""
-    
     class Meta:
         model = BalanceHistory
         fields = ['place', 'culture', 'balance_type', 'quantity']
         widgets = {
-            'place': forms.Select(
+            'place': forms.Select(attrs={'class': 'form-select'}),
+            'culture': forms.Select(attrs={'class': 'form-select'}),
+            'balance_type': forms.Select(attrs={'class': 'form-select'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+        }
+
+    def clean_quantity(self):
+        q = self.cleaned_data.get('quantity')
+        if q is not None and q < 0:
+            raise forms.ValidationError("Кількість не може бути від'ємною.")
+        return q
+    
+
+class EmptySnapshotForm(forms.ModelForm):
+    """Форма для створення порожнього зліпка"""
+    class Meta:
+        model = BalanceSnapshot
+        fields = ['snapshot_date', 'description', 'created_by']
+        widgets = {
+            'snapshot_date': forms.DateTimeInput(
                 attrs={
-                    'class': 'form-select',
-                }
+                    'type': 'datetime-local', 
+                    'class': 'form-control'
+                }, 
+                format='%Y-%m-%dT%H:%M'
             ),
-            'culture': forms.Select(
-                attrs={
-                    'class': 'form-select',
-                }
-            ),
-            'balance_type': forms.Select(
-                attrs={
-                    'class': 'form-select',
-                }
-            ),
-            'quantity': forms.NumberInput(
-                attrs={
-                    'class': 'form-control',
-                    'step': '0.001',
-                    'min': '0',
-                    'placeholder': '0.000',
-                }
-            ),
+            'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Опис зліпка'}),
+            'created_by': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ваше ім\'я'}),
         }
         labels = {
-            'place': 'Місце зберігання',
-            'culture': 'Культура',
-            'balance_type': 'Тип балансу',
-            'quantity': 'Кількість (т)',
+            'snapshot_date': 'Дата та час зліпка',
+            'description': 'Опис',
+            'created_by': 'Створено ким',
         }
     
-    def clean_quantity(self):
-        """Валідація кількості."""
-        quantity = self.cleaned_data.get('quantity')
-        if quantity is not None and quantity < 0:
-            raise forms.ValidationError("Кількість не може бути від'ємною.")
-        return quantity
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if self.user and not self.instance.pk:
+            self.fields['created_by'].initial = self.user.get_full_name() or self.user.username
+    
+    def clean_created_by(self):
+        created_by = self.cleaned_data.get('created_by')
+        if not created_by and self.user:
+            return self.user.get_full_name() or self.user.username
+        return created_by

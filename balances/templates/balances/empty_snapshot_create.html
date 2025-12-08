@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/journal.css' %}">
+
+<style>
+.creation-card {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.creation-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.creation-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.creation-body {
+    padding: 2rem;
+}
+
+.creation-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.creation-option {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.creation-option:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+}
+
+.creation-option.active {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.option-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.option-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.option-description {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.btn-option {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.35rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.btn-option:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+
+/* Стилі для заголовка */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(107, 114, 128, 0.3);
+    color: white;
+}
+</style>
+
+<div class="journal-container">
+  <div class="page-header">
+    <h1 class="page-title">➕ Створити новий зліпок</h1>
+    <a href="{% url 'balance_snapshot_list' %}" class="btn-back">
+      <span>↩️</span>
+      <span>Назад до історії</span>
+    </a>
+  </div>
+
+  <div class="creation-card">
+    <div class="creation-header">
+      <h1>📊 Оберіть тип зліпка</h1>
+      <p class="mb-0">Створіть новий зліпок залишків</p>
+    </div>
+    
+    <div class="creation-body">
+      <div class="creation-options">
+        <!-- Опція 1: Порожній зліпок -->
+        <div class="creation-option" id="option-empty">
+          <div class="option-icon">📄</div>
+          <div class="option-title">Порожній зліпок</div>
+          <div class="option-description">
+            Створіть абсолютно порожній зліпок та додавайте записи вручну. 
+            Ідеально для планування або створення з нуля.
+          </div>
+          <form method="post" action="{% url 'balance_snapshot_quick_create' %}" class="mt-3">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="quick-description" class="form-label fw-semibold">Короткий опис</label>
+              <input type="text" class="form-control" id="quick-description" name="description" 
+                     placeholder="Наприклад: Планований залишок на кінець місяця">
+            </div>
+            <button type="submit" class="btn-option">
+              🚀 Створити порожній зліпок за поточною датою
+            </button>
+          </form>
+        </div>
+        
+        <!-- Опція 2: Зліпок з налаштуванням дати -->
+        <div class="creation-option" id="option-custom">
+          <div class="option-icon">⚙️</div>
+          <div class="option-title">Зліпок з кастомними налаштуваннями</div>
+          <div class="option-description">
+            Створіть зліпок зі специфічною датою та описом, потім додавайте записи.
+          </div>
+          <form method="post" action="{% url 'balance_snapshot_empty_create' %}" class="mt-3">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="id_snapshot_date" class="form-label fw-semibold">Дата та час зліпка</label>
+                <input type="datetime-local" class="form-control" id="id_snapshot_date" 
+                       name="snapshot_date" value="{{ form.snapshot_date.value|default:'' }}" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="id_description" class="form-label fw-semibold">Опис</label>
+                <input type="text" class="form-control" id="id_description" name="description" 
+                       placeholder="Детальний опис зліпка" value="{{ form.description.value|default:'' }}">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="id_created_by" class="form-label fw-semibold">Створено ким</label>
+              <input type="text" class="form-control" id="id_created_by" name="created_by" 
+                     placeholder="Ваше ім'я" value="{{ request.user.get_full_name|default:request.user.username }}">
+            </div>
+            <button type="submit" class="btn-option">
+              ⚙️ Створити зліпок з налаштуваннями
+            </button>
+          </form>
+        </div>
+        
+        <!-- Опція 3: Зліпок з поточних залишків -->
+        <div class="creation-option" id="option-current">
+          <div class="option-icon">📊</div>
+          <div class="option-title">Зліпок з поточних залишків</div>
+          <div class="option-description">
+            Створіть зліпок з актуальних залишків на складі (як стандартна функція).
+          </div>
+          <div class="mt-3">
+            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#currentSnapshotModal">
+              📊 Створити зліпок з поточних залишків
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальне вікно для зліпка з поточних залишків (існуюча функція) -->
+<div class="modal fade" id="currentSnapshotModal" tabindex="-1" aria-labelledby="currentSnapshotModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="currentSnapshotModalLabel">💾 Зліпок з поточних залишків</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
+      </div>
+      <form method="post" action="{% url 'balance_snapshot_create' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="description" class="form-label">Опис зліпку (необов'язково)</label>
+            <input type="text" class="form-control" id="description" name="description" 
+                   placeholder="Наприклад: Залишки на кінець місяця">
+            <div class="form-text">Додайте опис, щоб легко знайти цей зліпок пізніше</div>
+          </div>
+          <div class="alert alert-info mb-0">
+            <strong>ℹ️ Інформація:</strong> Буде збережено поточний стан всіх залишків на складах.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+          <button type="submit" class="btn btn-primary">💾 Створити зліпок</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Встановлюємо поточну дату та час за замовчуванням
+  const now = new Date();
+  const formattedDate = now.toISOString().slice(0, 16); // Формат YYYY-MM-DDTHH:MM
+  const dateInput = document.getElementById('id_snapshot_date');
+  if (dateInput && !dateInput.value) {
+    dateInput.value = formattedDate;
+  }
+  
+  // Додаємо інтерактивність до опцій
+  const options = document.querySelectorAll('.creation-option');
+  options.forEach(option => {
+    option.addEventListener('click', function(e) {
+      // Запобігаємо активації при кліку на форму всередині
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      options.forEach(opt => opt.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+  
+  // Підсвічуємо першу опцію за замовчуванням
+  if (options.length > 0) {
+    options[0].classList.add('active');
+  }
+  
+  // Валідація форми з кастомними налаштуваннями
+  const customForm = document.querySelector('#option-custom form');
+  if (customForm) {
+    customForm.addEventListener('submit', function(e) {
+      const dateInput = this.querySelector('#id_snapshot_date');
+      const createdByInput = this.querySelector('#id_created_by');
+      
+      if (!dateInput.value) {
+        e.preventDefault();
+        alert('Будь ласка, вкажіть дату та час зліпка');
+        dateInput.focus();
+        return false;
+      }
+      
+      if (!createdByInput.value) {
+        e.preventDefault();
+        alert('Будь ласка, вкажіть, ким створено зліпок');
+        createdByInput.focus();
+        return false;
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

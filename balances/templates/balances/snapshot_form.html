@@ -4,21 +4,147 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/journal.css' %}">
 
+<style>
+.form-card {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-card-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    border-bottom: none;
+}
+
+.form-card-header h5 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.form-card-body {
+    padding: 2rem;
+}
+
+/* Стилі для заголовка сторінки */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    color: white;
+}
+
+/* Стилі для форми */
+.form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.form-control, .form-select {
+    border: 1px solid #d1d5db;
+    border-radius: 0.35rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    outline: none;
+}
+
+/* Кнопки */
+.btn-secondary {
+    background: #6b7280;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.35rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.35rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+</style>
+
 <div class="journal-container">
   <div class="page-header">
-    <h1 class="page-title">➕ {{ model_name }}</h1>
+    <h1 class="page-title">➕ Додати запис до зліпка</h1>
     <a href="{% url 'balance_snapshot_update' snapshot.pk %}" class="btn-add" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
       <span>↩️</span>
-      <span>Назад</span>
+      <span>Назад до редагування</span>
     </a>
   </div>
 
-  <div class="card">
-    <div class="card-header bg-info text-white">
-      <h5 class="mb-0">📊 Зліпок: {{ snapshot.description|default:"Без опису" }}</h5>
-      <small>Дата: {{ snapshot.snapshot_date|date:"d.m.Y H:i" }}</small>
+  <div class="form-card">
+    <div class="form-card-header">
+      <h5>📊 Додавання запису до зліпка</h5>
+      <small>Зліпок: {{ snapshot.description|default:"Без опису" }} ({{ snapshot.snapshot_date|date:"d.m.Y H:i" }})</small>
     </div>
-    <div class="card-body">
+    <div class="form-card-body">
       <form method="post" novalidate>
         {% csrf_token %}
 
@@ -29,67 +155,91 @@
         {% endif %}
 
         <div class="row">
-          <div class="col-md-6 mb-3">
+          <!-- Місце зберігання -->
+          <div class="col-md-6 mb-4">
             <label for="{{ form.place.id_for_label }}" class="form-label">
               {{ form.place.label }}
               <span class="text-danger">*</span>
             </label>
             {{ form.place }}
             {% if form.place.errors %}
-              <div class="invalid-feedback d-block">
-                {{ form.place.errors }}
+              <div class="text-danger mt-1 small">
+                {% for error in form.place.errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
               </div>
             {% endif %}
           </div>
 
-          <div class="col-md-6 mb-3">
+          <!-- Культура -->
+          <div class="col-md-6 mb-4">
             <label for="{{ form.culture.id_for_label }}" class="form-label">
               {{ form.culture.label }}
               <span class="text-danger">*</span>
             </label>
             {{ form.culture }}
             {% if form.culture.errors %}
-              <div class="invalid-feedback d-block">
-                {{ form.culture.errors }}
+              <div class="text-danger mt-1 small">
+                {% for error in form.culture.errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
               </div>
             {% endif %}
           </div>
         </div>
 
         <div class="row">
-          <div class="col-md-6 mb-3">
+          <!-- Тип балансу -->
+          <div class="col-md-6 mb-4">
             <label for="{{ form.balance_type.id_for_label }}" class="form-label">
               {{ form.balance_type.label }}
               <span class="text-danger">*</span>
             </label>
             {{ form.balance_type }}
             {% if form.balance_type.errors %}
-              <div class="invalid-feedback d-block">
-                {{ form.balance_type.errors }}
+              <div class="text-danger mt-1 small">
+                {% for error in form.balance_type.errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
               </div>
             {% endif %}
           </div>
 
-          <div class="col-md-6 mb-3">
+          <!-- Кількість -->
+          <div class="col-md-6 mb-4">
             <label for="{{ form.quantity.id_for_label }}" class="form-label">
               {{ form.quantity.label }}
               <span class="text-danger">*</span>
             </label>
             {{ form.quantity }}
             {% if form.quantity.errors %}
-              <div class="invalid-feedback d-block">
-                {{ form.quantity.errors }}
+              <div class="text-danger mt-1 small">
+                {% for error in form.quantity.errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
               </div>
             {% endif %}
+            <div class="form-text">
+              Вкажіть кількість в тонах (наприклад: 12.345)
+            </div>
           </div>
         </div>
 
-        <div class="d-flex gap-2 justify-content-end mt-4">
-          <a href="{% url 'balance_snapshot_update' snapshot.pk %}" class="btn btn-secondary">
-            Скасувати
+        <!-- Примітка -->
+        <div class="mb-4">
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Примітка:</strong> Цей запис буде доданий до зліпку "{{ snapshot.description|default:"без опису" }}" від {{ snapshot.snapshot_date|date:"d.m.Y H:i" }}
+          </div>
+        </div>
+
+        <!-- Кнопки дій -->
+        <div class="d-flex justify-content-end gap-3 mt-5 pt-3 border-top">
+          <a href="{% url 'balance_snapshot_update' snapshot.pk %}" class="btn-secondary">
+            <i class="bi bi-x-circle me-2"></i>Скасувати
           </a>
-          <button type="submit" class="btn btn-success">
-            ➕ Додати запис
+          <button type="submit" class="btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Додати запис
           </button>
         </div>
       </form>
@@ -97,4 +247,69 @@
   </div>
 </div>
 
+<!-- Додаємо Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Додаємо плейсхолдери для полів
+  const placeSelect = document.getElementById('{{ form.place.id_for_label }}');
+  const cultureSelect = document.getElementById('{{ form.culture.id_for_label }}');
+  
+  if (placeSelect) {
+    if (placeSelect.options.length > 0 && !placeSelect.value) {
+      placeSelect.options[0].text = 'Оберіть місце зберігання';
+      placeSelect.options[0].disabled = true;
+      placeSelect.options[0].selected = true;
+    }
+  }
+  
+  if (cultureSelect) {
+    if (cultureSelect.options.length > 0 && !cultureSelect.value) {
+      cultureSelect.options[0].text = 'Оберіть культуру';
+      cultureSelect.options[0].disabled = true;
+      cultureSelect.options[0].selected = true;
+    }
+  }
+  
+  // Валідація форми перед відправкою
+  const form = document.querySelector('form');
+  form.addEventListener('submit', function(e) {
+    let isValid = true;
+    const requiredFields = document.querySelectorAll('select[required], input[required]');
+    
+    requiredFields.forEach(field => {
+      if (!field.value || field.value === '') {
+        isValid = false;
+        field.classList.add('is-invalid');
+        
+        // Додаємо повідомлення про помилку
+        if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('invalid-feedback')) {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'invalid-feedback d-block';
+          errorDiv.textContent = 'Це поле обов\'язкове для заповнення';
+          field.parentNode.appendChild(errorDiv);
+        }
+      } else {
+        field.classList.remove('is-invalid');
+        // Видаляємо повідомлення про помилку, якщо воно є
+        const errorDiv = field.parentNode.querySelector('.invalid-feedback');
+        if (errorDiv) {
+          errorDiv.remove();
+        }
+      }
+    });
+    
+    if (!isValid) {
+      e.preventDefault();
+      // Прокручуємо до першої помилки
+      const firstError = document.querySelector('.is-invalid');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstError.focus();
+      }
+    }
+  });
+});
+</script>
 {% endblock %}

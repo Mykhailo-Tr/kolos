@@ -46,24 +46,90 @@
 .journal-table th:nth-child(6), .journal-table td:nth-child(6) { width: 15%; text-align: center; }  /* Загальна кількість */
 .journal-table th:nth-child(7), .journal-table td:nth-child(7) { width: 7%; text-align: center; }   /* Дії */
 
+/* Стилі для кнопок дій */
+.actions-cell {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+.btn-delete {
+    background: #ef4444 !important;
+    color: white !important;
+}
+
+/* Стилі для заголовка сторінки */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    color: white;
+}
 </style>
 
 <link rel="stylesheet" href="{% static 'css/journal.css' %}">
 
 <div class="journal-container">
-  <div class="page-header">
-    <h1 class="page-title">📊 {{ model_name }}</h1>
+<!-- У файлі snapshot_list.html додайте до блоку кнопок -->
+<div class="page-header">
+    <h1 class="page-title">📊 Зліпки залишків</h1>
     <div style="display: flex; gap: 0.75rem;">
       <a href="{% url 'balance_list' %}" class="btn-add" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
         <span>↩️</span>
         <span>До залишків</span>
       </a>
+      <!-- Нова кнопка для створення зліпка -->
+      <a href="{% url 'balance_snapshot_empty_create' %}" class="btn-add" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+        <span>📄</span>
+        <span>Новий зліпок</span>
+      </a>
+      <!-- Стара кнопка для зліпка з поточних залишків -->
       <button type="button" class="btn-add" data-bs-toggle="modal" data-bs-target="#createSnapshotModal">
         <span>💾</span>
-        <span>Створити зліпок</span>
+        <span>Зліпок з поточних залишків</span>
       </button>
     </div>
-  </div>
+</div>
 
   {% if snapshots %}
     <div class="table-wrapper">
@@ -71,22 +137,50 @@
         <thead>
           <tr>
             <th>#</th>
-            {% for field, label in sortable_fields_verbose.items %}
-              <th>
-                <a href="?order={% if current_order == field %}-{{ field }}{% else %}{{ field }}{% endif %}" class="sort-link">
-                  {{ label }}
-                  <span class="sort-icon">
-                    {% if current_order == field %}
-                      ▲
-                    {% elif current_order == "-"|add:field %}
-                      ▼
-                    {% else %}
-                      ⇅
-                    {% endif %}
-                  </span>
-                </a>
-              </th>
-            {% endfor %}
+            <th>
+              <a href="?order={% if current_order == 'snapshot_date' %}-snapshot_date{% else %}snapshot_date{% endif %}" class="sort-link">
+                Дата зліпку
+                <span class="sort-icon">
+                  {% if current_order == 'snapshot_date' %}
+                    ▲
+                  {% elif current_order == '-snapshot_date' %}
+                    ▼
+                  {% else %}
+                    ⇅
+                  {% endif %}
+                </span>
+              </a>
+            </th>
+            <th>Опис</th>
+            <th>Створено</th>
+            <th>
+              <a href="?order={% if current_order == 'total_records' %}-total_records{% else %}total_records{% endif %}" class="sort-link">
+                Кількість записів
+                <span class="sort-icon">
+                  {% if current_order == 'total_records' %}
+                    ▲
+                  {% elif current_order == '-total_records' %}
+                    ▼
+                  {% else %}
+                    ⇅
+                  {% endif %}
+                </span>
+              </a>
+            </th>
+            <th>
+              <a href="?order={% if current_order == 'total_quantity' %}-total_quantity{% else %}total_quantity{% endif %}" class="sort-link">
+                Загальна кількість (т)
+                <span class="sort-icon">
+                  {% if current_order == 'total_quantity' %}
+                    ▲
+                  {% elif current_order == '-total_quantity' %}
+                    ▼
+                  {% else %}
+                    ⇅
+                  {% endif %}
+                </span>
+              </a>
+            </th>
             <th>Дії</th>
           </tr>
         </thead>
@@ -94,9 +188,9 @@
           {% for snapshot in snapshots %}
           <tr>
             <td class="text-center">{{ forloop.counter0|add:page_obj.start_index }}</td>
-            <td>{{ snapshot.snapshot_date|date:"d.m.Y H:i" }}</td>
+            <td class="text-center">{{ snapshot.snapshot_date|date:"d.m.Y H:i" }}</td>
             <td>{{ snapshot.description|default:"—" }}</td>
-            <td>{{ snapshot.created_by }}</td>
+            <td class="text-center">{{ snapshot.created_by }}</td>
             <td class="text-center">{{ snapshot.total_records }}</td>
             <td class="text-end">{{ snapshot.total_quantity|floatformat:3 }}</td>
             <td>
@@ -171,4 +265,35 @@
     </div>
   </div>
 </div>
+
+<script>
+// Додаємо JavaScript для підсвічування активного сортування
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentOrder = urlParams.get('order') || '-snapshot_date';
+  
+  // Знаходимо всі посилання сортування
+  const sortLinks = document.querySelectorAll('.sort-link');
+  
+  sortLinks.forEach(link => {
+    const href = link.getAttribute('href');
+    if (href && href.includes('order=')) {
+      // Отримуємо параметр сортування з посилання
+      const orderParam = href.split('order=')[1].split('&')[0];
+      
+      // Якщо це поточне сортування, додаємо стиль
+      if (orderParam === currentOrder) {
+        link.style.color = '#2563eb';
+        link.style.fontWeight = '600';
+        
+        // Знаходимо іконку всередині посилання і додаємо колір
+        const icon = link.querySelector('.sort-icon');
+        if (icon) {
+          icon.style.color = '#2563eb';
+        }
+      }
+    }
+  });
+});
+</script>
 {% endblock %}

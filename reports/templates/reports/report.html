@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+  :root {
+    --primary: #2563eb;
+    --success: #10b981;
+    --border: #e2e8f0;
+    --bg-light: #f8fafc;
+  }
+
+  .report-container {
+    max-width: 1600px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+  }
+
+  /* Заголовок */
+  .report-header {
+    background: white;
+    border-bottom: 3px solid var(--primary);
+    padding: 20px 25px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .report-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .btn-back {
+    background: var(--bg-light);
+    color: #1e293b;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-back:hover {
+    background: var(--border);
+    text-decoration: none;
+    color: #1e293b;
+  }
+
+  /* Панель фільтрів */
+  .filters-panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 25px;
+  }
+
+  .filters-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .btn-generate {
+    background: var(--primary);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-generate:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+  }
+
+  /* Панель дій */
+  .actions-panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 25px;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .chart-selector {
+    display: flex;
+    gap: 10px;
+  }
+
+  .chart-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.2rem;
+  }
+
+  .chart-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .btn-export {
+    background: var(--success);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-export:hover {
+    background: #059669;
+  }
+
+  /* Результати */
+  .results-panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .results-header {
+    background: var(--bg-light);
+    padding: 15px 25px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .results-count {
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  /* Графік */
+  .chart-container {
+    padding: 25px;
+    min-height: 400px;
+  }
+
+  /* Таблиця */
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .report-table thead {
+    background: var(--bg-light);
+  }
+
+  .report-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #1e293b;
+    border-bottom: 2px solid var(--border);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+  }
+
+  .report-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .report-table tbody tr:hover {
+    background: var(--bg-light);
+  }
+
+  /* Статистика */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    padding: 25px;
+  }
+
+  .stat-box {
+    background: var(--bg-light);
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 4px solid var(--primary);
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  /* Адаптивність */
+  @media (max-width: 768px) {
+    .report-container {
+      padding: 1rem;
+    }
+
+    .report-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .actions-panel {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+
+<div class="report-container">
+  <!-- Заголовок -->
+  <div class="report-header">
+    <h1 class="report-title">📊 {{ report_title }}</h1>
+    <a href="{% url 'reports_dashboard' %}" class="btn-back">← Назад до звітів</a>
+  </div>
+
+  <!-- Фільтри -->
+  <div class="filters-panel">
+    <h2 class="filters-title">
+      <span>🔍</span>
+      <span>Параметри звіту</span>
+    </h2>
+
+    <form method="post" id="reportForm">
+      {% csrf_token %}
+      
+      <div class="form-row">
+        {% for field in form %}
+          <div class="form-group">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.errors %}
+              <div class="text-danger small mt-1">{{ field.errors }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn-generate">
+        📈 Сформувати звіт
+      </button>
+    </form>
+  </div>
+
+  {% if filters_applied and report_data %}
+    <!-- Панель дій -->
+    <div class="actions-panel">
+      <div class="chart-selector">
+        <button class="chart-btn active" data-chart="table" title="Таблиця">📋</button>
+        <button class="chart-btn" data-chart="bar" title="Стовпчаста діаграма">📊</button>
+        <button class="chart-btn" data-chart="line" title="Лінійний графік">📈</button>
+        <button class="chart-btn" data-chart="pie" title="Кругова діаграма">🥧</button>
+      </div>
+
+      <button class="btn-export" onclick="exportToCSV()">
+        💾 Експорт в CSV
+      </button>
+    </div>
+
+    <!-- Статистика -->
+    {% if report_data.aggregation %}
+      <div class="results-panel" style="margin-bottom: 25px;">
+        <div class="results-header">
+          <h3 style="margin: 0; font-size: 1.1rem;">📊 Підсумки</h3>
+        </div>
+        <div class="stats-row">
+          {% for key, value in report_data.aggregation.items %}
+            {% if key != 'by_place' and key != 'by_culture' and key != 'by_route' and key != 'by_action' and key != 'by_field' %}
+              <div class="stat-box">
+                <div class="stat-label">{{ key }}</div>
+                <div class="stat-value">{{ value|floatformat:3 }} т</div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Результати -->
+    <div class="results-panel">
+      <div class="results-header">
+        <span class="results-count">Знайдено записів: {{ report_data.total_rows }}</span>
+      </div>
+
+      <!-- Таблиця -->
+      <div id="tableView">
+        <div style="overflow-x: auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                {% if report_data.data.0 %}
+                  {% for key in report_data.data.0.keys %}
+                    <th>{{ key }}</th>
+                  {% endfor %}
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in report_data.data %}
+              <tr>
+                {% for value in row.values %}
+                  <td>{{ value }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Графіки -->
+      <div id="chartView" class="chart-container" style="display: none;">
+        <canvas id="reportChart"></canvas>
+      </div>
+    </div>
+  {% elif filters_applied %}
+    <div class="results-panel">
+      <div style="padding: 40px; text-align: center; color: #64748b;">
+        <div style="font-size: 3rem; margin-bottom: 15px;">📊</div>
+        <p>Дані не знайдено за вказаними критеріями</p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const reportData = {{ report_data|safe|default:"null" }};
+  let currentChart = null;
+
+  // Перемикання видів
+  document.querySelectorAll('.chart-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const chartType = this.dataset.chart;
+      
+      // Оновлюємо активну кнопку
+      document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Показуємо відповідний вид
+      if (chartType === 'table') {
+        document.getElementById('tableView').style.display = 'block';
+        document.getElementById('chartView').style.display = 'none';
+      } else {
+        document.getElementById('tableView').style.display = 'none';
+        document.getElementById('chartView').style.display = 'block';
+        renderChart(chartType);
+      }
+    });
+  });
+
+  function renderChart(type) {
+    if (!reportData || !reportData.aggregation) return;
+    
+    const ctx = document.getElementById('reportChart');
+    if (currentChart) {
+      currentChart.destroy();
+    }
+    
+    // Підготовка даних
+    let labels = [];
+    let data = [];
+    
+    // Використовуємо першу доступну агрегацію
+    const agg = reportData.aggregation;
+    if (agg.by_culture) {
+      labels = Object.keys(agg.by_culture);
+      data = Object.values(agg.by_culture);
+    } else if (agg.by_place) {
+      labels = Object.keys(agg.by_place);
+      data = Object.values(agg.by_place);
+    } else if (agg.by_route) {
+      labels = Object.keys(agg.by_route);
+      data = Object.values(agg.by_route);
+    }
+    
+    currentChart = new Chart(ctx, {
+      type: type,
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Кількість (т)',
+          data: data,
+          backgroundColor: [
+            'rgba(37, 99, 235, 0.6)',
+            'rgba(16, 185, 129, 0.6)',
+            'rgba(245, 158, 11, 0.6)',
+            'rgba(239, 68, 68, 0.6)',
+            'rgba(139, 92, 246, 0.6)',
+          ],
+          borderColor: [
+            'rgb(37, 99, 235)',
+            'rgb(16, 185, 129)',
+            'rgb(245, 158, 11)',
+            'rgb(239, 68, 68)',
+            'rgb(139, 92, 246)',
+          ],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: type === 'pie',
+          }
+        }
+      }
+    });
+  }
+
+  function exportToCSV() {
+    if (!reportData || !reportData.data) return;
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "export_report" %}';
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    form.innerHTML = `
+      <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+      <input type="hidden" name="data" value='${JSON.stringify(reportData.data)}'>
+      <input type="hidden" name="columns" value="${Object.keys(reportData.data[0]).join(',')}">
+      <input type="hidden" name="report_name" value="{{ report_type }}">
+    `;
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  }
+</script>
+
+{% endblock %}

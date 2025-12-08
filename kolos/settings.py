@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'balances',
     'logistics',
     'waste',
-    # 'reports',
+    'reports',
     'activity',
 ]
 

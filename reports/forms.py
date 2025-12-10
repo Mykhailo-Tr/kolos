@@ -1,14 +1,16 @@
 from django import forms
 from django.utils import timezone
+from datetime import datetime, timedelta
 from .models import ReportTemplate, SavedReport
 from directory.models import Culture, Place, Field
+from balances.models import BalanceType
 
 
 class ReportFilterForm(forms.Form):
     """Базова форма фільтрів для звітів"""
     
     date_from = forms.DateField(
-        required=False,
+        required=True,
         label="Дата з",
         widget=forms.DateInput(attrs={
             'type': 'date',
@@ -16,13 +18,24 @@ class ReportFilterForm(forms.Form):
         })
     )
     date_to = forms.DateField(
-        required=False,
+        required=True,
         label="Дата до",
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'form-control',
         })
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Встановлюємо дефолтні значення дат
+        if not self.is_bound:
+            today = datetime.now().date()
+            default_from = today - timedelta(days=30)
+            
+            self.fields['date_from'].initial = default_from
+            self.fields['date_to'].initial = today
 
 
 class BalanceReportFilterForm(ReportFilterForm):
@@ -185,7 +198,8 @@ class CustomReportForm(forms.Form):
     fields = forms.MultipleChoiceField(
         choices=[],  # Заповнюється динамічно
         label="Поля для відображення",
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'})
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        required=False
     )
     
     group_by = forms.ChoiceField(

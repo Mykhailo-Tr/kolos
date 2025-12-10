@@ -1,300 +1,11 @@
 {% extends "base.html" %}
 {% load humanize %}
+{% load static %}
 
 {% block content %}
-<style>
-  /* 🎨 Загальні змінні */
-  :root {
-    --primary-color: #2563eb;
-    --secondary-color: #64748b;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --border-color: #e2e8f0;
-    --header-bg: #f8fafc;
-    --dark-text: #1e293b;
-  }
-
-  /* 📋 Заголовок сторінки */
-  .page-header {
-    background: white;
-    border-bottom: 3px solid var(--primary-color);
-    padding: 20px 25px;
-    margin-bottom: 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-  }
-
-  .page-title {
-    font-size: 1.6rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--dark-text);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .page-title-icon {
-    font-size: 1.8rem;
-  }
-
-  .btn-add-new {
-    background: var(--primary-color);
-    border: none;
-    color: white;
-    padding: 10px 25px;
-    border-radius: 6px;
-    font-weight: 500;
-    transition: background 0.2s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.95rem;
-  }
-
-  .btn-add-new:hover {
-    background: #1d4ed8;
-    color: white;
-    text-decoration: none;
-  }
-
-  /* 📊 Контейнер таблиці */
-  .table-container {
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  /* 🎯 Стилі таблиці */
-  .professional-table {
-    margin-bottom: 0;
-    border: none;
-    font-size: 0.95rem;
-  }
-
-  .professional-table thead {
-    background: var(--header-bg);
-    border-bottom: 2px solid var(--border-color);
-  }
-
-  .professional-table thead th {
-    border: none;
-    padding: 14px 12px;
-    font-weight: 600;
-    color: var(--dark-text);
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 0.3px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: var(--header-bg);
-  }
-
-  .professional-table tbody tr {
-    border-bottom: 1px solid var(--border-color);
-    transition: background 0.2s ease;
-  }
-
-  .professional-table tbody tr:hover {
-    background: #dbeafe;
-  }
-
-  .professional-table tbody tr:hover td {
-    background: #dbeafe;
-  }
-
-  .professional-table tbody tr:last-child {
-    border-bottom: none;
-  }
-
-  .professional-table tbody td {
-    padding: 12px;
-    vertical-align: middle;
-    border: none;
-    color: var(--dark-text);
-  }
-
-  /* 🔢 Номер рядка */
-  .row-number {
-    width: 50px;
-    font-weight: 600;
-    color: var(--secondary-color);
-  }
-
-  /* 📍 Бейджі для типів */
-  .balance-type-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    border: 1px solid;
-  }
-
-  /* Колір для зерна */
-  .badge-grain {
-    background: #ecfdf5;
-    color: #047857;
-    border-color: #10b981;
-  }
-
-  /* Колір для відходів */
-  .badge-waste {
-    background: #fef3c7;
-    color: #b45309;
-    border-color: #f59e0b;
-  }
-
-  /* 💰 Кількість */
-  .quantity-value {
-    font-weight: 600;
-    color: var(--dark-text);
-    font-family: 'Courier New', monospace;
-    font-size: 1rem;
-  }
-
-  /* 🎬 Кнопки дій */
-  .action-buttons {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-  }
-
-  .btn-action {
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid;
-    transition: all 0.2s ease;
-    font-size: 0.95rem;
-    text-decoration: none;
-    background: white;
-  }
-
-  .btn-action.btn-edit {
-    border-color: var(--warning-color);
-    color: var(--warning-color);
-  }
-
-  .btn-action.btn-edit:hover {
-    background: var(--warning-color);
-    color: white;
-  }
-
-  .btn-action.btn-delete {
-    border-color: var(--danger-color);
-    color: var(--danger-color);
-  }
-
-  .btn-action.btn-delete:hover {
-    background: var(--danger-color);
-    color: white;
-  }
-
-  /* 🔗 Посилання сортування */
-  .sort-link {
-    color: var(--dark-text) !important;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: color 0.2s ease;
-    padding: 4px 8px;
-    border-radius: 4px;
-  }
-
-  .sort-link:hover {
-    color: var(--primary-color) !important;
-    background: rgba(37, 99, 235, 0.05);
-    text-decoration: none;
-  }
-
-  .sort-icon {
-    font-size: 0.9rem;
-    color: var(--primary-color);
-  }
-
-  /* ℹ️ Повідомлення про порожній список */
-  .empty-state {
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 50px 30px;
-    text-align: center;
-  }
-
-  .empty-state-icon {
-    font-size: 4rem;
-    margin-bottom: 15px;
-    opacity: 0.4;
-  }
-
-  .empty-state-title {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--dark-text);
-    margin-bottom: 8px;
-  }
-
-  .empty-state-text {
-    color: var(--secondary-color);
-    font-size: 1rem;
-  }
-
-  /* 📱 Адаптивність */
-  @media (max-width: 768px) {
-    .page-header {
-      padding: 15px 20px;
-    }
-
-    .page-title {
-      font-size: 1.3rem;
-    }
-
-    .btn-add-new {
-      padding: 8px 20px;
-      font-size: 0.9rem;
-    }
-
-    .professional-table {
-      font-size: 0.85rem;
-    }
-
-    .professional-table thead th {
-      padding: 10px 8px;
-      font-size: 0.75rem;
-    }
-
-    .professional-table tbody td {
-      padding: 10px 8px;
-    }
-
-    .quantity-value {
-      font-size: 0.9rem;
-    }
-
-    .btn-action {
-      width: 28px;
-      height: 28px;
-      font-size: 0.85rem;
-    }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/balance_list.css' %}">
 
 <div class="container mt-4">
-  <!-- 📋 Заголовок сторінки -->
   <div class="page-header">
     <h2 class="page-title">
       <span class="page-title-icon">📦</span>
@@ -307,7 +18,6 @@
   </div>
 
   {% if balances %}
-    <!-- 📊 Таблиця з даними -->
     <div class="table-container">
       <div class="table-responsive">
         <table class="table professional-table table-hover table-striped">
@@ -319,13 +29,7 @@
                 <a href="?order={% if current_order == 'place__name' %}-place__name{% else %}place__name{% endif %}" class="sort-link">
                   <span>Місце</span>
                   <span class="sort-icon">
-                    {% if current_order == 'place__name' %}
-                      ▲
-                    {% elif current_order == '-place__name' %}
-                      ▼
-                    {% else %}
-                      ⇅
-                    {% endif %}
+                    {% if current_order == 'place__name' %}▲{% elif current_order == '-place__name' %}▼{% else %}⇅{% endif %}
                   </span>
                 </a>
               </th>
@@ -333,13 +37,7 @@
                 <a href="?order={% if current_order == 'culture__name' %}-culture__name{% else %}culture__name{% endif %}" class="sort-link">
                   <span>Культура</span>
                   <span class="sort-icon">
-                    {% if current_order == 'culture__name' %}
-                      ▲
-                    {% elif current_order == '-culture__name' %}
-                      ▼
-                    {% else %}
-                      ⇅
-                    {% endif %}
+                    {% if current_order == 'culture__name' %}▲{% elif current_order == '-culture__name' %}▼{% else %}⇅{% endif %}
                   </span>
                 </a>
               </th>
@@ -347,13 +45,7 @@
                 <a href="?order={% if current_order == 'balance_type' %}-balance_type{% else %}balance_type{% endif %}" class="sort-link">
                   <span>Тип</span>
                   <span class="sort-icon">
-                    {% if current_order == 'balance_type' %}
-                      ▲
-                    {% elif current_order == '-balance_type' %}
-                      ▼
-                    {% else %}
-                      ⇅
-                    {% endif %}
+                    {% if current_order == 'balance_type' %}▲{% elif current_order == '-balance_type' %}▼{% else %}⇅{% endif %}
                   </span>
                 </a>
               </th>
@@ -361,13 +53,7 @@
                 <a href="?order={% if current_order == 'quantity' %}-quantity{% else %}quantity{% endif %}" class="sort-link">
                   <span>Кількість (т)</span>
                   <span class="sort-icon">
-                    {% if current_order == 'quantity' %}
-                      ▲
-                    {% elif current_order == '-quantity' %}
-                      ▼
-                    {% else %}
-                      ⇅
-                    {% endif %}
+                    {% if current_order == 'quantity' %}▲{% elif current_order == '-quantity' %}▼{% else %}⇅{% endif %}
                   </span>
                 </a>
               </th>
@@ -391,12 +77,8 @@
               </td>
               <td>
                 <div class="action-buttons">
-                  <a href="{% url 'balance_update' b.pk %}" class="btn-action btn-edit" title="Редагувати">
-                    ✏️
-                  </a>
-                  <a href="{% url 'balance_delete' b.pk %}" class="btn-action btn-delete" title="Видалити">
-                    🗑️
-                  </a>
+                  <a href="{% url 'balance_update' b.pk %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                  <a href="{% url 'balance_delete' b.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
                 </div>
               </td>
             </tr>
@@ -405,14 +87,12 @@
         </table>
       </div>
     </div>
-    <!-- 📄 Пагінація -->
+
     {% if is_paginated %}
     <nav aria-label="Page navigation" class="mt-3">
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">‹</a>
-          </li>
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">‹</a></li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">‹</span></li>
         {% endif %}
@@ -421,32 +101,46 @@
           {% if num == page_obj.number %}
             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
           {% else %}
-            <li class="page-item">
-              <a class="page-link" href="?page={{ num }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">{{ num }}</a>
-            </li>
+            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">{{ num }}</a></li>
           {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">›</a>
-          </li>
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.order %}&order={{ request.GET.order }}{% endif %}">›</a></li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">›</span></li>
         {% endif %}
       </ul>
     </nav>
     {% endif %}
+
   {% else %}
-    <!-- ℹ️ Порожній стан -->
     <div class="empty-state">
       <div class="empty-state-icon">📦</div>
       <h3 class="empty-state-title">Записів поки що немає</h3>
-      <p class="empty-state-text">
-        Додайте перший запис у журнал залишків, щоб почати роботу
-      </p>
+      <p class="empty-state-text">Додайте перший запис у журнал залишків, щоб почати роботу</p>
     </div>
   {% endif %}
+
+  {% include "balances/dashboard.html" %}
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<script>
+  // Формуємо об'єкт даних тут, бо в зовнішньому JS файлі Django теги не працюють
+  const balancesData = [
+    {% for b in balances %}
+    {
+      place: "{{ b.place.name|escapejs }}",
+      culture: "{{ b.culture.name|escapejs }}",
+      balanceType: "{{ b.balance_type|escapejs }}",
+      quantity: {{ b.quantity|stringformat:"f" }} // Використовуємо stringformat, щоб уникнути помилок з комами
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+</script>
+
+<script src="{% static 'js/balance_charts.js' %}"></script>
 
 {% endblock %}

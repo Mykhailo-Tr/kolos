@@ -1,0 +1,123 @@
+<div class="stats-mini-bar">
+  <div class="mini-stat-item">
+    <div class="mini-stat-label">Загальна вага</div>
+    <div class="mini-stat-value" id="grandTotal">-<span class="mini-stat-suffix">т</span></div>
+  </div>
+  <div class="mini-stat-item">
+    <div class="mini-stat-label" style="color: #10b981;">Зернова група</div>
+    <div class="mini-stat-value" id="totalGrain">-<span class="mini-stat-suffix">т</span></div>
+  </div>
+  <div class="mini-stat-item">
+    <div class="mini-stat-label" style="color: #f59e0b;">Відходи</div>
+    <div class="mini-stat-value" id="totalWaste">-<span class="mini-stat-suffix">т</span></div>
+  </div>
+</div>
+
+<div class="charts-section">
+  <div class="charts-header">
+    <h3 class="charts-title">
+      <span>📊</span>
+      Аналітична панель
+    </h3>
+    <button class="toggle-charts-btn" onclick="toggleCharts()">
+      <span id="toggleIcon">👁️</span>
+      <span id="toggleText">Сховати графіки</span>
+    </button>
+  </div>
+
+  <div class="charts-content" id="chartsContent">
+    
+    <div class="chart-card" style="grid-column: span 2;"> <div class="chart-card-header">
+        <h4 class="chart-card-title">🏢 Деталізація залишків по складах</h4>
+      </div>
+      <div class="chart-controls">
+        <div class="chart-control-group" style="flex: 2;">
+          <label class="chart-control-label">Фільтр складів (натисніть для вибору):</label>
+          <div id="placeChipsContainer" class="filter-chips-container"></div>
+        </div>
+        <div class="chart-control-group">
+          <label class="chart-control-label">Показники:</label>
+          <div style="display: flex; gap: 10px; margin-top: 5px;">
+            <div class="chart-checkbox-group">
+              <input type="checkbox" id="showGrain" class="chart-checkbox" checked>
+              <label for="showGrain" class="chart-checkbox-label">Зерно</label>
+            </div>
+            <div class="chart-checkbox-group">
+              <input type="checkbox" id="showWaste" class="chart-checkbox">
+              <label for="showWaste" class="chart-checkbox-label">Відходи</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-container" style="height: 350px;">
+        <canvas id="stackedBarChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h4 class="chart-card-title">🥧 Структура запасів (Діаграма)</h4>
+      </div>
+      <div class="chart-controls">
+        <div class="chart-control-group">
+          <label class="chart-control-label">Фільтр по складу:</label>
+          <select id="piePlaceSelect" class="chart-select" style="width: 100%;">
+            <option value="all">Всі склади</option>
+            </select>
+        </div>
+        <div class="chart-control-group">
+          <label class="chart-control-label">Тип продукції:</label>
+          <select id="pieTypeSelect" class="chart-select" style="width: 100%;">
+            <option value="all">Всі типи</option>
+            <option value="stock">Тільки зерно</option>
+            <option value="waste">Тільки відходи</option>
+          </select>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h4 class="chart-card-title">📉 Рейтинг ТМЦ за обсягом</h4>
+      </div>
+      <div class="chart-controls">
+        <div class="chart-control-group">
+          <label class="chart-control-label">Кількість позицій:</label>
+          <select id="topCulturesCount" class="chart-select">
+            <option value="5">Топ 5</option>
+            <option value="10" selected>Топ 10</option>
+            <option value="15">Топ 15</option>
+          </select>
+        </div>
+        <div class="chart-control-group">
+            <label class="chart-control-label">Категорія:</label>
+            <select id="topCulturesType" class="chart-select">
+              <option value="all">Всі категорії</option>
+              <option value="stock">Зернова група</option>
+              <option value="waste">Відходи</option>
+            </select>
+          </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="horizontalBarChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h4 class="chart-card-title">🏗️ Навантаження на склади (Частка)</h4>
+      </div>
+      <div class="chart-controls">
+        <p style="font-size: 0.85rem; color: var(--secondary-color); margin: 0;">
+                Відображає відсоток загальної ваги, що зберігається на кожному складі.
+             </p>
+      </div>
+      <div class="chart-container">
+        <canvas id="warehouseShareChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>

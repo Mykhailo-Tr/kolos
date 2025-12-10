@@ -1,0 +1,587 @@
+/* 🎨 Загальні змінні */
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #64748b;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --border-color: #e2e8f0;
+  --header-bg: #f8fafc;
+  --dark-text: #1e293b;
+}
+
+/* 📋 Заголовок сторінки */
+.page-header {
+  background: white;
+  border-bottom: 3px solid var(--primary-color);
+  padding: 20px 25px;
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.stats-mini-bar {
+  display: flex;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 15px 25px;
+  margin-top: 25px;
+  margin-bottom: 25px;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.mini-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 150px;
+  position: relative;
+}
+
+.mini-stat-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: 10%;
+  height: 80%;
+  width: 1px;
+  background: var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .mini-stat-item:not(:last-child)::after {
+    display: none;
+  }
+}
+
+.mini-stat-label {
+  font-size: 0.8rem;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.mini-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--dark-text);
+  font-family: 'Courier New', monospace;
+}
+
+.mini-stat-suffix {
+  font-size: 0.8rem;
+  color: var(--secondary-color);
+  font-weight: normal;
+  margin-left: 3px;
+}
+
+/* 🎨 Filter Chips (Заміна для select multiple) */
+.filter-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: #f1f5f9;
+  color: var(--secondary-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.filter-chip:hover {
+  background: #e2e8f0;
+}
+
+.filter-chip.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+/* Оновлення контролів графіків */
+.chart-controls {
+  background: #f8fafc;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 15px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.chart-control-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--dark-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-title-icon {
+  font-size: 1.8rem;
+}
+
+.btn-add-new {
+  background: var(--primary-color);
+  border: none;
+  color: white;
+  padding: 10px 25px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.btn-add-new:hover {
+  background: #1d4ed8;
+  color: white;
+  text-decoration: none;
+}
+
+/* 📊 Charts Section */
+.charts-section {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 25px;
+}
+
+.charts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.charts-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--dark-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle-charts-btn {
+  background: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-charts-btn:hover {
+  background: #475569;
+}
+
+.charts-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 25px;
+}
+
+.chart-card {
+  background: #f9fafb;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chart-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--dark-text);
+}
+
+.chart-control-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.chart-select {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+  color: var(--dark-text);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.chart-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.chart-select:hover {
+  border-color: var(--primary-color);
+}
+
+.chart-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.chart-checkbox {
+  cursor: pointer;
+}
+
+.chart-checkbox-label {
+  font-size: 0.9rem;
+  color: var(--dark-text);
+  cursor: pointer;
+  margin: 0;
+}
+
+.chart-container {
+  height: 400px;
+  position: relative;
+}
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.stat-card-label {
+  font-size: 0.85rem;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.stat-card-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--dark-text);
+  font-family: 'Courier New', monospace;
+}
+
+.stat-card-suffix {
+  font-size: 0.9rem;
+  color: var(--secondary-color);
+  margin-left: 5px;
+}
+
+/* 📊 Контейнер таблиці */
+.table-container {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 🎯 Стилі таблиці */
+.professional-table {
+  margin-bottom: 0;
+  border: none;
+  font-size: 0.95rem;
+}
+
+.professional-table thead {
+  background: var(--header-bg);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.professional-table thead th {
+  border: none;
+  padding: 14px 12px;
+  font-weight: 600;
+  color: var(--dark-text);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.3px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--header-bg);
+}
+
+.professional-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s ease;
+}
+
+.professional-table tbody tr:hover {
+  background: #dbeafe;
+}
+
+.professional-table tbody tr:hover td {
+  background: #dbeafe;
+}
+
+.professional-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.professional-table tbody td {
+  padding: 12px;
+  vertical-align: middle;
+  border: none;
+  color: var(--dark-text);
+}
+
+/* 🔢 Номер рядка */
+.row-number {
+  width: 50px;
+  font-weight: 600;
+  color: var(--secondary-color);
+}
+
+/* 🏷 Бейджі для типів */
+.balance-type-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border: 1px solid;
+}
+
+.badge-grain {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #10b981;
+}
+
+.badge-waste {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #f59e0b;
+}
+
+/* 💰 Кількість */
+.quantity-value {
+  font-weight: 600;
+  color: var(--dark-text);
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+}
+
+/* 🎬 Кнопки дій */
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.btn-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  text-decoration: none;
+  background: white;
+}
+
+.btn-action.btn-edit {
+  border-color: var(--warning-color);
+  color: var(--warning-color);
+}
+
+.btn-action.btn-edit:hover {
+  background: var(--warning-color);
+  color: white;
+}
+
+.btn-action.btn-delete {
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+.btn-action.btn-delete:hover {
+  background: var(--danger-color);
+  color: white;
+}
+
+/* 🔗 Посилання сортування */
+.sort-link {
+  color: var(--dark-text) !important;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s ease;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.sort-link:hover {
+  color: var(--primary-color) !important;
+  background: rgba(37, 99, 235, 0.05);
+  text-decoration: none;
+}
+
+.sort-icon {
+  font-size: 0.9rem;
+  color: var(--primary-color);
+}
+
+/* ℹ️ Повідомлення про порожній список */
+.empty-state {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 50px 30px;
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 4rem;
+  margin-bottom: 15px;
+  opacity: 0.4;
+}
+
+.empty-state-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--dark-text);
+  margin-bottom: 8px;
+}
+
+.empty-state-text {
+  color: var(--secondary-color);
+  font-size: 1rem;
+}
+
+/* 📱 Адаптивність */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 15px 20px;
+  }
+
+  .page-title {
+    font-size: 1.3rem;
+  }
+
+  .btn-add-new {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+  }
+
+  .charts-content {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-card {
+    padding: 15px;
+  }
+
+  .chart-container {
+    height: 300px;
+  }
+
+  .professional-table {
+    font-size: 0.85rem;
+  }
+
+  .professional-table thead th {
+    padding: 10px 8px;
+    font-size: 0.75rem;
+  }
+
+  .professional-table tbody td {
+    padding: 10px 8px;
+  }
+
+  .quantity-value {
+    font-size: 0.9rem;
+  }
+
+  .btn-action {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+}

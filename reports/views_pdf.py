@@ -80,6 +80,7 @@ class BalanceDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
                 'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
                 'balance_type': form.cleaned_data.get('balance_type'),
                 'orientation': form.cleaned_data.get('orientation', 'portrait'),  # <--- ДОДАНО
+                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО
             }
             
             # Отримуємо дані зі снепшота найближчого до вказаної дати
@@ -144,6 +145,7 @@ class BalancePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View)
                 'place_id': form.cleaned_data.get('place').id if form.cleaned_data.get('place') else None,
                 'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
                 'orientation': form.cleaned_data.get('orientation', 'portrait'), # <--- ДОДАНО
+                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО
             }
             
             # Отримуємо снепшоти на початок та кінець періоду

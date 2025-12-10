@@ -25,6 +25,13 @@ class BalanceListView(ListView):
         if order in allowed:
             return qs.order_by(order)
         return qs.order_by('place__name', 'culture__name')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            "page": "balances"
+        })
+        return context
 
 
 class BalanceCreateView(CreateView):
@@ -93,6 +100,9 @@ class BalanceSnapshotListView(ListView):
         context = super().get_context_data(**kwargs)
         # Отримуємо поточне сортування або використовуємо за замовчуванням
         context['current_order'] = self.request.GET.get('order', '-snapshot_date')
+        context.update({
+            "page": "balanceshistory"
+        })
         return context
 
 

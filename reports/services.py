@@ -14,6 +14,7 @@ class ReportService:
     @staticmethod
     def get_balance_report(date_from=None, date_to=None, filters=None):
         """Звіт по залишках"""
+        # Для балансу дати можуть не використовуватись, бо це поточний стан
         queryset = Balance.objects.select_related('place', 'culture').all()
         
         if filters:
@@ -35,7 +36,7 @@ class ReportService:
         
         # Агрегація для графіків
         aggregation = {
-            'total_quantity': sum(item['quantity'] for item in data),
+            'total_quantity': sum(item['quantity'] for item in data) if data else 0,
             'by_place': {},
             'by_culture': {},
         }
@@ -79,7 +80,7 @@ class ReportService:
             })
         
         aggregation = {
-            'total_waste': sum(item['quantity'] for item in data),
+            'total_waste': sum(item['quantity'] for item in data) if data else 0,
             'by_place': {},
         }
         
@@ -102,9 +103,9 @@ class ReportService:
         ).all()
         
         if date_from:
-            queryset = queryset.filter(date_time__gte=date_from)
+            queryset = queryset.filter(date_time__date__gte=date_from)
         if date_to:
-            queryset = queryset.filter(date_time__lte=date_to)
+            queryset = queryset.filter(date_time__date__lte=date_to)
         
         if filters:
             if filters.get('from_place_id'):
@@ -118,26 +119,27 @@ class ReportService:
         for journal in queryset:
             data.append({
                 'date': journal.date_time.strftime('%d.%m.%Y'),
-                'document': journal.document_number,
+                'document': journal.document_number or '—',
                 'from_place': journal.from_place.name if journal.from_place else '—',
                 'to_place': journal.to_place.name if journal.to_place else '—',
                 'culture': journal.culture.name if journal.culture else '—',
-                'weight_net': float(journal.weight_net),
+                'weight_net': float(journal.weight_net) if journal.weight_net else 0.0,
                 'driver': journal.driver.full_name if journal.driver else '—',
                 'car': journal.car.number if journal.car else '—',
             })
         
         aggregation = {
-            'total_weight': sum(item['weight_net'] for item in data),
+            'total_weight': sum(item['weight_net'] for item in data) if data else 0,
             'by_culture': {},
             'by_route': {},
         }
         
         for item in data:
             # По культурах
-            if item['culture'] not in aggregation['by_culture']:
-                aggregation['by_culture'][item['culture']] = 0
-            aggregation['by_culture'][item['culture']] += item['weight_net']
+            culture = item['culture']
+            if culture not in aggregation['by_culture']:
+                aggregation['by_culture'][culture] = 0
+            aggregation['by_culture'][culture] += item['weight_net']
             
             # По маршрутах
             route = f"{item['from_place']} → {item['to_place']}"
@@ -159,9 +161,9 @@ class ReportService:
         ).all()
         
         if date_from:
-            queryset = queryset.filter(date_time__gte=date_from)
+            queryset = queryset.filter(date_time__date__gte=date_from)
         if date_to:
-            queryset = queryset.filter(date_time__lte=date_to)
+            queryset = queryset.filter(date_time__date__lte=date_to)
         
         if filters:
             if filters.get('action_type'):
@@ -173,30 +175,32 @@ class ReportService:
         for journal in queryset:
             data.append({
                 'date': journal.date_time.strftime('%d.%m.%Y'),
-                'document': journal.document_number,
+                'document': journal.document_number or '—',
                 'action_type': journal.get_action_type_display() if journal.action_type else '—',
-                'place_from': journal.display_place_from,
-                'place_to': journal.display_place_to,
+                'place_from': journal.display_place_from or '—',
+                'place_to': journal.display_place_to or '—',
                 'culture': journal.culture.name if journal.culture else '—',
-                'weight_net': float(journal.weight_net),
+                'weight_net': float(journal.weight_net) if journal.weight_net else 0.0,
             })
         
         aggregation = {
-            'total_weight': sum(item['weight_net'] for item in data),
+            'total_weight': sum(item['weight_net'] for item in data) if data else 0,
             'by_action': {},
             'by_culture': {},
         }
         
         for item in data:
             # По типу дії
-            if item['action_type'] not in aggregation['by_action']:
-                aggregation['by_action'][item['action_type']] = 0
-            aggregation['by_action'][item['action_type']] += item['weight_net']
+            action_type = item['action_type']
+            if action_type not in aggregation['by_action']:
+                aggregation['by_action'][action_type] = 0
+            aggregation['by_action'][action_type] += item['weight_net']
             
             # По культурах
-            if item['culture'] not in aggregation['by_culture']:
-                aggregation['by_culture'][item['culture']] = 0
-            aggregation['by_culture'][item['culture']] += item['weight_net']
+            culture = item['culture']
+            if culture not in aggregation['by_culture']:
+                aggregation['by_culture'][culture] = 0
+            aggregation['by_culture'][culture] += item['weight_net']
         
         return {
             'data': data,
@@ -212,9 +216,9 @@ class ReportService:
         ).all()
         
         if date_from:
-            queryset = queryset.filter(date_time__gte=date_from)
+            queryset = queryset.filter(date_time__date__gte=date_from)
         if date_to:
-            queryset = queryset.filter(date_time__lte=date_to)
+            queryset = queryset.filter(date_time__date__lte=date_to)
         
         if filters:
             if filters.get('field_id'):
@@ -226,29 +230,31 @@ class ReportService:
         for journal in queryset:
             data.append({
                 'date': journal.date_time.strftime('%d.%m.%Y'),
-                'document': journal.document_number,
+                'document': journal.document_number or '—',
                 'field': journal.field.name if journal.field else '—',
                 'place_to': journal.place_to.name if journal.place_to else '—',
                 'culture': journal.culture.name if journal.culture else '—',
-                'weight_net': float(journal.weight_net),
+                'weight_net': float(journal.weight_net) if journal.weight_net else 0.0,
             })
         
         aggregation = {
-            'total_weight': sum(item['weight_net'] for item in data),
+            'total_weight': sum(item['weight_net'] for item in data) if data else 0,
             'by_field': {},
             'by_culture': {},
         }
         
         for item in data:
             # По полях
-            if item['field'] not in aggregation['by_field']:
-                aggregation['by_field'][item['field']] = 0
-            aggregation['by_field'][item['field']] += item['weight_net']
+            field_name = item['field']
+            if field_name not in aggregation['by_field']:
+                aggregation['by_field'][field_name] = 0
+            aggregation['by_field'][field_name] += item['weight_net']
             
             # По культурах
-            if item['culture'] not in aggregation['by_culture']:
-                aggregation['by_culture'][item['culture']] = 0
-            aggregation['by_culture'][item['culture']] += item['weight_net']
+            culture_name = item['culture']
+            if culture_name not in aggregation['by_culture']:
+                aggregation['by_culture'][culture_name] = 0
+            aggregation['by_culture'][culture_name] += item['weight_net']
         
         return {
             'data': data,

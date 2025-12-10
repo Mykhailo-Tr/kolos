@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+from .urls_pdf import pdf_urlpatterns
+
 urlpatterns = [
     # Головна сторінка звітів
     path('', views.ReportsDashboardView.as_view(), name='reports_dashboard'),
@@ -26,4 +28,4 @@ urlpatterns = [
     
     # Історія
     path('history/', views.ReportHistoryView.as_view(), name='report_history'),
-]
+] + pdf_urlpatterns

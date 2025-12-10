@@ -257,7 +257,12 @@
       <span>Звіти та аналітика</span>
     </h1>
   </div>
-
+    {% comment %} PDF звіти link button big with icon {% endcomment %}
+    <a href="{% url 'pdf_reports_dashboard' %}" class="btn btn-primary btn-lg">
+      <i class="fas fa-file-pdf"></i> PDF Звіти
+    </a>
+  </br>
+  </br>
   <!-- Денний звіт -->
   <div class="daily-summary">
     <h2 class="summary-title">

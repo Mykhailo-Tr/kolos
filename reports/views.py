@@ -5,7 +5,7 @@ from django.http import HttpResponse, JsonResponse
 from django.urls import reverse_lazy
 from datetime import datetime, timedelta
 import json
-from .services import ReportService
+from .services.services import ReportService
 from .forms import (
     BalanceReportFilterForm, WasteReportFilterForm,
     WeigherReportFilterForm, ShipmentReportFilterForm,

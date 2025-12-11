@@ -362,3 +362,26 @@ class SaveReportForm(forms.ModelForm):
                 'placeholder': 'Назва збереженого звіту'
             })
         }
+        
+
+class TotalIncomePeriodReportForm(BasePDFReportForm):
+    """Форма для звіту 'Прихід зерна (Загальний за період)'."""
+    
+    date_from = forms.DateField(
+        label="Дата початку",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    date_to = forms.DateField(
+        label="Дата кінця",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    
+    # Можна додати інші фільтри (culture, place, field тощо)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.is_bound:
+            today = timezone.now().date()
+            # Ініціалізація дат за замовчуванням
+            self.fields['date_from'].initial = today - timedelta(days=7) 
+            self.fields['date_to'].initial = today

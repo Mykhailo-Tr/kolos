@@ -9,7 +9,7 @@ from .views_pdf import (
     IncomeDateReportView, IncomePeriodReportView,
     ShipmentSummaryReportView,
     ReportTemplateListView, ReportTemplateUpdateView, ReportTemplateDeleteView,
-    ReportExecutionListView, ReportExecutionDownloadView,
+    ReportExecutionListView, ReportExecutionDownloadView, TotalIncomePeriodReportView, # <-- ІМПОРТ НОВОГО ПРЕДСТАВЛЕННЯ
 )
 
 # Додайте ці URL до існуючого списку urlpatterns
@@ -23,6 +23,7 @@ pdf_urlpatterns = [
     path('pdf/income-date/', IncomeDateReportView.as_view(), name='pdf_income_date'),
     path('pdf/income-period/', IncomePeriodReportView.as_view(), name='pdf_income_period'),
     path('pdf/shipment-summary/', ShipmentSummaryReportView.as_view(), name='pdf_shipment_summary'),
+    path('pdf/total-income-period/', TotalIncomePeriodReportView.as_view(), name='pdf_total_income_period'), # <-- НОВИЙ МАРШРУТ
     
     # Шаблони
     path('templates/', ReportTemplateListView.as_view(), name='report_template_list'),

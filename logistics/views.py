@@ -16,17 +16,18 @@ class BaseJournalViewMixin:
         """Додає назву моделі у контекст (для універсальних шаблонів)."""
         context = super().get_context_data(**kwargs)
         model = self.model._meta
+        # Важливо: використовується в універсальному list.html для визначення колонок та URL
         context['url_name'] = self.model._meta.model_name
         context["model_name"] = model.verbose_name
         context["model_verbose"] = model.verbose_name_plural
         context["page"] = self.model._meta.model_name
-        # print(context)
         return context
 
 
 # --- Базовий ListView для журналів ---
 class BaseJournalListView(BaseJournalViewMixin, ListView):
-    template_name = "journal/list.html"
+    # Змінюємо шлях на той, що, ймовірно, відповідає вашій структурі
+    template_name = "logistics/list.html" 
     context_object_name = "journals"
     # ordering = ["-date_time"]
     paginate_by = 10  # опціонально
@@ -72,22 +73,23 @@ class BaseJournalListView(BaseJournalViewMixin, ListView):
 
 # --- Базові Create / Update для журналів ---
 class BaseJournalCreateView(BaseJournalViewMixin, CreateView):
-    template_name = "journal/form.html"
+    template_name = "logistics/form.html"
 
     def get_success_url(self):
         return self.success_url or reverse_lazy(f"{self.model._meta.model_name}_list")
 
 
 class BaseJournalUpdateView(BaseJournalViewMixin, UpdateView):
-    template_name = "journal/form.html"
+    template_name = "logistics/form.html"
 
     def get_success_url(self):
         return self.success_url or reverse_lazy(f"{self.model._meta.model_name}_list")
 
 
+# --- Конкретні реалізації: Weigher Journal ---
 class WeigherJournalListView(BaseJournalListView):
     model = WeigherJournal
-    template_name = "logistics/weigher_journal/list.html"
+    # template_name видалено для успадкування "logistics/journal/list.html"
 
     journal_valid_orders = [
         "to_place__name", "-to_place__name",
@@ -100,13 +102,13 @@ class WeigherJournalListView(BaseJournalListView):
 class WeigherJournalCreateView(BaseJournalCreateView):
     model = WeigherJournal
     form_class = WeigherJournalForm
-    template_name = "logistics/journal/form.html"
+    template_name = "logistics/form.html"
 
 
 class WeigherJournalUpdateView(BaseJournalUpdateView):
     model = WeigherJournal
     form_class = WeigherJournalForm
-    template_name = "logistics/journal/form.html"
+    template_name = "logistics/form.html"
     
 
 class WeigherJournalDeleteView(DeleteView):
@@ -121,9 +123,10 @@ class WeigherJournalDeleteView(DeleteView):
         return context
 
 
+# --- Конкретні реалізації: Shipment Journal ---
 class ShipmentJournalListView(BaseJournalListView):
     model = ShipmentJournal
-    template_name = "logistics/shipment_journal/list.html"
+    # template_name видалено для успадкування "logistics/journal/list.html"
 
     journal_valid_orders = [
         "place_to__name", "-place_to__name",
@@ -139,13 +142,13 @@ class ShipmentJournalListView(BaseJournalListView):
 class ShipmentJournalCreateView(BaseJournalCreateView):
     model = ShipmentJournal
     form_class = ShipmentJournalForm
-    template_name = "logistics/journal/form.html"
+    template_name = "logistics/form.html"
 
 
 class ShipmentJournalUpdateView(BaseJournalUpdateView):
     model = ShipmentJournal
     form_class = ShipmentJournalForm
-    template_name = "logistics/journal/form.html"
+    template_name = "logistics/form.html"
     
 
 class ShipmentJournalDeleteView(DeleteView):
@@ -160,9 +163,10 @@ class ShipmentJournalDeleteView(DeleteView):
         return context
     
     
+# --- Конкретні реалізації: Fields Income ---
 class FieldsIncomeListView(BaseJournalListView):
     model = FieldsIncome
-    template_name = "logistics/fields_income/list.html"
+    # template_name видалено для успадкування "logistics/journal/list.html"
 
     journal_valid_orders = [
         "place_to__name", "-place_to__name",
@@ -175,13 +179,13 @@ class FieldsIncomeListView(BaseJournalListView):
 class FieldsIncomeCreateView(BaseJournalCreateView):
     model = FieldsIncome
     form_class = FieldsIncomeForm
-    template_name = "logistics/journal/form.html"
+    template_name = "logistics/form.html"
     
 
 class FieldsIncomeUpdateView(BaseJournalUpdateView):
     model = FieldsIncome
     form_class = FieldsIncomeForm
-    template_name = "logistics/journal/form.html"
+    template_name = "logistics/form.html"
     
 
 class FieldsIncomeDeleteView(DeleteView):

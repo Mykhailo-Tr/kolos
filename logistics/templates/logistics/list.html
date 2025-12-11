@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+{% load sort_tags %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/journal.css' %}">
+<link rel="stylesheet" href="{% static 'logistics/sort_link.css' %}">
+
+<style>
+/* --- ВИСОКОКОНТРАСТНИЙ СЕГМЕНТОВАНИЙ ПЕРЕМИКАЧ ОДИНИЦЬ (KG/T Segmented Control) --- */
+.unit-switch {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 15px; /* Відстань до кнопки "Додати запис" */
+    margin-bottom: 15px;
+    font-family: "Inter", sans-serif;
+    user-select: none;
+}
+
+.segmented-control {
+    display: flex;
+    background-color: #e2e8f0; /* Світло-сірий, але більш насичений фон (slate-200) */
+    border-radius: 10px;
+    padding: 3px;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); /* Виразніша тінь */
+}
+
+.control-item {
+    padding: 7px 16px; 
+    font-size: 0.95rem;
+    font-weight: 700; /* Жирний шрифт для контрасту */
+    color: #475569; /* Темно-сірий текст неактивної одиниці */
+    cursor: pointer;
+    z-index: 1;
+    transition: color 0.3s ease;
+    min-width: 45px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.control-item.active {
+    color: #1e293b; /* Майже чорний текст для максимального контрасту */
+}
+
+/* Прихований чекбокс */
+.toggle-input {
+    display: none;
+}
+
+/* Повзунок (індикатор активного стану) */
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px); /* Висота відповідно до контейнера */
+    width: calc(50% - 3px); /* Ширина 50% контейнера */
+    background: #ffffff; /* Чистий білий фон */
+    border-radius: 8px;
+    /* Яскравіша, більш глибока тінь */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+/* Переміщення повзунка на "кг" (при checked=true) */
+.toggle-input:checked ~ .toggle-slider {
+    transform: translateX(100%);
+}
+
+/* Додатковий ефект при наведенні на неактивний елемент */
+.control-item:hover {
+    color: #0f172a; 
+}
+.control-item.active:hover {
+    color: #1e293b;
+}
+</style>
+
+<div class="journal-container">
+
+    <div class="page-header">
+        <h1 class="page-title">📦 {{ model_name }}</h1>
+
+        <div class="unit-switch" id="unitSwitchContainer">
+            
+            <div class="segmented-control">
+                <input type="checkbox" id="unitToggle" class="toggle-input">
+                
+                <label for="unitToggle" class="control-item" data-unit="t" id="labelT">т</label>
+                <label for="unitToggle" class="control-item" data-unit="kg" id="labelKG">кг</label>
+
+                <span class="toggle-slider"></span>
+            </div>
+            
+            {% if url_name == 'fieldsincome' %}
+                <a href="{% url 'fields_income_create' %}" class="btn-add"><span>➕</span><span>Додати запис</span></a>
+            {% elif url_name == 'shipmentjournal' %}
+                <a href="{% url 'shipment_journal_create' %}" class="btn-add"><span>➕</span><span>Додати запис</span></a>
+            {% elif url_name == 'weigherjournal' %}
+                <a href="{% url 'weigher_journal_create' %}" class="btn-add"><span>➕</span><span>Додати запис</span></a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if journals %}
+        <div class="table-wrapper">
+            <table class="journal-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>{% sort_link request "date_time" "Дата і час" %}</th>
+                        <th>{% sort_link request "document_number" "Документ" %}</th>
+                        <th>{% sort_link request "culture__name" "Культура" %}</th>
+
+                        {# --- УМОВНІ КОЛОНКИ ЗАЛЕЖНО ВІД ТИПУ ЖУРНАЛУ --- #}
+                        {% if url_name == 'fieldsincome' %}
+                            <th>{% sort_link request "field__name" "Поле" %}</th>
+                            <th>{% sort_link request "place_to__name" "До місця" %}</th>
+
+                        {% elif url_name == 'shipmentjournal' %}
+                            <th>{% sort_link request "place_from__name" "З місця" %}</th>
+                            <th>{% sort_link request "place_to__name" "До місця" %}</th>
+
+                        {% elif url_name == 'weigherjournal' %}
+                            <th>{% sort_link request "from_place__name" "З місця" %}</th>
+                            <th>{% sort_link request "to_place__name" "До місця" %}</th>
+                        {% endif %}
+
+                        {# --- ВАГОВІ КОЛОНКИ (Спільні) --- #}
+                        <th id="header-gross">{% sort_link request "weight_gross" "Вага брутто" %}</th>
+                        <th id="header-tare">{% sort_link request "weight_tare" "Вага тара" %}</th>
+                        <th id="header-loss">{% sort_link request "weight_loss" "Вага втрат" %}</th>
+                        <th id="header-net">{% sort_link request "weight_net" "Вага нетто" %}</th>
+                        <th>Дії</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for journal in journals %}
+                    <tr>
+                        <td class="text-center">{{ forloop.counter }}</td>
+                        <td>{{ journal.date_time|date:"d.m.Y H:i" }}</td>
+                        <td>{{ journal.document_number }}</td>
+                        <td>{{ journal.culture }}</td>
+
+                        {# --- УМОВНІ ДАНІ ЗАЛЕЖНО ВІД ТИПУ ЖУРНАЛУ --- #}
+                        {% if url_name == 'fieldsincome' %}
+                            <td>{{ journal.field }}</td>
+                            <td>{{ journal.place_to }}</td>
+
+                        {% elif url_name == 'shipmentjournal' %}
+                            <td>
+                                {% if journal.place_from %}{{ journal.place_from }}{% else %}{{ journal.place_from_text }}{% endif %}
+                            </td>
+                            <td>
+                                {% if journal.place_to %}{{ journal.place_to }}{% else %}{{ journal.place_to_text }}{% endif %}
+                            </td>
+
+                        {% elif url_name == 'weigherjournal' %}
+                            <td>{{ journal.from_place }}</td>
+                            <td>{{ journal.to_place }}</td>
+                        {% endif %}
+
+
+                        {# --- ВАГОВІ ДАНІ (Спільні) --- #}
+                        <td class="text-end">
+                            <span class="weight-value" data-t="{{ journal.weight_gross|default:0 }}">
+                                {{ journal.weight_gross|default:0|floatformat:3 }}
+                            </span>
+                        </td>
+
+                        <td class="text-end">
+                            <span class="weight-value" data-t="{{ journal.weight_tare|default:0 }}">
+                                {{ journal.weight_tare|default:0|floatformat:3 }}
+                            </span>
+                        </td>
+
+                        <td class="text-end">
+                            <span class="weight-value" data-t="{{ journal.weight_loss|default:0 }}">
+                                {{ journal.weight_loss|default:0|floatformat:3 }}
+                            </span>
+                        </td>
+
+                        <td class="text-end">
+                            <span class="weight-value quantity-value" data-t="{{ journal.weight_net|default:0 }}">
+                                {{ journal.weight_net|default:0|floatformat:3 }}
+                            </span>
+                        </td>
+
+                        {# --- ДІЇ (URLs залежать від типу журналу) --- #}
+                        <td>
+                            <div class="actions-cell">
+                                {% if url_name == 'fieldsincome' %}
+                                    <a href="{% url 'fields_income_update' journal.pk %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                                    <a href="{% url 'fields_income_delete' journal.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+                                
+                                {% elif url_name == 'shipmentjournal' %}
+                                    <a href="{% url 'shipment_journal_update' journal.pk %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                                    <a href="{% url 'shipment_journal_delete' journal.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+                                
+                                {% elif url_name == 'weigherjournal' %}
+                                    <a href="{% url 'weigher_journal_update' journal.pk %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                                    <a href="{% url 'weigher_journal_delete' journal.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if is_paginated %}
+        <div class="pagination-wrapper">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
+                {% endif %}
+
+                {% for i in paginator.page_range %}
+                    {% if page_obj.number == i %}
+                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a></li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div class="alert-info">Поки що немає записів у журналі.</div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const toggle = document.getElementById("unitToggle");
+    const values = document.querySelectorAll(".weight-value");
+    const tLabel = document.getElementById('labelT');
+    const kgLabel = document.getElementById('labelKG');
+
+    // Отримуємо елементи заголовків таблиці за ID
+    const headers = {
+        gross: document.getElementById("header-gross"),
+        tare: document.getElementById("header-tare"),
+        loss: document.getElementById("header-loss"),
+        net: document.getElementById("header-net")
+    };
+    
+    // Базові назви заголовків
+    const baseHeaders = {
+        gross: "Вага брутто",
+        tare: "Вага тара",
+        loss: "Вага втрат",
+        net: "Вага нетто"
+    };
+
+    /**
+     * Форматує число, додаючи пробіли як роздільник тисяч.
+     */
+    function formatNumberWithSpaces(num) {
+        return num.toLocaleString('uk-UA', { 
+            maximumFractionDigits: 0,
+            minimumFractionDigits: 0
+        }).replace(/\s/g, '\u00A0'); 
+    }
+
+    /**
+     * Оновлює текст заголовків таблиці, додаючи одиницю виміру (т/кг).
+     */
+    function updateHeader(key, unitText) {
+        const headerElement = headers[key];
+        const sortLinkAnchor = headerElement ? headerElement.querySelector('a') : null;
+        const newText = `${baseHeaders[key]} (${unitText})`;
+        
+        if (sortLinkAnchor) {
+            let foundTextNode = false;
+            sortLinkAnchor.childNodes.forEach(node => {
+                if (node.nodeType === 3) { // Text node
+                    node.textContent = newText;
+                    foundTextNode = true;
+                }
+            });
+            if (!foundTextNode) {
+                 sortLinkAnchor.textContent = newText;
+            }
+        } else if (headerElement) {
+             headerElement.textContent = newText;
+        }
+    }
+
+    function updateUnits() {
+        // Режим: false = т (unchecked/ліворуч), true = кг (checked/праворуч)
+        const modeKG = toggle.checked; 
+
+        // 1. Оновлення значень
+        values.forEach(v => {
+            let tons = parseFloat(v.dataset.t);
+            if (isNaN(tons)) tons = 0;
+
+            if (modeKG) {
+                // режим кг: значення * 1000, округлення до цілого, роздільник тисяч
+                const kgValue = Math.round(tons * 1000); 
+                v.textContent = formatNumberWithSpaces(kgValue);
+            } else {
+                // режим т: 3 знаки після коми (вихідне значення)
+                v.textContent = tons.toFixed(3);
+            }
+        });
+
+        // 2. Оновлення заголовків стовпців
+        const unitText = modeKG ? "кг" : "т";
+        for (const key in baseHeaders) {
+            updateHeader(key, unitText);
+        }
+
+        // 3. Оновлення активної одиниці (візуал)
+        if (modeKG) {
+            tLabel.classList.remove('active');
+            kgLabel.classList.add('active');
+        } else {
+            tLabel.classList.add('active');
+            kgLabel.classList.remove('active');
+        }
+    }
+
+    // Обробник зміни стану чекбоксу
+    toggle.addEventListener("change", updateUnits);
+
+    // Обробники кліку на мітки для коректної роботи Segmented Control
+    tLabel.addEventListener('click', (e) => {
+        if (toggle.checked) { 
+            e.preventDefault(); 
+            toggle.checked = false;
+            updateUnits();
+        }
+    });
+
+    kgLabel.addEventListener('click', (e) => {
+        if (!toggle.checked) {
+            e.preventDefault(); 
+            toggle.checked = true;
+            updateUnits();
+        }
+    });
+
+    // Встановлення початкового стану (т) після завантаження
+    toggle.checked = false; 
+    updateUnits();
+});
+</script>
+{% endblock %}

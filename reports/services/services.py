@@ -13,8 +13,7 @@ class ReportService:
     
     @staticmethod
     def get_balance_report(date_from=None, date_to=None, filters=None):
-        """Звіт по залишках"""
-        # Для балансу дати можуть не використовуватись, бо це поточний стан
+        """Звіт по залишках (поточний стан)"""
         queryset = Balance.objects.select_related('place', 'culture').all()
         
         if filters:
@@ -57,6 +56,117 @@ class ReportService:
             'aggregation': aggregation,
             'total_rows': len(data),
         }
+        
+    @staticmethod
+    def get_balance_snapshot_data(snapshot, filters=None):
+        """
+        [FIX] Звіт по залишках на конкретну дату (на основі BalanceSnapshot).
+        Помилка, про яку ви повідомили, виправляється цим методом.
+        """
+        queryset = snapshot.history_records.select_related('place', 'culture').all()
+        
+        if filters:
+            if place_id := filters.get('place_id'):
+                queryset = queryset.filter(place_id=place_id)
+            if culture_id := filters.get('culture_id'):
+                queryset = queryset.filter(culture_id=culture_id)
+            if balance_type := filters.get('balance_type'):
+                queryset = queryset.filter(balance_type=balance_type)
+
+        data = []
+        for history in queryset:
+            data.append({
+                'place': history.place.name,
+                'culture': history.culture.name,
+                # Примітка: BalanceHistory не має get_balance_type_display(). 
+                # Використовуємо поле 'balance_type', а перетворення має відбуватися 
+                # в шаблоні або бути додане до моделі BalanceHistory.
+                'type': history.balance_type, 
+                'quantity': float(history.quantity),
+            })
+            
+        # Агрегація - аналогічно get_balance_report
+        aggregation = {
+            'total_quantity': sum(item['quantity'] for item in data) if data else 0,
+            'by_place': {},
+            'by_culture': {},
+        }
+        
+        for item in data:
+            if item['place'] not in aggregation['by_place']:
+                aggregation['by_place'][item['place']] = 0
+            aggregation['by_place'][item['place']] += item['quantity']
+            
+            if item['culture'] not in aggregation['by_culture']:
+                aggregation['by_culture'][item['culture']] = 0
+            aggregation['by_culture'][item['culture']] += item['quantity']
+            
+        return {
+            'data': data,
+            'aggregation': aggregation,
+            'total_rows': len(data),
+            'snapshot_date': snapshot.snapshot_date.strftime('%d.%m.%Y'),
+        }
+
+    @staticmethod
+    def get_balance_period_data(start_snapshot, end_snapshot, filters=None):
+        """
+        [NEW] Звіт по залишках за період (порівняння двох BalanceSnapshot).
+        Потрібен для 'Динаміка залишків' (pdf_balance_period).
+        """
+        # Отримуємо дані для початкового і кінцевого знімків
+        start_data_full = ReportService.get_balance_snapshot_data(start_snapshot, filters)
+        end_data_full = ReportService.get_balance_snapshot_data(end_snapshot, filters)
+        
+        start_map = {}
+        # Створюємо унікальний ключ (place, culture, type) -> quantity
+        for item in start_data_full['data']:
+            key = (item['place'], item['culture'], item['type'])
+            start_map[key] = item['quantity']
+            
+        end_map = {}
+        for item in end_data_full['data']:
+            key = (item['place'], item['culture'], item['type'])
+            end_map[key] = item['quantity']
+
+        # Об'єднуємо всі унікальні ключі
+        all_keys = set(start_map.keys()) | set(end_map.keys())
+        
+        data = []
+        total_difference = 0.0
+        
+        for key in sorted(list(all_keys)):
+            place, culture, b_type = key
+            start_qty = start_map.get(key, 0.0)
+            end_qty = end_map.get(key, 0.0)
+            difference = end_qty - start_qty
+            
+            data.append({
+                'place': place,
+                'culture': culture,
+                'type': b_type,
+                'start_quantity': start_qty,
+                'end_quantity': end_qty,
+                'difference': difference,
+            })
+            total_difference += difference
+            
+        # Агрегація
+        aggregation = {
+            'total_difference': total_difference,
+            'total_start': start_data_full['aggregation']['total_quantity'],
+            'total_end': end_data_full['aggregation']['total_quantity'],
+        }
+
+        return {
+            'data': data,
+            'aggregation': aggregation,
+            'total_rows': len(data),
+            'date_from': start_snapshot.snapshot_date.strftime('%d.%m.%Y'),
+            'date_to': end_snapshot.snapshot_date.strftime('%d.%m.%Y'),
+        }
+    
+    # ... (інші методи get_waste_report, get_weigher_report)
     
     @staticmethod
     def get_waste_report(date_from=None, date_to=None, filters=None):
@@ -207,7 +317,15 @@ class ReportService:
             'aggregation': aggregation,
             'total_rows': len(data),
         }
-    
+        
+    @staticmethod
+    def get_shipment_summary_data(date_from=None, date_to=None, filters=None):
+        """
+        [NEW ALIAS] Псевдонім для get_shipment_report. 
+        Використовується в get_total_income_period_data.
+        """
+        return ReportService.get_shipment_report(date_from, date_to, filters)
+
     @staticmethod
     def get_fields_report(date_from=None, date_to=None, filters=None):
         """Звіт по надходженням з полів"""
@@ -235,6 +353,8 @@ class ReportService:
                 'place_to': journal.place_to.name if journal.place_to else '—',
                 'culture': journal.culture.name if journal.culture else '—',
                 'weight_net': float(journal.weight_net) if journal.weight_net else 0.0,
+                # Додамо place_from для сумісності з логікою get_total_income_period_data
+                'place_from': journal.field.name if journal.field else '—', 
             })
         
         aggregation = {
@@ -261,6 +381,16 @@ class ReportService:
             'aggregation': aggregation,
             'total_rows': len(data),
         }
+        
+    @staticmethod
+    def get_field_income_data(date_from=None, date_to=None, filters=None):
+        """
+        [NEW ALIAS] Псевдонім для get_fields_report. 
+        Використовується в get_total_income_period_data.
+        """
+        return ReportService.get_fields_report(date_from, date_to, filters)
+        
+    # ... (решта методів: export_to_csv, get_daily_summary, _aggregate_income_data, get_total_income_period_data)
     
     @staticmethod
     def export_to_csv(data, columns):
@@ -348,12 +478,12 @@ class ReportService:
         Отримує дані для звіту 'Прихід зерна (Загальний за період)',
         об'єднуючи надходження з полів та зовнішні ввезення.
         """
-        # 1. Дані з полів
-        # Використовуємо існуючу функцію для полів
+        # 1. Дані з полів (використовуємо новий псевдонім)
         field_data_full = ReportService.get_field_income_data(date_from, date_to, filters)
         field_data = field_data_full.get('data', [])
         
         # 2. Дані зовнішнього ввезення (Shipment Summary - лише 'Ввезення')
+        # Використовуємо новий псевдонім
         shipment_summary_data_full = ReportService.get_shipment_summary_data(date_from, date_to, filters)
         
         # Фільтруємо лише 'Ввезення' (action_type 'income' або 'Ввезення')
@@ -377,8 +507,8 @@ class ReportService:
             'date_from': date_from.strftime('%d.%m.%Y'),
             'date_to': date_to.strftime('%d.%m.%Y'),
             'total_income': total_income,
-            'field_income': field_data,               # Окремо: з полів
-            'external_income': income_data,           # Окремо: ввезення
+            'field_income': field_data,          # Окремо: з полів
+            'external_income': income_data,          # Окремо: ввезення
             'aggregation': {
                 'total_weight': total_weight,
                 'by_culture': by_culture,

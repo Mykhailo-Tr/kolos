@@ -33,6 +33,17 @@ class PDFReportGeneratorMixin:
     
     def save_report_execution(self, template, report_type, filters, data, pdf_buffer, file_format='pdf'):
         """Зберігає виконання звіту"""
+        # Визначаємо кількість рядків. Для порівняльних звітів (як BalancePeriod) data це список,
+        # для інших - dict з ключем 'total_rows'
+        if isinstance(data, dict) and 'total_rows' in data:
+            row_count = data['total_rows']
+        elif isinstance(data, list):
+            row_count = len(data)
+        elif isinstance(data, dict) and 'comparison' in data: # Якщо comparison_data
+             row_count = len(data['comparison'])
+        else:
+            row_count = 0
+            
         execution = ReportExecution.objects.create(
             template=template,
             executed_by=self.request.user,
@@ -41,7 +52,7 @@ class PDFReportGeneratorMixin:
             date_to=filters.get('date_to'),
             filters=filters,
             result_data=data,
-            row_count=data.get('total_rows', 0),
+            row_count=row_count, 
             file_format=file_format
         )
         
@@ -59,7 +70,7 @@ class PDFReportGeneratorMixin:
 class BalanceDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
     """Звіт залишків за конкретну дату"""
     
-    template_name = 'reports/pdf/balance_date_form.html'
+    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = BalanceDateReportForm
     
     def get(self, request):
@@ -79,8 +90,8 @@ class BalanceDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
                 'place_id': form.cleaned_data.get('place').id if form.cleaned_data.get('place') else None,
                 'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
                 'balance_type': form.cleaned_data.get('balance_type'),
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),  # <--- ДОДАНО
-                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО
+                'orientation': form.cleaned_data.get('orientation', 'portrait'),
+                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
             }
             
             # Отримуємо дані зі снепшота найближчого до вказаної дати
@@ -124,7 +135,7 @@ class BalanceDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
 class BalancePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
     """Звіт залишків за період (порівняння)"""
     
-    template_name = 'reports/pdf/balance_period_form.html'
+    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = BalancePeriodReportForm
     
     def get(self, request):
@@ -144,8 +155,8 @@ class BalancePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View)
             filters = {
                 'place_id': form.cleaned_data.get('place').id if form.cleaned_data.get('place') else None,
                 'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
-                'orientation': form.cleaned_data.get('orientation', 'portrait'), # <--- ДОДАНО
-                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО
+                'orientation': form.cleaned_data.get('orientation', 'portrait'),
+                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
             }
             
             # Отримуємо снепшоти на початок та кінець періоду
@@ -173,7 +184,7 @@ class BalancePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View)
                 comparison_data,
                 date_from,
                 date_to,
-                filters=filters # <--- ВАЖЛИВО передати filters сюди
+                filters=filters
             )
             
             # Зберігаємо виконання
@@ -185,7 +196,7 @@ class BalancePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View)
                     'date_to': date_to.isoformat(),
                     **filters
                 },
-                data={'comparison': comparison_data},
+                data={'comparison': comparison_data}, # Зберігаємо comparison_data
                 pdf_buffer=pdf_buffer
             )
             
@@ -203,7 +214,7 @@ class BalancePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View)
 class IncomeDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
     """Звіт приходу зерна за дату"""
     
-    template_name = 'reports/pdf/income_date_form.html'
+    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = IncomeDateReportForm
     
     def get(self, request):
@@ -223,7 +234,8 @@ class IncomeDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
                 'field_id': form.cleaned_data.get('field').id if form.cleaned_data.get('field') else None,
                 'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
                 'place_to_id': form.cleaned_data.get('place_to').id if form.cleaned_data.get('place_to') else None,
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),  # <--- ДОДАНО
+                'orientation': form.cleaned_data.get('orientation', 'portrait'),
+                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
             }
             
             # Отримуємо дані за дату
@@ -264,7 +276,7 @@ class IncomeDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
 class IncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
     """Звіт приходу зерна за період"""
     
-    template_name = 'reports/pdf/income_period_form.html'
+    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = IncomePeriodReportForm
     
     def get(self, request):
@@ -284,7 +296,8 @@ class IncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
             filters = {
                 'field_id': form.cleaned_data.get('field').id if form.cleaned_data.get('field') else None,
                 'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),  # <--- ДОДАНО'
+                'orientation': form.cleaned_data.get('orientation', 'portrait'),
+                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
             }
             
             # Отримуємо дані за період
@@ -329,7 +342,7 @@ class IncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
 class ShipmentSummaryReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
     """Звіт ввезення/вивезення за період"""
     
-    template_name = 'reports/pdf/shipment_summary_form.html'
+    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = ShipmentSummaryReportForm
     
     def get(self, request):
@@ -349,7 +362,8 @@ class ShipmentSummaryReportView(LoginRequiredMixin, PDFReportGeneratorMixin, Vie
             filters = {
                 'action_type': form.cleaned_data.get('action_type'),
                 'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),  # <--- ДОДАНО
+                'orientation': form.cleaned_data.get('orientation', 'portrait'),
+                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
             }
             
             # Отримуємо дані за період
@@ -390,6 +404,8 @@ class ShipmentSummaryReportView(LoginRequiredMixin, PDFReportGeneratorMixin, Vie
             'report_title': 'Звіт ввезення/вивезення'
         })
 
+
+# ... (Усі інші класи, такі як ReportTemplateListView, залишаються без змін) ...
 
 class ReportTemplateListView(LoginRequiredMixin, ListView):
     """Список шаблонів звітів"""

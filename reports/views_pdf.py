@@ -21,51 +21,123 @@ from .services.services import ReportService
 from .services.pdf_generator import ReportPDFBuilder
 from balances.models import BalanceSnapshot
 
+def make_json_safe(value):
+    """Перетворює будь-яке значення на JSON-serializable."""
+    from datetime import date, datetime
+    from decimal import Decimal
+
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+
+    if isinstance(value, Decimal):
+        return float(value)
+
+    if isinstance(value, dict):
+        return {k: make_json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [make_json_safe(v) for v in value]
+
+    if isinstance(value, tuple):
+        return tuple(make_json_safe(v) for v in value)
+
+    # Моделі → str або pk (на твій вибір)
+    try:
+        from django.db.models import Model
+        if isinstance(value, Model):
+            return value.pk
+    except:
+        pass
+
+    return value
+
+
 
 class PDFReportGeneratorMixin:
     """Mixin for generating PDF reports with common functionality."""
-    
+
     TEMPLATE_NAME = 'reports/pdf/report_form_base.html'
-    
+
+    # ============================================================
+    # UNIVERSAL JSON-SAFE CONVERTER
+    # ============================================================
+    def make_json_safe(self, value):
+        """Convert any object into JSON-serializable value."""
+        from datetime import date, datetime
+        from decimal import Decimal
+        from django.db.models import Model
+
+        # Dates
+        if isinstance(value, (date, datetime)):
+            return value.isoformat()
+
+        # Decimal
+        if isinstance(value, Decimal):
+            return float(value)
+
+        # Model → pk
+        if isinstance(value, Model):
+            return value.pk
+
+        # Dict
+        if isinstance(value, dict):
+            return {k: self.make_json_safe(v) for k, v in value.items()}
+
+        # List / tuple
+        if isinstance(value, (list, tuple)):
+            return [self.make_json_safe(v) for v in value]
+
+        return value
+
+    # ============================================================
+
     def generate_pdf_response(self, pdf_buffer, filename: str) -> HttpResponse:
         """Create HTTP response with PDF file."""
         response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
-    
+
     def _prepare_filters(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract and prepare filters from form data."""
         filters = {
             'orientation': form_data.get('orientation', 'portrait'),
             'include_charts': form_data.get('include_charts', False),
         }
-        
-        # Add optional filter fields
-        optional_fields = ['place', 'culture', 'field', 'place_to']
-        for field in optional_fields:
-            if field_value := form_data.get(field):
-                filters[f'{field}_id'] = field_value.id
-        
-        # Add enum type fields
+
+        # Optional FK fields
+        for field in ['place', 'culture', 'field', 'place_to']:
+            obj = form_data.get(field)
+            if obj:
+                filters[f'{field}_id'] = obj.id
+
+        # Enum fields
         if balance_type := form_data.get('balance_type'):
             filters['balance_type'] = balance_type
-        
+
         if action_type := form_data.get('action_type'):
             filters['action_type'] = action_type
-            
+
+        # Date fields — also JSON-safe
+        if 'date_from' in form_data:
+            filters['date_from'] = form_data['date_from']
+
+        if 'date_to' in form_data:
+            filters['date_to'] = form_data['date_to']
+
         return filters
-    
+
     def save_report_execution(
-        self, 
+        self,
         template: Optional[ReportTemplate],
-        report_type: str, 
-        filters: Dict[str, Any], 
+        report_type: str,
+        filters: Dict[str, Any],
         data: Union[Dict[str, Any], list],
         pdf_buffer,
         file_format: str = 'pdf'
     ) -> ReportExecution:
         """Save report execution record."""
-        # Determine row count based on data structure
+
+        # Determine row count
         if isinstance(data, dict) and 'total_rows' in data:
             row_count = data['total_rows']
         elif isinstance(data, list):
@@ -74,19 +146,23 @@ class PDFReportGeneratorMixin:
             row_count = len(data['comparison'])
         else:
             row_count = 0
-            
+
+        # Make JSON safe
+        safe_filters = self.make_json_safe(filters)
+        safe_data = self.make_json_safe(data)
+
         execution = ReportExecution.objects.create(
             template=template,
             executed_by=self.request.user,
             report_type=report_type,
             date_from=filters.get('date_from'),
             date_to=filters.get('date_to'),
-            filters=filters,
-            result_data=data,
+            filters=safe_filters,
+            result_data=safe_data,
             row_count=row_count,
             file_format=file_format
         )
-        
+
         # Save file
         filename = f"report_{execution.id}.{file_format}"
         execution.file_path.save(
@@ -94,9 +170,9 @@ class PDFReportGeneratorMixin:
             ContentFile(pdf_buffer.getvalue()),
             save=True
         )
-        
+
         return execution
-    
+
     def _get_context(self, form, report_title: str) -> Dict[str, Any]:
         """Get common context for report views."""
         return {

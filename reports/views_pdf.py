@@ -15,7 +15,8 @@ from .models import ReportTemplate, ReportExecution, SavedReport
 from .forms_pdf import (
     BalanceDateReportForm, BalancePeriodReportForm,
     IncomeDateReportForm, IncomePeriodReportForm,
-    ShipmentSummaryReportForm, ReportTemplateForm
+    ShipmentSummaryReportForm, ReportTemplateForm,
+    TotalIncomePeriodReportForm
 )
 from .services.services import ReportService
 from .services.pdf_generator import ReportPDFBuilder
@@ -403,9 +404,53 @@ class ShipmentSummaryReportView(LoginRequiredMixin, PDFReportGeneratorMixin, Vie
             'page': 'reports',
             'report_title': 'Звіт ввезення/вивезення'
         })
+        
+class TotalIncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
+    """Генерація звіту 'Прихід зерна (Загальний за період)'."""
+    template_name = 'reports/pdf/report_form_base.html' # Використовуйте існуючий шаблон для звітів за період
+
+    def get(self, request):
+        form = TotalIncomePeriodReportForm()
+        context = {
+            'form': form,
+            'report_name': 'Прихід зерна (Загальний за період)',
+            'report_type': 'total_income_period'
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        form = TotalIncomePeriodReportForm(request.POST)
+        if form.is_valid():
+            filters = form.cleaned_data
+            date_from = filters['date_from']
+            date_to = filters['date_to']
+            output_format = filters['output_format']
+            
+            # 1. Отримання даних
+            try:
+                data = ReportService.get_total_income_period_data(date_from, date_to, filters)
+            except Exception as e:
+                messages.error(request, f"Помилка при отриманні даних: {e}")
+                return render(request, self.template_name, {'form': form, 'report_name': 'Прихід зерна (Загальний за період)'})
+            
+            # 2. Генерація
+            if output_format == 'pdf':
+                pdf_buffer = ReportPDFBuilder.build_total_income_period_report(
+                    data, date_from, date_to, filters
+                )
+                filename = f"Прихід_зерна_загальний_{date_from:%d%m%Y}_{date_to:%d%m%Y}.pdf"
+                
+                # 3. Збереження виконання (якщо потрібно)
+                # self.save_report_execution(...)
+                
+                return self.generate_pdf_response(pdf_buffer, filename)
+            
+            messages.warning(request, f"Формат {output_format.upper()} не підтримується для цього звіту.")
+            return render(request, self.template_name, {'form': form, 'report_name': 'Прихід зерна (Загальний за період)'})
+
+        return render(request, self.template_name, {'form': form, 'report_name': 'Прихід зерна (Загальний за період)'})
 
 
-# ... (Усі інші класи, такі як ReportTemplateListView, залишаються без змін) ...
 
 class ReportTemplateListView(LoginRequiredMixin, ListView):
     """Список шаблонів звітів"""

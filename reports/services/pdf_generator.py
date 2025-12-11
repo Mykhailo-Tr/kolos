@@ -361,16 +361,74 @@ class ReportPDFBuilder:
         date_range = (date_from.strftime('%d.%m.%Y'), date_to.strftime('%d.%m.%Y'))
         generator.add_header(subtitle="Порівняння залишків", date_range=date_range)
         
-        # Графік: Зміни залишків
-        if filters.get('include_charts') and data:
+        # --- 1. Корекція та підготовка даних ---
+        # Перераховуємо показники з Decimal для точності та додаємо стилізацію
+        processed_data = []
+        table_data = []
+
+        for row in data:
+            new_row = row.copy()
+            
+            try:
+                # Конвертація в Decimal для точних розрахунків
+                start_qty_raw = row.get('start_quantity')
+                end_qty_raw = row.get('end_quantity')
+
+                # Безпечна конвертація: Decimal(str(value)) запобігає неточностям float
+                start_qty = Decimal(str(start_qty_raw)) if start_qty_raw is not None and start_qty_raw != '' else Decimal(0)
+                end_qty = Decimal(str(end_qty_raw)) if end_qty_raw is not None and end_qty_raw != '' else Decimal(0)
+            except Exception: 
+                start_qty = Decimal(0)
+                end_qty = Decimal(0)
+
+            change = end_qty - start_qty
+            change_percent_str = '0.00'
+            
+            # Обробка ділення на нуль
+            if start_qty != Decimal(0):
+                change_percent = (change / start_qty) * Decimal(100)
+                # Форматування: +X.X або -X.X
+                change_percent_str = f"{change_percent.quantize(Decimal('0.01')):+.1f}" 
+            
+            # Стилізація для "Зміни (т)"
+            change_style = f"{change:,.3f}"
+            if change > Decimal(0):
+                # Позитивна динаміка (зелений)
+                change_style = f"<font color='{generator.SUCCESS_COLOR}'>+{change:,.3f}</font>" 
+            elif change < Decimal(0):
+                # Негативна динаміка (червоний)
+                change_style = f"<font color='{generator.DANGER_COLOR}'>{change:,.3f}</font>" 
+            
+            # Використовуємо Paragraph для кольорового тексту в таблиці
+            change_paragraph = generator.get_paragraph(change_style, style='Center')
+            
+            # Створення рядка таблиці з коректним форматуванням
+            table_data.append([
+                row.get('place', '—'),
+                row.get('culture', '—'),
+                f"{start_qty:,.3f}", 
+                f"{end_qty:,.3f}", 
+                change_paragraph, # Вставляємо Paragraph
+                f"{change_percent_str}%",
+            ])
+
+            # Оновлюємо рядок для використання в логіці графіків (зберігаємо 'change' як float)
+            new_row['change'] = float(change)
+            new_row['change_percent'] = float(change_percent) # Хоча change_percent не потрібен для графіка, краще оновити
+            processed_data.append(new_row)
+
+
+        # --- 2. Генерація Графіка: Зміни залишків ---
+        if filters.get('include_charts') and processed_data:
             labels = []
             values = []
-            # Беремо топ 10 найбільших змін (по модулю)
-            sorted_data = sorted(data, key=lambda x: abs(x['change']), reverse=True)[:10]
+            
+            # Беремо топ 10 найбільших змін (по модулю), використовуючи скориговані дані
+            sorted_data = sorted(processed_data, key=lambda x: abs(x['change']), reverse=True)[:10]
             
             for item in sorted_data:
-                labels.append(f"{item['culture']} ({item['place']})")
-                values.append(float(item['change']))
+                labels.append(f"{item.get('culture', '—')} ({item.get('place', '—')})")
+                values.append(item['change'])
             
             fig, ax = plt.subplots(figsize=(10, 5))
             colors = ['#10b981' if v >= 0 else '#ef4444' for v in values] # Зелений для росту, червоний для спаду
@@ -393,10 +451,9 @@ class ReportPDFBuilder:
             
             generator.add_plot(fig)
 
-        headers = ['Місце', 'Культура', 'Початок', 'Кінець', 'Зміна', '%']
-        table_data = [[r.get('place'), r.get('culture'), r.get('start_quantity'), 
-                       r.get('end_quantity'), r.get('change'), f"{r.get('change_percent', 0):+.1f}%"] 
-                      for r in data]
+        # --- 3. Генерація Таблиці ---
+        # Змінив заголовки для більшої ясності та компактності
+        headers = ['Місце', 'Культура', 'Початок (т)', 'Кінець (т)', 'Зміна (т)', 'Зміна (%)']
         generator.add_table(headers, table_data, col_widths=[6*cm, 6*cm, 3*cm, 3*cm, 3*cm, 2.5*cm])
         
         return generator.build()
@@ -429,4 +486,117 @@ class ReportPDFBuilder:
                       for r in data.get('data', [])]
         generator.add_table(headers, table_data, col_widths=[2.5*cm, 3*cm, 4*cm, 4.5*cm, 4.5*cm, 3*cm])
         
+        return generator.build()
+    
+    
+    @staticmethod
+    def build_total_income_period_report(data, date_from, date_to, filters=None):
+        """Створює звіт 'Прихід зерна (Загальний за період)'."""
+        filters = filters or {}
+        generator = PDFReportGenerator(
+            "Прихід зерна (Загальний за період)",
+            orientation=filters.get('orientation', 'portrait')
+        )
+        
+        date_range = (date_from.strftime('%d.%m.%Y'), date_to.strftime('%d.%m.%Y'))
+        generator.add_header(
+            subtitle="Загальне надходження (Поля + Ввезення)",
+            date_range=date_range
+        )
+
+        # --- Зведена таблиця (Загальний звіт) ---
+        generator.add_subtitle("Зведена інформація (Загалом)", level=1)
+        
+        total_weight = data['aggregation']['total_weight']
+        culture_agg = data['aggregation']['by_culture']
+        
+        # 1. Таблиця "Загальна вага"
+        summary_data = [
+            ['Загальна вага приходу', f"{total_weight:,.3f} т"]
+        ]
+        generator.add_table(
+            headers=['Параметр', 'Значення'],
+            data=summary_data,
+            col_widths=[6.5 * cm, 6.5 * cm],
+            style=[('FONTSIZE', (0,0), (-1,-1), 10)]
+        )
+        
+        generator.add_spacer(0.5 * cm)
+        
+        # 2. Агрегація по культурах (Загалом)
+        if culture_agg:
+            culture_table_data = [['Культура', 'Вага (т)']]
+            for culture, weight in culture_agg.items():
+                culture_table_data.append([culture, f"{weight:,.3f}"])
+            generator.add_table(
+                headers=culture_table_data[0],
+                data=culture_table_data[1:],
+                col_widths=[6.5 * cm, 6.5 * cm],
+                style=[('FONTSIZE', (0,0), (-1,-1), 10)]
+            )
+        
+        # --- Окремий звіт 1: Надходження з полів ---
+        generator.add_page_break()
+        generator.add_subtitle("1. Надходження з полів", level=1)
+        
+        field_data = data['field_income']
+        field_agg = data['aggregation']['field_aggregation']
+        
+        if field_data:
+            # Зведена інформація по полях
+            field_summary = [['Загальна вага з полів', f"{field_agg.get('total_weight', 0.0):,.3f} т"]]
+            generator.add_table(
+                headers=['Параметр', 'Значення'],
+                data=field_summary,
+                col_widths=[6.5 * cm, 6.5 * cm],
+                style=[('FONTSIZE', (0,0), (-1,-1), 10)]
+            )
+            generator.add_spacer(0.5 * cm)
+
+            # Детальна таблиця
+            headers = ['Дата', 'Час', 'Документ', 'Поле', 'Культура', 'На місце', 'Вага (т)']
+            table_data = [
+                [
+                    r.get('date'), r.get('time'), r.get('document'),
+                    r.get('field'), r.get('culture'), r.get('place_to'),
+                    f"{r.get('weight_net', 0.0):,.3f}"
+                ]
+                for r in field_data
+            ]
+            generator.add_table(headers, table_data)
+        else:
+            generator.add_paragraph("Немає надходжень з полів за вказаний період.")
+
+        # --- Окремий звіт 2: Зовнішнє ввезення ---
+        generator.add_page_break()
+        generator.add_subtitle("2. Зовнішнє ввезення", level=1)
+        
+        external_data = data['external_income']
+        external_agg = data['aggregation']['external_aggregation']
+
+        if external_data:
+            # Зведена інформація по ввезенням
+            external_summary = [['Загальна вага ввезення', f"{external_agg.get('total_weight', 0.0):,.3f} т"]]
+            generator.add_table(
+                headers=['Параметр', 'Значення'],
+                data=external_summary,
+                col_widths=[6.5 * cm, 6.5 * cm],
+                style=[('FONTSIZE', (0,0), (-1,-1), 10)]
+            )
+            generator.add_spacer(0.5 * cm)
+
+            # Детальна таблиця
+            headers = ['Дата', 'Час', 'Документ', 'Звідки', 'Культура', 'На місце', 'Вага (т)']
+            table_data = [
+                [
+                    r.get('date'), r.get('time'), r.get('document'),
+                    r.get('place_from'), r.get('culture'), r.get('place_to'),
+                    f"{r.get('weight_net', 0.0):,.3f}"
+                ]
+                for r in external_data
+            ]
+            generator.add_table(headers, table_data)
+        else:
+            generator.add_paragraph("Немає зовнішніх ввезень за вказаний період.")
+
         return generator.build()

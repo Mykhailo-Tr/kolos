@@ -322,3 +322,70 @@ class ReportService:
             },
             'grand_total': float(weigher_total + shipment_total + fields_total),
         }
+        
+    @staticmethod
+    def _aggregate_income_data(data):
+        """Допоміжний метод для агрегації списку транзакцій ввезення."""
+        agg = {
+            'total_weight': sum(item.get('weight_net', 0.0) for item in data),
+            'by_culture': {},
+            'by_place_from': {},
+        }
+        for item in data:
+            culture = item.get('culture', '—')
+            place_from = item.get('place_from', '—')
+            weight = item.get('weight_net', 0.0)
+            
+            agg['by_culture'][culture] = agg['by_culture'].get(culture, 0.0) + weight
+            # Використовуємо 'place_from', бо це ввезення (звідки привезли)
+            agg['by_place_from'][place_from] = agg['by_place_from'].get(place_from, 0.0) + weight
+        
+        return agg
+
+    @staticmethod
+    def get_total_income_period_data(date_from, date_to, filters=None):
+        """
+        Отримує дані для звіту 'Прихід зерна (Загальний за період)',
+        об'єднуючи надходження з полів та зовнішні ввезення.
+        """
+        # 1. Дані з полів
+        # Використовуємо існуючу функцію для полів
+        field_data_full = ReportService.get_field_income_data(date_from, date_to, filters)
+        field_data = field_data_full.get('data', [])
+        
+        # 2. Дані зовнішнього ввезення (Shipment Summary - лише 'Ввезення')
+        shipment_summary_data_full = ReportService.get_shipment_summary_data(date_from, date_to, filters)
+        
+        # Фільтруємо лише 'Ввезення' (action_type 'income' або 'Ввезення')
+        income_data = [
+            item for item in shipment_summary_data_full.get('data', [])
+            if item.get('action_type') == 'Ввезення' # Або 'income', залежно від вашої моделі
+        ]
+        
+        # 3. Об'єднання та агрегація
+        total_income = field_data + income_data
+        total_weight = sum(item.get('weight_net', 0.0) for item in total_income)
+        
+        # Загальна агрегація по культурах
+        by_culture = {}
+        for item in total_income:
+            culture = item.get('culture', '—')
+            weight = item.get('weight_net', 0.0)
+            by_culture[culture] = by_culture.get(culture, 0.0) + weight
+
+        report_data = {
+            'date_from': date_from.strftime('%d.%m.%Y'),
+            'date_to': date_to.strftime('%d.%m.%Y'),
+            'total_income': total_income,
+            'field_income': field_data,               # Окремо: з полів
+            'external_income': income_data,           # Окремо: ввезення
+            'aggregation': {
+                'total_weight': total_weight,
+                'by_culture': by_culture,
+                # Використовуємо агрегації з підзвітів
+                'field_aggregation': field_data_full.get('aggregation', {'total_weight': 0}),
+                'external_aggregation': ReportService._aggregate_income_data(income_data),
+            }
+        }
+
+        return report_data

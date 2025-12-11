@@ -16,8 +16,9 @@ class ReportTemplate(models.Model):
         ('income_date', 'Прихід зерна за дату'),
         ('balance_snapshot', 'Залишки за дату'),
         ('balance_period', 'Залишки за період'),
-        ('income_period', 'Прихід зерна за період'),
+        ('income_period', 'Прихід зерна за період (старий)'),
         ('shipment_summary', 'Ввезення/вивезення за період'),
+        ('total_income_period', 'Прихід зерна (Загальний за період)'), # <-- НОВИЙ ЗВІТ
         ('custom', 'Власний звіт'),
     ]
     

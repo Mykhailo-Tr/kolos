@@ -1,154 +1,241 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block content %}
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'reports/css/pdf_dashboard.css' %}">
+{% endblock %}
 
-
+{% block content %}
 <div class="pdf-reports-container">
-  <div class="reports-header">
-    <h1 class="reports-title">
-      <span>📄</span>
-      <span>PDF Звіти</span>
-    </h1>
-  </div>
-
-  <!-- Типи звітів -->
-  <div class="section">
-    <h2 class="section-title">Створити новий звіт</h2>
-    
-    <div class="reports-grid">
-      <!-- Залишки за дату -->
-      <a href="{% url 'pdf_balance_date' %}" class="report-type-card">
-        <div class="report-icon">📊</div>
-        <h3 class="report-type-title">Залишки за дату</h3>
-        <p class="report-type-desc">
-          Стан залишків на складах на конкретну дату
-        </p>
-      </a>
-
-      <!-- Залишки за період -->
-      <a href="{% url 'pdf_balance_period' %}" class="report-type-card">
-        <div class="report-icon">📈</div>
-        <h3 class="report-type-title">Динаміка залишків</h3>
-        <p class="report-type-desc">
-          Порівняння залишків між двома датами
-        </p>
-      </a>
-
-      <!-- Прихід за дату -->
-      <a href="{% url 'pdf_income_date' %}" class="report-type-card">
-        <div class="report-icon">🌱</div>
-        <h3 class="report-type-title">Прихід за дату</h3>
-        <p class="report-type-desc">
-          Надходження зерна з полів за день
-        </p>
-      </a>
-
-      <!-- Прихід за період -->
-      <a href="{% url 'pdf_income_period' %}" class="report-type-card">
-        <div class="report-icon">📦</div>
-        <h3 class="report-type-title">Прихід за період</h3>
-        <p class="report-type-desc">
-          Загальне надходження зерна за період
-        </p>
-      </a>
-
-      <!-- Ввезення/Вивезення -->
-      <a href="{% url 'pdf_shipment_summary' %}" class="report-type-card">
-        <div class="report-icon">🚛</div>
-        <h3 class="report-type-title">Ввезення/Вивезення</h3>
-        <p class="report-type-desc">
-          Зовнішні операції за період
-        </p>
-      </a>
-
-      <a href="{% url 'pdf_total_income_period' %}" class="report-type-card">
-        <div class="report-icon">📥</div>
-        <h3 class="report-type-title">Прихід зерна (Загальний за період)</h3>
-        <p class="report-type-desc">
-          Загальний прихід зерна за вибраний період
-        </p>
-      </a>
+    <div class="reports-header">
+        <h1 class="reports-title">
+            <span>📄</span>
+            <span>PDF Звіти</span>
+        </h1>
     </div>
-  </div>
 
-  <div class="row">
-    <!-- Останні звіти -->
-    <div class="col-md-6">
-      <div class="section">
-        <h2 class="section-title">
-          <span>📜 Останні звіти</span>
-          <a href="{% url 'report_execution_list' %}" class="section-link">Переглянути всі →</a>
-        </h2>
+    <!-- Типи звітів -->
+    <div class="section">
+        <h2 class="section-title">Створити новий звіт</h2>
+        
+        <div class="reports-grid">
+            <!-- Залишки за дату -->
+            <a href="{% url 'pdf_balance_date' %}" class="report-type-card">
+                <div class="report-icon">📊</div>
+                <h3 class="report-type-title">Залишки за дату</h3>
+                <p class="report-type-desc">
+                    Стан залишків на складах на конкретну дату
+                </p>
+            </a>
 
-        {% if recent_executions %}
-          <ul class="recent-list">
-            {% for execution in recent_executions %}
-            <li class="recent-item">
-              <div>
-                <div class="recent-item-title">
-                  {% if execution.template %}
-                    {{ execution.template.name }}
-                  {% else %}
-                    {{ execution.get_report_type_display }}
-                  {% endif %}
-                </div>
-                <div class="recent-item-meta">
-                  {{ execution.executed_at|date:"d.m.Y H:i" }} • 
-                  {{ execution.row_count }} записів
-                </div>
-              </div>
-              <div class="recent-item-actions">
-                {% if execution.file_path %}
-                  <a href="{% url 'report_execution_download' execution.pk %}" class="btn-download">
-                    💾 Завантажити
-                  </a>
+            <!-- Залишки за період -->
+            <a href="{% url 'pdf_balance_period' %}" class="report-type-card">
+                <div class="report-icon">📈</div>
+                <h3 class="report-type-title">Динаміка залишків</h3>
+                <p class="report-type-desc">
+                    Порівняння залишків між двома датами
+                </p>
+            </a>
+
+            <!-- Прихід за дату -->
+            <a href="{% url 'pdf_income_date' %}" class="report-type-card">
+                <div class="report-icon">🌱</div>
+                <h3 class="report-type-title">Прихід за дату</h3>
+                <p class="report-type-desc">
+                    Надходження зерна з полів за день
+                </p>
+            </a>
+
+            <!-- Прихід за період -->
+            <a href="{% url 'pdf_income_period' %}" class="report-type-card">
+                <div class="report-icon">📦</div>
+                <h3 class="report-type-title">Прихід за період</h3>
+                <p class="report-type-desc">
+                    Загальне надходження зерна за період
+                </p>
+            </a>
+
+            <!-- Ввезення/Вивезення -->
+            <a href="{% url 'pdf_shipment_summary' %}" class="report-type-card">
+                <div class="report-icon">🚛</div>
+                <h3 class="report-type-title">Ввезення/Вивезення</h3>
+                <p class="report-type-desc">
+                    Зовнішні операції за період
+                </p>
+            </a>
+
+            <!-- Загальний прихід за період -->
+            <a href="{% url 'pdf_total_income_period' %}" class="report-type-card">
+                <div class="report-icon">📥</div>
+                <h3 class="report-type-title">Загальний прихід зерна</h3>
+                <p class="report-type-desc">
+                    Об'єднаний прихід з полів та зовнішні ввезення
+                </p>
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Останні звіти -->
+        <div class="col-md-6">
+            <div class="section">
+                <h2 class="section-title">
+                    <span>📜 Останні звіти</span>
+                    <a href="{% url 'report_execution_list' %}" class="section-link">Переглянути всі →</a>
+                </h2>
+
+                {% if recent_executions %}
+                    <ul class="recent-list">
+                        {% for execution in recent_executions %}
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">
+                                    {% if execution.template %}
+                                        {{ execution.template.name }}
+                                    {% else %}
+                                        {{ execution.get_report_type_display|default:execution.report_type }}
+                                    {% endif %}
+                                </div>
+                                <div class="recent-item-meta">
+                                    {{ execution.executed_at|date:"d.m.Y H:i" }} • 
+                                    {{ execution.row_count }} записів
+                                </div>
+                            </div>
+                            <div class="recent-item-actions">
+                                {% if execution.file_path %}
+                                    <a href="{% url 'report_execution_download' execution.pk %}" class="btn-download">
+                                        💾 Завантажити
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <p>Ви ще не створювали звіти</p>
+                    </div>
                 {% endif %}
-              </div>
-            </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <div class="empty-state">
-            <div class="empty-icon">📊</div>
-            <p>Ви ще не створювали звіти</p>
-          </div>
-        {% endif %}
-      </div>
-    </div>
+            </div>
+        </div>
 
-    <!-- Шаблони -->
-    <div class="col-md-6">
-      <div class="section">
-        <h2 class="section-title">
-          <span>📋 Мої шаблони</span>
-          <a href="{% url 'report_template_list' %}" class="section-link">Переглянути всі →</a>
-        </h2>
+        <!-- Шаблони -->
+        <div class="col-md-6">
+            <div class="section">
+                <h2 class="section-title">
+                    <span>📋 Мої шаблони</span>
+                    <a href="{% url 'report_template_list' %}" class="section-link">Переглянути всі →</a>
+                </h2>
 
-        {% if templates %}
-          <ul class="recent-list">
-            {% for template in templates %}
-            <li class="recent-item">
-              <div>
-                <div class="recent-item-title">{{ template.name }}</div>
-                <div class="recent-item-meta">
-                  {{ template.get_report_type_display }} • 
-                  {{ template.created_at|date:"d.m.Y" }}
-                </div>
-              </div>
-            </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <p>Немає збережених шаблонів</p>
-          </div>
-        {% endif %}
-      </div>
+                {% if templates %}
+                    <ul class="recent-list">
+                        {% for template in templates %}
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">{{ template.name }}</div>
+                                <div class="recent-item-meta">
+                                    {{ template.get_report_type_display|default:template.report_type }} • 
+                                    {{ template.created_at|date:"d.m.Y" }}
+                                </div>
+                            </div>
+                            <div class="recent-item-actions">
+                                <a href="{% url 'report_template_update' template.pk %}" class="btn-download" style="background-color: #3b82f6;">
+                                    ✏️ Редагувати
+                                </a>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <p>Немає збережених шаблонів</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
+{% if not templates and not recent_executions %}
+<!-- Додаткова інформація для нових користувачів -->
+<div class="pdf-reports-container">
+    <div class="section">
+        <h2 class="section-title">🎯 Як почати роботу з PDF звітами</h2>
+        
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">📝 Створення звіту</h5>
+                        <p class="card-text">
+                            1. Виберіть тип звіту<br>
+                            2. Заповніть параметри<br>
+                            3. Натисніть "Сформувати"<br>
+                            4. Завантажте PDF
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">💾 Збереження шаблонів</h5>
+                        <p class="card-text">
+                            Після створення звіту збережіть параметри як шаблон для швидкого повторного використання
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 bg-light h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">📊 Доступні типи звітів</h5>
+                        <p class="card-text">
+                            • Залишки на складах<br>
+                            • Надходження з полів<br>
+                            • Ввезення/вивезення<br>
+                            • Динаміка змін
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Додатковий JavaScript для покращення UX
+    document.addEventListener('DOMContentLoaded', function() {
+        // Анімація карток при наведенні
+        const cards = document.querySelectorAll('.report-type-card');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Підсвічування активного елемента в списку
+        const listItems = document.querySelectorAll('.recent-item');
+        listItems.forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            item.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+        });
+    });
+</script>
 {% endblock %}

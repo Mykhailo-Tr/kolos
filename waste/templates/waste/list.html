@@ -1,107 +1,272 @@
 <div class="journal-container mt-4">
-  <div class="page-header mb-3">
-    <h3 class="page-title">📦 {{ model_name }}</h3>
-  </div>
+    {# Новий контейнер для розміщення заголовка та перемикача поруч #}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        
+        <div class="page-header">
+            <h3 class="page-title">📦 {{ model_name }}</h3>
+        </div>
 
-  {% if journals %}
-  <div class="table-wrapper">
-    <table class="journal-table">
-      <thead>
-        <!-- Перший рядок заголовка -->
-        <tr>
-          <th>#</th>
-          <th>Дата</th>
-          <th>Культура</th>
-          <th>Місце з</th>
-          <th>Місце до</th>
-          <th colspan="2">ВАГА (т)</th>
-          <th>Дія</th>
-          <th>Дії</th>
-        </tr>
-        <!-- Другий рядок заголовка -->
-        <tr style="background-color:#e0e7ff; font-weight:600; text-transform:uppercase; font-size:0.78rem; letter-spacing:0.04em;">
-          <th colspan="5" class="border-0"></th>
-          <th class="text-start border-end-0" style="color:#1e40af;">Вхід</th>
-          <th class="text-end border-start-0" style="color:#059669;">Вихід</th>
-          <th colspan="2" class="border-0"></th>
-      </tr>
-      </thead>
-      <tbody>
-        {% for journal in journals %}
-        <tr>
-          <td class="text-center">{{ forloop.counter }}</td>
-          <td>{{ journal.date_time|date:"d.m.Y H:i" }}</td>
-          <td>Відходи - {{ journal.culture }}</td>
-          <td>{{ journal.place_from }}</td>
-          <td>
-            {% if journal.place_to %}
-              {{ journal.place_to }}
+        {# СЕГМЕНТОВАНИЙ ПЕРЕМИКАЧ ОДИНИЦЬ #}
+        <div class="unit-switch" id="unitSwitchContainer">
+            <div class="segmented-control">
+                <input type="checkbox" id="unitToggle" class="toggle-input">
+                
+                <label for="unitToggle" class="control-item active" data-unit="t" id="labelT">т</label>
+                <label for="unitToggle" class="control-item" data-unit="kg" id="labelKG">кг</label>
+
+                <span class="toggle-slider"></span>
+            </div>
+        </div>
+        {# КІНЕЦЬ ПЕРЕМИКАЧА #}
+
+    </div>
+
+    {% if journals %}
+    <div class="table-wrapper">
+        <table class="journal-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Дата</th>
+                    <th>Культура</th>
+                    <th>Місце з</th>
+                    <th>Місце до</th>
+                    <th colspan="2" id="header-weight">ВАГА (т)</th>
+                    <th>Дія</th>
+                    <th>Дії</th>
+                </tr>
+                <tr style="background-color:#e0e7ff; font-weight:600; text-transform:uppercase; font-size:0.78rem; letter-spacing:0.04em;">
+                    <th colspan="5" class="border-0"></th>
+                    <th class="text-start border-end-0" style="color:#1e40af;">Вхід</th>
+                    <th class="text-end border-start-0" style="color:#059669;">Вихід</th>
+                    <th colspan="2" class="border-0"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for journal in journals %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td>{{ journal.date_time|date:"d.m.Y H:i" }}</td>
+                    <td>Відходи - {{ journal.culture }}</td>
+                    <td>{{ journal.place_from }}</td>
+                    <td>
+                        {% if journal.place_to %}
+                            {{ journal.place_to }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+
+                    {% if journal.action == 'recycling' %}
+                    <td class="text-start quantity-value text-primary" data-t="{{ journal.input_quantity|default:0 }}">
+                        {{ journal.input_quantity|default:0|floatformat:3 }}
+                    </td>
+                    <td class="text-end quantity-value text-success" data-t="{{ journal.output_quantity|default:0 }}">
+                        {{ journal.output_quantity|default:0|floatformat:3 }}
+                    </td>
+                    {% else %}
+                    <td colspan="2" class="text-center quantity-value text-danger" data-t="{{ journal.quantity|default:0 }}">
+                        {{ journal.quantity|default:0|floatformat:3 }}
+                    </td>
+                    {% endif %}
+
+                    <td class="text-center">
+                        {% if journal.action == 'utilization' %}
+                        <span class="badge bg-danger">Утилізація</span>
+                        {% else %}
+                        <span class="badge bg-success">Переробка</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="actions-cell">
+                        {% if journal.action == 'utilization' %}
+                        <a href="{% url 'utilization_edit' journal.id %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                        <a href="{% url 'utilization_delete' journal.id %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+                        {% else %}
+                        <a href="{% url 'recycling_edit' journal.id %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                        <a href="{% url 'recycling_delete' journal.id %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <nav aria-label="Навігація сторінками" class="mt-3">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
+            </li>
             {% else %}
-              <span class="text-muted">—</span>
+            <li class="page-item disabled"><span class="page-link">«</span></li>
             {% endif %}
-          </td>
 
-          {% if journal.action == 'recycling' %}
-          <td class="text-start quantity-value text-primary">{{ journal.input_quantity }}</td>
-          <td class="text-end quantity-value text-success">{{ journal.output_quantity }}</td>
-          {% else %}
-          <td colspan="2" class="text-center quantity-value text-danger">{{ journal.quantity }}</td>
-          {% endif %}
-
-          <td class="text-center">
-            {% if journal.action == 'utilization' %}
-            <span class="badge bg-danger">Утилізація</span>
+            {% for i in paginator.page_range %}
+            {% if page_obj.number == i %}
+            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
             {% else %}
-            <span class="badge bg-success">Переробка</span>
+            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
             {% endif %}
-          </td>
+            {% endfor %}
 
-          <td class="actions-cell">
-            {% if journal.action == 'utilization' %}
-            <a href="{% url 'utilization_edit' journal.id %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
-            <a href="{% url 'utilization_delete' journal.id %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
+            </li>
             {% else %}
-            <a href="{% url 'recycling_edit' journal.id %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
-            <a href="{% url 'recycling_delete' journal.id %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+            <li class="page-item disabled"><span class="page-link">»</span></li>
             {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+        </ul>
+    </nav>
+    {% endif %}
 
-  {% if is_paginated %}
-  <nav aria-label="Навігація сторінками" class="mt-3">
-    <ul class="pagination justify-content-center">
-      {% if page_obj.has_previous %}
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
-      </li>
-      {% else %}
-      <li class="page-item disabled"><span class="page-link">«</span></li>
-      {% endif %}
-
-      {% for i in paginator.page_range %}
-      {% if page_obj.number == i %}
-      <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-      {% else %}
-      <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
-      {% endif %}
-      {% endfor %}
-
-      {% if page_obj.has_next %}
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
-      </li>
-      {% else %}
-      <li class="page-item disabled"><span class="page-link">»</span></li>
-      {% endif %}
-    </ul>
-  </nav>
-  {% endif %}
-
-  {% else %}
-  <div class="alert-info">Немає записів у журналі.</div>
-  {% endif %}
+    {% else %}
+    <div class="alert-info">Немає записів у журналі.</div>
+    {% endif %}
 </div>
+
+<style>
+/* --- СТИЛІ СЕГМЕНТОВАНОГО ПЕРЕМИКАЧА ОДИНИЦЬ --- */
+.unit-switch {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-family: "Inter", sans-serif;
+    user-select: none;
+}
+
+.segmented-control {
+    display: flex;
+    background-color: #e2e8f0;
+    border-radius: 10px;
+    padding: 3px;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.control-item {
+    padding: 7px 16px; 
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    z-index: 1;
+    transition: color 0.3s ease;
+    min-width: 45px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.control-item.active {
+    color: #1e293b;
+}
+
+/* Прихований чекбокс */
+.toggle-input {
+    display: none;
+}
+
+/* Повзунок (індикатор активного стану) */
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    width: calc(50% - 3px);
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+/* Переміщення повзунка на "кг" (при checked=true) */
+.toggle-input:checked ~ .toggle-slider {
+    transform: translateX(100%);
+}
+
+/* Додатковий ефект при наведенні на неактивний елемент */
+.control-item:hover {
+    color: #0f172a; 
+}
+.control-item.active:hover {
+    color: #1e293b;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const toggle = document.getElementById("unitToggle");
+    const values = document.querySelectorAll(".quantity-value"); 
+    const tLabel = document.getElementById('labelT');
+    const kgLabel = document.getElementById('labelKG');
+    const weightHeader = document.getElementById("header-weight");
+    const storageKey = 'wasteJournalUnit'; 
+
+    /**
+     * Форматує число. Для кг округлює до цілого та додає роздільник тисяч.
+     */
+    function formatValue(value, isTons) {
+        if (value === null || value === undefined || isNaN(value)) return '—';
+
+        if (isTons) {
+            // Для тонн: 3 знаки після коми
+            return parseFloat(value).toFixed(3);
+        } else {
+            // Для кг: округлення до цілого, роздільник тисяч (нерозривний пробіл)
+            const kgValue = Math.round(parseFloat(value) * 1000); 
+            return kgValue.toLocaleString('uk-UA', { 
+                maximumFractionDigits: 0,
+                minimumFractionDigits: 0
+            }).replace(/\s/g, '\u00A0'); 
+        }
+    }
+
+    function updateUnits() {
+        const modeKG = toggle.checked; 
+        const unitText = modeKG ? " (кг)" : " (т)";
+
+        // 1. Оновлення заголовка стовпця
+        if (weightHeader) {
+            weightHeader.textContent = `ВАГА${unitText}`;
+        }
+
+        // 2. Оновлення значень
+        values.forEach(v => {
+            let tons = parseFloat(v.dataset.t);
+            if (isNaN(tons)) tons = 0;
+
+            v.textContent = formatValue(tons, !modeKG);
+        });
+
+        // 3. Оновлення активної одиниці (візуал)
+        if (modeKG) {
+            tLabel.classList.remove('active');
+            kgLabel.classList.add('active');
+        } else {
+            tLabel.classList.add('active');
+            kgLabel.classList.remove('active');
+        }
+
+        // Зберігання стану
+        localStorage.setItem(storageKey, modeKG ? 'kg' : 't');
+    }
+
+    // ВИПРАВЛЕНО: Слухаємо подію 'change' на прихованому чекбоксі.
+    // Клік на будь-яку мітку (<label for="unitToggle">) автоматично змінює стан чекбокса,
+    // що викликає цю функцію.
+    toggle.addEventListener('change', updateUnits);
+
+
+    // Ініціалізація з Local Storage
+    const savedUnit = localStorage.getItem(storageKey);
+    const initialModeKG = savedUnit === 'kg';
+    
+    toggle.checked = initialModeKG;
+    // Оновлюємо одиниці при завантаженні, щоб застосувати збережений стан
+    updateUnits(); 
+});
+</script>

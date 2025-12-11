@@ -4,61 +4,225 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/journal.css' %}">
 
+<style>
+/* --- СТИЛІ СЕГМЕНТОВАНОГО ПЕРЕМИКАЧА ОДИНИЦЬ (Дубльовано для цього файлу) --- */
+.unit-switch {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-family: "Inter", sans-serif;
+    user-select: none;
+}
+
+.segmented-control {
+    display: flex;
+    background-color: #e2e8f0;
+    border-radius: 10px;
+    padding: 3px;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.control-item {
+    padding: 7px 16px; 
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    z-index: 1;
+    transition: color 0.3s ease;
+    min-width: 45px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.control-item.active {
+    color: #1e293b;
+}
+
+/* Прихований чекбокс */
+.toggle-input {
+    display: none;
+}
+
+/* Повзунок (індикатор активного стану) */
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    width: calc(50% - 3px);
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+/* Переміщення повзунка на "кг" (при checked=true) */
+.toggle-input:checked ~ .toggle-slider {
+    transform: translateX(100%);
+}
+
+/* Додатковий ефект при наведенні на неактивний елемент */
+.control-item:hover {
+    color: #0f172a; 
+}
+.control-item.active:hover {
+    color: #1e293b;
+}
+</style>
+
 <div class="journal-container">
-  <div class="page-header">
-    <h3 class="page-title">♻️ Залишки відходів</h3>
-  </div>
+    {# Новий контейнер для розміщення заголовка та перемикача поруч #}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        
+        <div class="page-header">
+            <h3 class="page-title">♻️ Залишки відходів</h3>
+        </div>
 
-  {% if waste_balances %}
-  <div class="table-wrapper">
-    <table class="journal-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Місце</th>
-          <th>Культура</th>
-          <th>Кількість (тонн)</th>
-          <th>Дії</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in waste_balances %}
-        <tr>
-            <td class="text-center">{{ forloop.counter }}</td>
-            <td>{{ item.place.name }}</td>
-            <td>Відходи - {{ item.culture.name }}</td>
-            <td class="quantity-value text-center">{{ item.quantity }}</td>
-            <td class="actions-cell">
-                <a href="{% url 'recycling_add' item.pk %}" class="btn-add" 
-                style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                        color: white;
-                        padding: 0.4rem 0.8rem; 
-                        font-size: 0.85rem;">
-                    ♻️ Переробка
-                </a>
-                <a href="{% url 'utilization_add' item.pk %}" class="btn-add" 
-                style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-                        color: white;
-                        padding: 0.4rem 0.8rem; 
-                        font-size: 0.85rem;">
-                    🗑️ Утилізація
-                </a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="5" class="text-center text-muted py-3">Немає відходів</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="alert-info">Немає відходів</div>
-  {% endif %}
+        {# СЕГМЕНТОВАНИЙ ПЕРЕМИКАЧ ОДИНИЦЬ #}
+        <div class="unit-switch" id="unitSwitchContainerWastes">
+            <div class="segmented-control">
+                {# Унікальні ID для коректної роботи у цьому шаблоні #}
+                <input type="checkbox" id="unitToggleWastes" class="toggle-input">
+                
+                <label for="unitToggleWastes" class="control-item active" data-unit="t" id="labelTWastes">т</label>
+                <label for="unitToggleWastes" class="control-item" data-unit="kg" id="labelKGWastes">кг</label>
 
-  <hr class="my-4">
+                <span class="toggle-slider"></span>
+            </div>
+        </div>
+        {# КІНЕЦЬ ПЕРЕМИКАЧА #}
 
-  {% include "waste/list.html" %}
+    </div>
+
+    {% if waste_balances %}
+    <div class="table-wrapper">
+        <table class="journal-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Місце</th>
+                    <th>Культура</th>
+                    <th id="header-quantity">Кількість (тонн)</th>
+                    <th>Дії</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in waste_balances %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td>{{ item.place.name }}</td>
+                    <td>Відходи - {{ item.culture.name }}</td>
+                    <td class="quantity-value-wastes text-center" data-t="{{ item.quantity|default:0 }}">
+                        {{ item.quantity|default:0|floatformat:3 }}
+                    </td>
+                    <td class="actions-cell">
+                        <a href="{% url 'recycling_add' item.pk %}" class="btn-add" 
+                        style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                                color: white;
+                                padding: 0.4rem 0.8rem; 
+                                font-size: 0.85rem;">
+                            ♻️ Переробка
+                        </a>
+                        <a href="{% url 'utilization_add' item.pk %}" class="btn-add" 
+                        style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                                color: white;
+                                padding: 0.4rem 0.8rem; 
+                                font-size: 0.85rem;">
+                            🗑️ Утилізація
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-3">Немає відходів</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert-info">Немає відходів</div>
+    {% endif %}
+
+    <hr class="my-4">
+
+    {% include "waste/list.html" %}
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Унікальні ID для шаблону wastes.html
+    const toggle = document.getElementById("unitToggleWastes");
+    const values = document.querySelectorAll(".quantity-value-wastes");
+    const tLabel = document.getElementById('labelTWastes');
+    const kgLabel = document.getElementById('labelKGWastes');
+    const quantityHeader = document.getElementById("header-quantity");
+    const storageKey = 'wastesBalanceUnit'; 
+
+    /**
+     * Форматує число. Для кг округлює до цілого та додає роздільник тисяч.
+     */
+    function formatValue(value, isTons) {
+        if (value === null || value === undefined || isNaN(value)) return '—';
+
+        if (isTons) {
+            // Для тонн: 3 знаки після коми
+            return parseFloat(value).toFixed(3);
+        } else {
+            // Для кг: округлення до цілого, роздільник тисяч (нерозривний пробіл)
+            const kgValue = Math.round(parseFloat(value) * 1000); 
+            return kgValue.toLocaleString('uk-UA', { 
+                maximumFractionDigits: 0,
+                minimumFractionDigits: 0
+            }).replace(/\s/g, '\u00A0'); 
+        }
+    }
+
+    function updateUnits() {
+        const modeKG = toggle.checked; 
+        const unitText = modeKG ? "(кг)" : "(тонн)";
+
+        // 1. Оновлення заголовка стовпця
+        if (quantityHeader) {
+            quantityHeader.textContent = `Кількість ${unitText}`;
+        }
+
+        // 2. Оновлення значень
+        values.forEach(v => {
+            let tons = parseFloat(v.dataset.t);
+            if (isNaN(tons)) tons = 0;
+
+            v.textContent = formatValue(tons, !modeKG);
+        });
+
+        // 3. Оновлення активної одиниці (візуал)
+        if (modeKG) {
+            tLabel.classList.remove('active');
+            kgLabel.classList.add('active');
+        } else {
+            tLabel.classList.add('active');
+            kgLabel.classList.remove('active');
+        }
+
+        // Зберігання стану
+        localStorage.setItem(storageKey, modeKG ? 'kg' : 't');
+    }
+
+    // ВИПРАВЛЕНО: Слухаємо подію 'change' на прихованому чекбоксі.
+    // Клік на будь-яку мітку (<label for="unitToggleWastes">) автоматично змінює стан чекбокса,
+    // що викликає цю функцію.
+    toggle.addEventListener('change', updateUnits);
+
+    // Ініціалізація з Local Storage
+    const savedUnit = localStorage.getItem(storageKey);
+    const initialModeKG = savedUnit === 'kg';
+    
+    toggle.checked = initialModeKG;
+    // Оновлюємо одиниці при завантаженні, щоб застосувати збережений стан
+    updateUnits();
+});
+</script>
 {% endblock %}

@@ -408,49 +408,102 @@ class ReportService:
     
     @staticmethod
     def get_daily_summary(date=None):
-        """Денний звіт - загальна інформація за день"""
+        """
+        [FIXED] Розширений денний звіт для Dashboard.
+        Виправлено TypeError: перетворення Decimal у float.
+        """
         if not date:
             date = datetime.now().date()
+            
+        yesterday = date - timedelta(days=1)
         
-        # Внутрішні переміщення
-        weigher_count = WeigherJournal.objects.filter(
-            date_time__date=date
-        ).count()
-        weigher_total = WeigherJournal.objects.filter(
-            date_time__date=date
-        ).aggregate(total=Sum('weight_net'))['total'] or 0
-        
-        # Відвантаження
-        shipment_count = ShipmentJournal.objects.filter(
-            date_time__date=date
-        ).count()
-        shipment_total = ShipmentJournal.objects.filter(
-            date_time__date=date
-        ).aggregate(total=Sum('weight_net'))['total'] or 0
-        
-        # Надходження з полів
-        fields_count = FieldsIncome.objects.filter(
-            date_time__date=date
-        ).count()
-        fields_total = FieldsIncome.objects.filter(
-            date_time__date=date
-        ).aggregate(total=Sum('weight_net'))['total'] or 0
-        
+        # --- Допоміжна функція для отримання статистики за день ---
+        def get_day_stats(target_date):
+            # Функція для безпечного отримання float
+            def get_safe_sum(queryset):
+                val = queryset.aggregate(t=Sum('weight_net'))['t']
+                return float(val) if val is not None else 0.0
+
+            # 1. Внутрішні переміщення (Weigher)
+            w_qs = WeigherJournal.objects.filter(date_time__date=target_date)
+            weigher = {
+                'count': w_qs.count(),
+                'total': get_safe_sum(w_qs)
+            }
+
+            # 2. Відвантаження (Shipment)
+            s_qs = ShipmentJournal.objects.filter(date_time__date=target_date)
+            # Фільтри (налаштуйте під свої значення action_type в БД)
+            s_in_qs = s_qs.filter(Q(action_type='Ввезення') | Q(action_type='income'))
+            s_out_qs = s_qs.exclude(Q(action_type='Ввезення') | Q(action_type='income'))
+            
+            shipment = {
+                'in_count': s_in_qs.count(),
+                'in_total': get_safe_sum(s_in_qs),
+                'out_count': s_out_qs.count(),
+                'out_total': get_safe_sum(s_out_qs),
+            }
+
+            # 3. Поля (Fields)
+            f_qs = FieldsIncome.objects.filter(date_time__date=target_date)
+            fields = {
+                'count': f_qs.count(),
+                'total': get_safe_sum(f_qs)
+            }
+            
+            return weigher, shipment, fields
+
+        # --- 1. Отримуємо дані за сьогодні і вчора ---
+        today_weigher, today_shipment, today_fields = get_day_stats(date)
+        yest_weigher, yest_shipment, yest_fields = get_day_stats(yesterday)
+
+        # --- 2. Розрахунок трендів (%) ---
+        def calc_trend(current, previous):
+            # current і previous вже гарантовано float
+            if previous == 0:
+                return 100.0 if current > 0 else 0.0
+            return ((current - previous) / previous) * 100
+
+        trends = {
+            'weigher': calc_trend(today_weigher['total'], yest_weigher['total']),
+            'shipment_in': calc_trend(today_shipment['in_total'], yest_shipment['in_total']),
+            'shipment_out': calc_trend(today_shipment['out_total'], yest_shipment['out_total']),
+            'fields': calc_trend(today_fields['total'], yest_fields['total']),
+        }
+
+        # --- 3. Генерація даних для графіків (останні 7 днів) ---
+        sparkline_data = {
+            'dates': [],
+            'weigher': [],
+            'shipment_in': [],
+            'shipment_out': [],
+            'fields': []
+        }
+
+        for i in range(6, -1, -1):
+            d = date - timedelta(days=i)
+            w, s, f = get_day_stats(d)
+            sparkline_data['dates'].append(d.strftime('%d.%m'))
+            sparkline_data['weigher'].append(round(w['total'], 1))
+            sparkline_data['shipment_in'].append(round(s['in_total'], 1))
+            sparkline_data['shipment_out'].append(round(s['out_total'], 1))
+            sparkline_data['fields'].append(round(f['total'], 1))
+
+        # --- 4. Залишки (Balance) ---
+        balance_val = Balance.objects.aggregate(t=Sum('quantity'))['t']
+        total_balance = float(balance_val) if balance_val is not None else 0.0
+
         return {
             'date': date.strftime('%d.%m.%Y'),
-            'weigher': {
-                'count': weigher_count,
-                'total': float(weigher_total),
+            'today': {
+                'weigher': today_weigher,
+                'shipment': today_shipment,
+                'fields': today_fields,
+                'balance': total_balance
             },
-            'shipment': {
-                'count': shipment_count,
-                'total': float(shipment_total),
-            },
-            'fields': {
-                'count': fields_count,
-                'total': float(fields_total),
-            },
-            'grand_total': float(weigher_total + shipment_total + fields_total),
+            'trends': trends,
+            'sparklines': sparkline_data,
+            'grand_total': today_weigher['total'] + today_shipment['in_total'] + today_shipment['out_total'] + today_fields['total']
         }
         
     @staticmethod

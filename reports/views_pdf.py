@@ -1,5 +1,5 @@
 """
-В'юшки для роботи з PDF звітами
+Views for PDF report generation and management.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, ListView, UpdateView, DeleteView
@@ -8,10 +8,9 @@ from django.http import HttpResponse, FileResponse
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.core.files.base import ContentFile
-from datetime import datetime
-import json
+from typing import Dict, Any, Optional, Union
 
-from .models import ReportTemplate, ReportExecution, SavedReport
+from .models import ReportTemplate, ReportExecution
 from .forms_pdf import (
     BalanceDateReportForm, BalancePeriodReportForm,
     IncomeDateReportForm, IncomePeriodReportForm,
@@ -24,24 +23,55 @@ from balances.models import BalanceSnapshot
 
 
 class PDFReportGeneratorMixin:
-    """Mixin для генерації PDF звітів"""
+    """Mixin for generating PDF reports with common functionality."""
     
-    def generate_pdf_response(self, pdf_buffer, filename):
-        """Створює HTTP відповідь з PDF файлом"""
+    TEMPLATE_NAME = 'reports/pdf/report_form_base.html'
+    
+    def generate_pdf_response(self, pdf_buffer, filename: str) -> HttpResponse:
+        """Create HTTP response with PDF file."""
         response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
     
-    def save_report_execution(self, template, report_type, filters, data, pdf_buffer, file_format='pdf'):
-        """Зберігає виконання звіту"""
-        # Визначаємо кількість рядків. Для порівняльних звітів (як BalancePeriod) data це список,
-        # для інших - dict з ключем 'total_rows'
+    def _prepare_filters(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract and prepare filters from form data."""
+        filters = {
+            'orientation': form_data.get('orientation', 'portrait'),
+            'include_charts': form_data.get('include_charts', False),
+        }
+        
+        # Add optional filter fields
+        optional_fields = ['place', 'culture', 'field', 'place_to']
+        for field in optional_fields:
+            if field_value := form_data.get(field):
+                filters[f'{field}_id'] = field_value.id
+        
+        # Add enum type fields
+        if balance_type := form_data.get('balance_type'):
+            filters['balance_type'] = balance_type
+        
+        if action_type := form_data.get('action_type'):
+            filters['action_type'] = action_type
+            
+        return filters
+    
+    def save_report_execution(
+        self, 
+        template: Optional[ReportTemplate],
+        report_type: str, 
+        filters: Dict[str, Any], 
+        data: Union[Dict[str, Any], list],
+        pdf_buffer,
+        file_format: str = 'pdf'
+    ) -> ReportExecution:
+        """Save report execution record."""
+        # Determine row count based on data structure
         if isinstance(data, dict) and 'total_rows' in data:
             row_count = data['total_rows']
         elif isinstance(data, list):
             row_count = len(data)
-        elif isinstance(data, dict) and 'comparison' in data: # Якщо comparison_data
-             row_count = len(data['comparison'])
+        elif isinstance(data, dict) and 'comparison' in data:
+            row_count = len(data['comparison'])
         else:
             row_count = 0
             
@@ -53,11 +83,11 @@ class PDFReportGeneratorMixin:
             date_to=filters.get('date_to'),
             filters=filters,
             result_data=data,
-            row_count=row_count, 
+            row_count=row_count,
             file_format=file_format
         )
         
-        # Зберігаємо файл
+        # Save file
         filename = f"report_{execution.id}.{file_format}"
         execution.file_path.save(
             filename,
@@ -66,394 +96,342 @@ class PDFReportGeneratorMixin:
         )
         
         return execution
-
-
-class BalanceDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
-    """Звіт залишків за конкретну дату"""
     
-    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
+    def _get_context(self, form, report_title: str) -> Dict[str, Any]:
+        """Get common context for report views."""
+        return {
+            'form': form,
+            'page': 'reports',
+            'report_title': report_title
+        }
+
+
+class BasePDFReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
+    """Base view for PDF report generation."""
+    
+    form_class = None
+    report_title = ''
+    
+    def get(self, request):
+        form = self.form_class()
+        return render(request, self.TEMPLATE_NAME, self._get_context(form, self.report_title))
+    
+    def post(self, request):
+        form = self.form_class(request.POST)
+        
+        if not form.is_valid():
+            return render(request, self.TEMPLATE_NAME, self._get_context(form, self.report_title))
+        
+        try:
+            return self._process_valid_form(form)
+        except Exception as e:
+            messages.error(request, f'Помилка при генерації звіту: {str(e)}')
+            return render(request, self.TEMPLATE_NAME, self._get_context(form, self.report_title))
+    
+    def _process_valid_form(self, form):
+        """Process valid form data - to be implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement this method")
+
+
+class BalanceDateReportView(BasePDFReportView):
+    """Report of balances for a specific date."""
+    
     form_class = BalanceDateReportForm
+    report_title = 'Звіт залишків за дату'
     
-    def get(self, request):
-        form = self.form_class()
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт залишків за дату'
-        })
-    
-    def post(self, request):
-        form = self.form_class(request.POST)
+    def _process_valid_form(self, form):
+        report_date = form.cleaned_data['report_date']
+        filters = self._prepare_filters(form.cleaned_data)
         
-        if form.is_valid():
-            report_date = form.cleaned_data['report_date']
-            filters = {
-                'place_id': form.cleaned_data.get('place').id if form.cleaned_data.get('place') else None,
-                'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
-                'balance_type': form.cleaned_data.get('balance_type'),
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),
-                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
-            }
-            
-            # Отримуємо дані зі снепшота найближчого до вказаної дати
-            snapshot = BalanceSnapshot.objects.filter(
-                snapshot_date__date__lte=report_date
-            ).order_by('-snapshot_date').first()
-            
-            if snapshot:
-                data = ReportService.get_balance_snapshot_data(snapshot, filters)
-            else:
-                # Якщо немає снепшотів, беремо поточні залишки
-                data = ReportService.get_balance_report(filters=filters)
-            
-            # Генеруємо PDF
-            pdf_buffer = ReportPDFBuilder.build_balance_report(
-                data, 
-                date=report_date,
-                filters=filters
-            )
-            
-            # Зберігаємо виконання
-            self.save_report_execution(
-                template=None,
-                report_type='balance_snapshot',
-                filters={'date': report_date.isoformat(), **filters},
-                data=data,
-                pdf_buffer=pdf_buffer
-            )
-            
-            # Повертаємо PDF
-            filename = f"balance_report_{report_date.strftime('%Y%m%d')}.pdf"
-            return self.generate_pdf_response(pdf_buffer, filename)
+        # Get snapshot data
+        snapshot = BalanceSnapshot.objects.filter(
+            snapshot_date__date__lte=report_date
+        ).order_by('-snapshot_date').first()
         
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт залишків за дату'
-        })
+        if snapshot:
+            data = ReportService.get_balance_snapshot_data(snapshot, filters)
+        else:
+            # Use current balances if no snapshot exists
+            data = ReportService.get_balance_report(filters=filters)
+        
+        # Generate PDF
+        pdf_buffer = ReportPDFBuilder.build_balance_report(
+            data, 
+            date=report_date,
+            filters=filters
+        )
+        
+        # Save execution
+        self.save_report_execution(
+            template=None,
+            report_type='balance_snapshot',
+            filters={'date': report_date.isoformat(), **filters},
+            data=data,
+            pdf_buffer=pdf_buffer
+        )
+        
+        # Return PDF
+        filename = f"balance_report_{report_date.strftime('%Y%m%d')}.pdf"
+        return self.generate_pdf_response(pdf_buffer, filename)
 
 
-class BalancePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
-    """Звіт залишків за період (порівняння)"""
+class BalancePeriodReportView(BasePDFReportView):
+    """Balance report for a period (comparison)."""
     
-    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = BalancePeriodReportForm
+    report_title = 'Звіт залишків за період'
     
-    def get(self, request):
-        form = self.form_class()
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт залишків за період'
-        })
-    
-    def post(self, request):
-        form = self.form_class(request.POST)
+    def _process_valid_form(self, form):
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        filters = self._prepare_filters(form.cleaned_data)
         
-        if form.is_valid():
-            date_from = form.cleaned_data['date_from']
-            date_to = form.cleaned_data['date_to']
-            filters = {
-                'place_id': form.cleaned_data.get('place').id if form.cleaned_data.get('place') else None,
-                'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),
-                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
-            }
-            
-            # Отримуємо снепшоти на початок та кінець періоду
-            start_snapshot = BalanceSnapshot.objects.filter(
-                snapshot_date__date__lte=date_from
-            ).order_by('-snapshot_date').first()
-            
-            end_snapshot = BalanceSnapshot.objects.filter(
-                snapshot_date__date__lte=date_to
-            ).order_by('-snapshot_date').first()
-            
-            if not start_snapshot or not end_snapshot:
-                messages.error(request, 'Недостатньо даних для побудови звіту за вказаний період')
-                return render(request, self.template_name, {
-                    'form': form,
-                    'page': 'reports',
-                    'report_title': 'Звіт залишків за період'
-                })
-            
-            # Порівнюємо дані
-            comparison_data = ReportService.compare_balance_snapshots(start_snapshot, end_snapshot, filters)
-            
-            # Передаємо filters
-            pdf_buffer = ReportPDFBuilder.build_balance_period_report(
-                comparison_data,
-                date_from,
-                date_to,
-                filters=filters
-            )
-            
-            # Зберігаємо виконання
-            self.save_report_execution(
-                template=None,
-                report_type='balance_period',
-                filters={
-                    'date_from': date_from.isoformat(),
-                    'date_to': date_to.isoformat(),
-                    **filters
-                },
-                data={'comparison': comparison_data}, # Зберігаємо comparison_data
-                pdf_buffer=pdf_buffer
-            )
-            
-            # Повертаємо PDF
-            filename = f"balance_period_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
-            return self.generate_pdf_response(pdf_buffer, filename)
+        # Get snapshots for start and end of period
+        start_snapshot = BalanceSnapshot.objects.filter(
+            snapshot_date__date__lte=date_from
+        ).order_by('-snapshot_date').first()
         
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт залишків за період'
-        })
+        end_snapshot = BalanceSnapshot.objects.filter(
+            snapshot_date__date__lte=date_to
+        ).order_by('-snapshot_date').first()
+        
+        if not start_snapshot or not end_snapshot:
+            messages.error(
+                self.request,
+                'Недостатньо даних для побудови звіту за вказаний період'
+            )
+            context = self._get_context(form, self.report_title)
+            return render(self.request, self.TEMPLATE_NAME, context)
+        
+        # Compare data
+        comparison_data = ReportService.compare_balance_snapshots(
+            start_snapshot, end_snapshot, filters
+        )
+        
+        # Generate PDF
+        pdf_buffer = ReportPDFBuilder.build_balance_period_report(
+            comparison_data,
+            date_from,
+            date_to,
+            filters=filters
+        )
+        
+        # Save execution
+        self.save_report_execution(
+            template=None,
+            report_type='balance_period',
+            filters={
+                'date_from': date_from.isoformat(),
+                'date_to': date_to.isoformat(),
+                **filters
+            },
+            data={'comparison': comparison_data},
+            pdf_buffer=pdf_buffer
+        )
+        
+        # Return PDF
+        filename = f"balance_period_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
+        return self.generate_pdf_response(pdf_buffer, filename)
 
 
-class IncomeDateReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
-    """Звіт приходу зерна за дату"""
+class IncomeDateReportView(BasePDFReportView):
+    """Grain income report for a specific date."""
     
-    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = IncomeDateReportForm
+    report_title = 'Звіт приходу зерна за дату'
     
-    def get(self, request):
-        form = self.form_class()
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт приходу зерна за дату'
-        })
-    
-    def post(self, request):
-        form = self.form_class(request.POST)
+    def _process_valid_form(self, form):
+        report_date = form.cleaned_data['report_date']
+        filters = self._prepare_filters(form.cleaned_data)
         
-        if form.is_valid():
-            report_date = form.cleaned_data['report_date']
-            filters = {
-                'field_id': form.cleaned_data.get('field').id if form.cleaned_data.get('field') else None,
-                'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
-                'place_to_id': form.cleaned_data.get('place_to').id if form.cleaned_data.get('place_to') else None,
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),
-                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
-            }
-            
-            # Отримуємо дані за дату
-            data = ReportService.get_fields_report(
-                date_from=report_date,
-                date_to=report_date,
-                filters=filters
-            )
-            
-            # Генеруємо PDF
-            pdf_buffer = ReportPDFBuilder.build_income_report(
-                data,
-                report_date,
-                report_date,
-                filters
-            )
-            
-            # Зберігаємо виконання
-            self.save_report_execution(
-                template=None,
-                report_type='income_date',
-                filters={'date': report_date.isoformat(), **filters},
-                data=data,
-                pdf_buffer=pdf_buffer
-            )
-            
-            # Повертаємо PDF
-            filename = f"income_report_{report_date.strftime('%Y%m%d')}.pdf"
-            return self.generate_pdf_response(pdf_buffer, filename)
+        # Get data for the date
+        data = ReportService.get_fields_report(
+            date_from=report_date,
+            date_to=report_date,
+            filters=filters
+        )
         
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт приходу зерна за дату'
-        })
+        # Generate PDF
+        pdf_buffer = ReportPDFBuilder.build_income_report(
+            data,
+            report_date,
+            report_date,
+            filters
+        )
+        
+        # Save execution
+        self.save_report_execution(
+            template=None,
+            report_type='income_date',
+            filters={'date': report_date.isoformat(), **filters},
+            data=data,
+            pdf_buffer=pdf_buffer
+        )
+        
+        # Return PDF
+        filename = f"income_report_{report_date.strftime('%Y%m%d')}.pdf"
+        return self.generate_pdf_response(pdf_buffer, filename)
 
 
-class IncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
-    """Звіт приходу зерна за період"""
+class IncomePeriodReportView(BasePDFReportView):
+    """Grain income report for a period."""
     
-    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = IncomePeriodReportForm
+    report_title = 'Звіт приходу зерна за період'
     
-    def get(self, request):
-        form = self.form_class()
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт приходу зерна за період'
-        })
-    
-    def post(self, request):
-        form = self.form_class(request.POST)
+    def _process_valid_form(self, form):
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        filters = self._prepare_filters(form.cleaned_data)
         
-        if form.is_valid():
-            date_from = form.cleaned_data['date_from']
-            date_to = form.cleaned_data['date_to']
-            filters = {
-                'field_id': form.cleaned_data.get('field').id if form.cleaned_data.get('field') else None,
-                'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),
-                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
-            }
-            
-            # Отримуємо дані за період
-            data = ReportService.get_fields_report(
-                date_from=date_from,
-                date_to=date_to,
-                filters=filters
-            )
-            
-            # Генеруємо PDF
-            pdf_buffer = ReportPDFBuilder.build_income_report(
-                data,
-                date_from,
-                date_to,
-                filters
-            )
-            
-            # Зберігаємо виконання
-            self.save_report_execution(
-                template=None,
-                report_type='income_period',
-                filters={
-                    'date_from': date_from.isoformat(),
-                    'date_to': date_to.isoformat(),
-                    **filters
-                },
-                data=data,
-                pdf_buffer=pdf_buffer
-            )
-            
-            # Повертаємо PDF
-            filename = f"income_period_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
-            return self.generate_pdf_response(pdf_buffer, filename)
+        # Get data for the period
+        data = ReportService.get_fields_report(
+            date_from=date_from,
+            date_to=date_to,
+            filters=filters
+        )
         
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт приходу зерна за період'
-        })
+        # Generate PDF
+        pdf_buffer = ReportPDFBuilder.build_income_report(
+            data,
+            date_from,
+            date_to,
+            filters
+        )
+        
+        # Save execution
+        self.save_report_execution(
+            template=None,
+            report_type='income_period',
+            filters={
+                'date_from': date_from.isoformat(),
+                'date_to': date_to.isoformat(),
+                **filters
+            },
+            data=data,
+            pdf_buffer=pdf_buffer
+        )
+        
+        # Return PDF
+        filename = f"income_period_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
+        return self.generate_pdf_response(pdf_buffer, filename)
 
 
-class ShipmentSummaryReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
-    """Звіт ввезення/вивезення за період"""
+class ShipmentSummaryReportView(BasePDFReportView):
+    """Import/export report for a period."""
     
-    template_name = 'reports/pdf/report_form_base.html' # <--- ОНОВЛЕНО
     form_class = ShipmentSummaryReportForm
+    report_title = 'Звіт ввезення/вивезення'
     
-    def get(self, request):
-        form = self.form_class()
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт ввезення/вивезення'
-        })
-    
-    def post(self, request):
-        form = self.form_class(request.POST)
+    def _process_valid_form(self, form):
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        filters = self._prepare_filters(form.cleaned_data)
         
-        if form.is_valid():
-            date_from = form.cleaned_data['date_from']
-            date_to = form.cleaned_data['date_to']
-            filters = {
-                'action_type': form.cleaned_data.get('action_type'),
-                'culture_id': form.cleaned_data.get('culture').id if form.cleaned_data.get('culture') else None,
-                'orientation': form.cleaned_data.get('orientation', 'portrait'),
-                'include_charts': form.cleaned_data.get('include_charts', False), # <--- ДОДАНО/ОНОВЛЕНО
-            }
-            
-            # Отримуємо дані за період
-            data = ReportService.get_shipment_report(
-                date_from=date_from,
-                date_to=date_to,
-                filters=filters
-            )
-            
-            # Генеруємо PDF
-            pdf_buffer = ReportPDFBuilder.build_shipment_summary(
-                data,
-                date_from,
-                date_to,
-                filters
-            )
-            
-            # Зберігаємо виконання
-            self.save_report_execution(
-                template=None,
-                report_type='shipment_summary',
-                filters={
-                    'date_from': date_from.isoformat(),
-                    'date_to': date_to.isoformat(),
-                    **filters
-                },
-                data=data,
-                pdf_buffer=pdf_buffer
-            )
-            
-            # Повертаємо PDF
-            filename = f"shipment_summary_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
-            return self.generate_pdf_response(pdf_buffer, filename)
+        # Get data for the period
+        data = ReportService.get_shipment_report(
+            date_from=date_from,
+            date_to=date_to,
+            filters=filters
+        )
         
-        return render(request, self.template_name, {
-            'form': form,
-            'page': 'reports',
-            'report_title': 'Звіт ввезення/вивезення'
-        })
+        # Generate PDF
+        pdf_buffer = ReportPDFBuilder.build_shipment_summary(
+            data,
+            date_from,
+            date_to,
+            filters
+        )
         
-class TotalIncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
-    """Генерація звіту 'Прихід зерна (Загальний за період)'."""
-    template_name = 'reports/pdf/report_form_base.html' # Використовуйте існуючий шаблон для звітів за період
+        # Save execution
+        self.save_report_execution(
+            template=None,
+            report_type='shipment_summary',
+            filters={
+                'date_from': date_from.isoformat(),
+                'date_to': date_to.isoformat(),
+                **filters
+            },
+            data=data,
+            pdf_buffer=pdf_buffer
+        )
+        
+        # Return PDF
+        filename = f"shipment_summary_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
+        return self.generate_pdf_response(pdf_buffer, filename)
 
+
+class TotalIncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
+    """Total grain income report for a period."""
+    
+    template_name = 'reports/pdf/report_form_base.html'
+    
     def get(self, request):
         form = TotalIncomePeriodReportForm()
         context = {
             'form': form,
-            'report_name': 'Прихід зерна (Загальний за період)',
-            'report_type': 'total_income_period'
+            'page': 'reports',
+            'report_title': 'Прихід зерна (Загальний за період)'
         }
         return render(request, self.template_name, context)
 
     def post(self, request):
         form = TotalIncomePeriodReportForm(request.POST)
-        if form.is_valid():
-            filters = form.cleaned_data
-            date_from = filters['date_from']
-            date_to = filters['date_to']
-            output_format = filters['output_format']
+        
+        if not form.is_valid():
+            context = {
+                'form': form,
+                'page': 'reports',
+                'report_title': 'Прихід зерна (Загальний за період)'
+            }
+            return render(request, self.template_name, context)
+        
+        filters = form.cleaned_data
+        date_from = filters['date_from']
+        date_to = filters['date_to']
+        output_format = filters['output_format']
+        
+        # 1. Get data
+        try:
+            data = ReportService.get_total_income_period_data(date_from, date_to, filters)
+        except Exception as e:
+            messages.error(request, f"Помилка при отриманні даних: {e}")
+            context = {
+                'form': form,
+                'page': 'reports',
+                'report_title': 'Прихід зерна (Загальний за період)'
+            }
+            return render(request, self.template_name, context)
+        
+        # 2. Generate
+        if output_format == 'pdf':
+            pdf_buffer = ReportPDFBuilder.build_total_income_period_report(
+                data, date_from, date_to, filters
+            )
+            filename = f"Прихід_зерна_загальний_{date_from:%d%m%Y}_{date_to:%d%m%Y}.pdf"
             
-            # 1. Отримання даних
-            try:
-                data = ReportService.get_total_income_period_data(date_from, date_to, filters)
-            except Exception as e:
-                messages.error(request, f"Помилка при отриманні даних: {e}")
-                return render(request, self.template_name, {'form': form, 'report_name': 'Прихід зерна (Загальний за період)'})
+            # 3. Save execution
+            self.save_report_execution(
+                template=None,
+                report_type='total_income_period',
+                filters=filters,
+                data=data,
+                pdf_buffer=pdf_buffer
+            )
             
-            # 2. Генерація
-            if output_format == 'pdf':
-                pdf_buffer = ReportPDFBuilder.build_total_income_period_report(
-                    data, date_from, date_to, filters
-                )
-                filename = f"Прихід_зерна_загальний_{date_from:%d%m%Y}_{date_to:%d%m%Y}.pdf"
-                
-                # 3. Збереження виконання (якщо потрібно)
-                # self.save_report_execution(...)
-                
-                return self.generate_pdf_response(pdf_buffer, filename)
-            
-            messages.warning(request, f"Формат {output_format.upper()} не підтримується для цього звіту.")
-            return render(request, self.template_name, {'form': form, 'report_name': 'Прихід зерна (Загальний за період)'})
-
-        return render(request, self.template_name, {'form': form, 'report_name': 'Прихід зерна (Загальний за період)'})
-
+            return self.generate_pdf_response(pdf_buffer, filename)
+        
+        messages.warning(request, f"Формат {output_format.upper()} не підтримується для цього звіту.")
+        context = {
+            'form': form,
+            'page': 'reports',
+            'report_title': 'Прихід зерна (Загальний за період)'
+        }
+        return render(request, self.template_name, context)
 
 
 class ReportTemplateListView(LoginRequiredMixin, ListView):
-    """Список шаблонів звітів"""
+    """List of report templates."""
     
     model = ReportTemplate
     template_name = 'reports/pdf/template_list.html'
@@ -472,7 +450,7 @@ class ReportTemplateListView(LoginRequiredMixin, ListView):
 
 
 class ReportTemplateUpdateView(LoginRequiredMixin, UpdateView):
-    """Редагування шаблону звіту"""
+    """Update report template."""
     
     model = ReportTemplate
     form_class = ReportTemplateForm
@@ -488,7 +466,7 @@ class ReportTemplateUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class ReportTemplateDeleteView(LoginRequiredMixin, DeleteView):
-    """Видалення шаблону звіту"""
+    """Delete report template."""
     
     model = ReportTemplate
     template_name = 'confirm_delete.html'
@@ -503,7 +481,7 @@ class ReportTemplateDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class ReportExecutionListView(LoginRequiredMixin, ListView):
-    """Список виконаних звітів"""
+    """List of executed reports."""
     
     model = ReportExecution
     template_name = 'reports/pdf/execution_list.html'
@@ -522,7 +500,7 @@ class ReportExecutionListView(LoginRequiredMixin, ListView):
 
 
 class ReportExecutionDownloadView(LoginRequiredMixin, View):
-    """Завантаження збереженого звіту"""
+    """Download saved report."""
     
     def get(self, request, pk):
         execution = get_object_or_404(
@@ -543,17 +521,17 @@ class ReportExecutionDownloadView(LoginRequiredMixin, View):
 
 
 class PDFReportsDashboardView(LoginRequiredMixin, View):
-    """Головна сторінка PDF звітів"""
+    """Main dashboard for PDF reports."""
     
     template_name = 'reports/pdf/dashboard.html'
     
     def get(self, request):
-        # Останні виконані звіти
+        # Recent executions
         recent_executions = ReportExecution.objects.filter(
             executed_by=request.user
         ).select_related('template')[:5]
         
-        # Шаблони користувача
+        # User templates
         templates = ReportTemplate.objects.filter(
             created_by=request.user
         )[:5]

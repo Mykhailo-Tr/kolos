@@ -8,36 +8,60 @@
       ➕ Новий запис залишку
     {% endif %}
   </h3>
-
   <form method="post" novalidate>
     {% csrf_token %}
 
     {% if form.non_field_errors %}
-      <div class="alert alert-danger">
-        {% for error in form.non_field_errors %}
-          <div>{{ error }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
+      {% endif %}
 
     <div class="row g-3">
       {% for field in form.visible_fields %}
-        <div class="col-md-6">
-          <div class="mb-3">
-            <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
-              {{ field.label }}
-            </label>
-            {{ field }}
-            {% if field.help_text %}
-              <div class="form-text">{{ field.help_text }}</div>
-            {% endif %}
-            {% for error in field.errors %}
-              <div class="text-danger small">{{ error }}</div>
-            {% endfor %}
+        {% if field.name != 'quantity' and field.name != 'unit' %}
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                {{ field.label }}
+              </label>
+              {{ field }}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% for error in field.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
+            </div>
           </div>
-        </div>
+        {% endif %}
       {% endfor %}
-    </div>
+
+      {% with quantity_field=form.quantity unit_field=form.unit %}
+        {% if quantity_field and unit_field %}
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="{{ quantity_field.id_for_label }}" class="form-label fw-semibold">
+                {{ quantity_field.label }} ({{ unit_field.value }})
+                <span id="quantity_unit_label"></span> </label>
+              <div class="input-group">
+                {{ quantity_field }}
+                <span class="input-group-text p-0">
+                  {{ unit_field }}
+                </span>
+              </div>
+              
+              <div id="converted_value" class="form-text mt-1"></div>
+              
+              {% if quantity_field.help_text %}
+                <div class="form-text">{{ quantity_field.help_text }}</div>
+              {% endif %}
+              {% for error in quantity_field.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endwith %}
+      
+      </div>
 
     <div class="mt-4 d-flex gap-2">
       <button type="submit" class="btn btn-primary">💾 Зберегти</button>
@@ -45,4 +69,88 @@
     </div>
   </form>
 </div>
+
+<script>
+    // JS для миттєвого перемикання одиниць та візуального перетворення (UX)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Змінено селектори для сумісності з вашими формами, де може бути кілька полів
+        // Припускаємо, що це для форми з одним полем 'quantity' та перемикачем
+        const quantityInput = document.querySelector('.quantity-input');
+        const unitSwitcher = document.querySelector('.unit-switcher');
+        const convertedValueDisplay = document.getElementById('converted_value');
+        const quantityLabel = document.querySelector('label[for="' + quantityInput.id + '"]');
+
+        // Функція для форматування числа:
+        // - Використовує 'uk-UA' для коректних роздільників.
+        // - Якщо число ціле (наприклад, 500.000), відображає без дробової частини (500).
+        // - Якщо число дробове (наприклад, 500.123), відображає з трьома знаками (500,123).
+        const formatNumber = (num) => {
+            // Перевіряємо, чи є число цілим
+            if (num === Math.floor(num)) {
+                // Якщо ціле: мінімально 0 дробів, максимально 0 дробів
+                return num.toLocaleString('uk-UA', { 
+                    minimumFractionDigits: 0, 
+                    maximumFractionDigits: 0 
+                });
+            } else {
+                // Якщо дробове: мінімально 3 дроби, максимально 3 дроби
+                return num.toLocaleString('uk-UA', { 
+                    minimumFractionDigits: 3, 
+                    maximumFractionDigits: 3 
+                });
+            }
+        };
+
+        // Функція для оновлення відображення
+        const updateDisplay = () => {
+            // Замінюємо кому на крапку для коректного парсингу
+            const rawValue = quantityInput.value.replace(/,/g, '.');
+            const value = parseFloat(rawValue) || 0;
+            const unit = unitSwitcher.value;
+            let displayHTML = '';
+
+            // Оновлення напису поля
+            // (Залишаємо цю логіку, хоча вона може бути більш стійкою, якщо мітка містить 
+            // лише текст, а одиниця - окремий <span>)
+            let currentLabelText = quantityLabel.textContent;
+            if (unit === 't') {
+                 // Видаляємо стару одиницю і додаємо нову, не чіпаючи решту тексту
+                 quantityLabel.innerHTML = currentLabelText.replace(/\(.*\)/, '(т)');
+            } else if (unit === 'kg') {
+                 quantityLabel.innerHTML = currentLabelText.replace(/\(.*\)/, '(кг)');
+            }
+
+            if (!isNaN(value) && value > 0) {
+                if (unit === 't') {
+                    // Якщо введено тонни, показуємо скільки це кілограмів (kg - ціле число)
+                    const kgValue = value * 1000;
+                    displayHTML = `Це приблизно <strong>${formatNumber(kgValue)} кг</strong>.`;
+                } else if (unit === 'kg') {
+                    // Якщо введено кілограми, показуємо скільки це тонн (t - може бути дробове)
+                    const tValue = value / 1000;
+                    // Для тонн завжди бажано показувати 3 знаки, щоб не втратити точність,
+                    // але використаємо універсальний formatNumber для чистоти.
+                    displayHTML = `Це приблизно <strong>${formatNumber(tValue)} т</strong>.`; 
+                }
+            } else {
+                // Якщо значення 0 або не число
+                displayHTML = 'Введіть числове значення.';
+            }
+
+            convertedValueDisplay.innerHTML = displayHTML;
+        };
+
+        // Встановлюємо початкове значення мітки
+        updateDisplay(); 
+
+        // Додаємо обробники подій
+        if (quantityInput) {
+            // Також додаємо обробку заміни коми на крапку, щоб парсинг був коректним
+            quantityInput.addEventListener('input', updateDisplay);
+        }
+        if (unitSwitcher) {
+            unitSwitcher.addEventListener('change', updateDisplay);
+        }
+    });
+</script>
 {% endblock %}

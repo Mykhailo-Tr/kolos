@@ -3,8 +3,8 @@ from .models import Balance, BalanceSnapshot, BalanceHistory
 
 
 UNIT_CHOICES = (
-    ('t', 'Тонни (т)'),
-    ('kg', 'Кілограми (кг)'),
+    ('t', 'т'),
+    ('kg', 'кг'),
 )
 
 # Базовий клас для форм з полем quantity, який має логіку перетворення
@@ -14,32 +14,30 @@ class BaseQuantityForm(forms.ModelForm):
         choices=UNIT_CHOICES,
         label="", 
         initial='t',  
-        widget=forms.Select(attrs={'class': 'form-select unit-switcher'}) 
+        # КЛАС ДЛЯ СТИЛІЗАЦІЇ 'select-in-table' ВСТАНОВЛЕНО ТУТ
+        widget=forms.Select(attrs={'class': 'select-in-table unit-switcher'}) 
     )
-
+    
+    # ... (решта BaseQuantityForm без змін) ...
     def clean_quantity(self):
         q = self.cleaned_data.get('quantity')
+        unit = self.data.get(f'{self.prefix}-unit') if self.prefix else self.data.get('unit')
+        if not unit:
+             unit = 't' 
         
-        # ОТРИМУЄМО ОДИНИЦЮ З СИРИХ ДАНИХ (self.data) ДЛЯ НАДІЙНОСТІ
-        # Якщо форма була відправлена (тобто self.data існує)
-        unit = self.data.get('unit') if hasattr(self, 'data') else 't'
-        
-        # 1. Валідація на від'ємне значення
         if q is not None and q < 0:
             raise forms.ValidationError("Кількість не може бути від'ємною.")
             
-        # 2. Логіка перетворення: Всі значення зберігаємо у ТОННАХ (t)
         if q is not None and unit == 'kg':
-            # q тут вже має бути числом завдяки NumberInput та Django
-            q = q / 1000 # <--- ТУТ ВІДБУВАЄТЬСЯ ДІЛЕННЯ
+            q = q / 1000 
         
-        # Повертаємо стандартизоване значення (вже в тоннах)
         return q
 
 class BalanceForm(BaseQuantityForm):
     class Meta:
         model = Balance
         fields = ['place', 'culture', 'balance_type', 'quantity']
+        # Тут можна залишити form-select/form-control або змінити на input-in-table/select-in-table
         widgets = {
             'place': forms.Select(attrs={'class': 'form-select'}),
             'culture': forms.Select(attrs={'class': 'form-select'}),
@@ -47,6 +45,7 @@ class BalanceForm(BaseQuantityForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control quantity-input', 'step': '0.001'}),
         }
 
+# ... (BalanceSnapshotForm без змін) ...
 class BalanceSnapshotForm(forms.ModelForm):
     class Meta:
         model = BalanceSnapshot
@@ -64,17 +63,29 @@ class BalanceSnapshotForm(forms.ModelForm):
 
 
 class BalanceHistoryForm(BaseQuantityForm):
+    """
+    ФОРМА ДЛЯ ФОРМСЕТА. ТУТ ВСТАНОВЛЮЄМО ВАШІ КЛАСИ.
+    """
     class Meta:
         model = BalanceHistory
         fields = ['place', 'culture', 'balance_type', 'quantity']
         widgets = {
-            'place': forms.Select(attrs={'class': 'form-select'}),
-            'culture': forms.Select(attrs={'class': 'form-select'}),
-            'balance_type': forms.Select(attrs={'class': 'form-select'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control quantity-input', 'step': '0.001'}),
+            # ВСТАНОВЛЕННЯ КЛАСІВ ДЛЯ SELECTS
+            'place': forms.Select(attrs={'class': 'select-in-table'}),
+            'culture': forms.Select(attrs={'class': 'select-in-table'}),
+            'balance_type': forms.Select(attrs={'class': 'select-in-table'}),
+            # ВСТАНОВЛЕННЯ КЛАСУ ДЛЯ INPUT
+            'quantity': forms.NumberInput(
+                attrs={
+                    'class': 'input-in-table quantity-input', 
+                    'step': '0.001',
+                    'style': 'text-align:right;' # Це для чистого HTML-вирівнювання
+                }
+            ),
         }
     
 
+# ... (EmptySnapshotForm без змін) ...
 class EmptySnapshotForm(forms.ModelForm):
     """Форма для створення порожнього зліпка"""
     class Meta:

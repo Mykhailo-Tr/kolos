@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="{% static 'css/journal.css' %}">
 
 <style>
+/* --- Глобальні стилі (БЕЗ ЗМІН) --- */
 .snapshot-info-card {
     background: white;
     border: 1px solid #d1d5db;
@@ -99,35 +100,47 @@
     transform: translateY(-1px);
 }
 
-.input-in-table {
+/* --- ВИПРАВЛЕНО: СТИЛІ ДЛЯ ПОЛІВ У ТАБЛИЦІ --- */
+
+/* Забезпечуємо, що input-in-table і select-in-table повністю займають простір комірки */
+.input-in-table, .select-in-table {
+    box-sizing: border-box; /* Важливо для flexbox */
     width: 100%;
     border: 1px solid #e5e7eb;
     border-radius: 0.25rem;
     padding: 0.4rem 0.6rem;
     font-size: 0.9rem;
     background: white;
+    margin: 0; /* Прибираємо можливі зовнішні відступи */
+    min-height: 38px; /* Додаємо мінімальну висоту для однорідності */
 }
 
-.input-in-table:focus {
+.input-in-table:focus, .select-in-table:focus {
     border-color: #3b82f6;
     outline: none;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-.select-in-table {
+/* Вирівнювання кількості та одиниць */
+.quantity-unit-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-end; /* Вирівнювання вправо */
     width: 100%;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.25rem;
-    padding: 0.4rem 0.6rem;
-    font-size: 0.9rem;
-    background: white;
 }
 
-.select-in-table:focus {
-    border-color: #3b82f6;
-    outline: none;
+.quantity-input-container {
+    flex-grow: 1; 
+    min-width: 60%; /* Щоб поле кількості мало місце */
 }
 
+.unit-select-container {
+    width: 80px; /* Фіксована ширина для одиниці */
+    flex-shrink: 0;
+}
+
+/* --- Глобальні стилі (БЕЗ ЗМІН) --- */
 .actions-footer {
     display: flex;
     justify-content: space-between;
@@ -154,7 +167,6 @@
     font-size: 0.8rem;
 }
 
-/* Стилі для заголовка сторінки */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -191,7 +203,6 @@
     color: white;
 }
 
-/* Таблиця */
 .journal-table {
     width: 100%;
     border-collapse: collapse;
@@ -208,9 +219,9 @@
 /* Налаштування ширини колонок */
 .journal-table th:nth-child(1), .journal-table td:nth-child(1) { width: 5%; text-align: center; }  /* # */
 .journal-table th:nth-child(2), .journal-table td:nth-child(2) { width: 32.5%; }  /* Місце зберігання */
-.journal-table th:nth-child(3), .journal-table td:nth-child(3) { width: 27.5%; }  /* Культура */
+.journal-table th:nth-child(3), .journal-table td:nth-child(3) { width: 20%; }  /* Культура */
 .journal-table th:nth-child(4), .journal-table td:nth-child(4) { width: 15%; }  /* Тип балансу */
-.journal-table th:nth-child(5), .journal-table td:nth-child(5) { width: 15%; text-align: right; }  /* Кількість */
+.journal-table th:nth-child(5), .journal-table td:nth-child(5) { width: 22.5%; text-align: right; }  /* Кількість + Unit */
 .journal-table th:nth-child(6), .journal-table td:nth-child(6) { width: 5%; text-align: center; }  /* Видалити */
 
 /* Повідомлення про помилки */
@@ -233,7 +244,6 @@
   <form method="post" novalidate>
     {% csrf_token %}
     
-    <!-- Інформація про зліпок -->
     <div class="snapshot-info-card">
       <h5>📊 Інформація про зліпок</h5>
       <div class="row">
@@ -261,12 +271,16 @@
       </div>
       <div class="mt-2">
         <span class="stats-badge">📦 Всього записів: {{ formset|length }}</span>
+        {% if formset.non_form_errors %}
+          {% for error in formset.non_form_errors %}
+            <small class="text-danger d-block mt-1">{{ error }}</small>
+          {% endfor %}
+        {% endif %}
       </div>
     </div>
 
     {{ formset.management_form }}
 
-    <!-- Таблиця записів -->
     {% if formset %}
       <div class="table-wrapper">
         <table class="journal-table">
@@ -317,7 +331,7 @@
               </th>
               <th>
                 <a href="?order={% if current_order == 'quantity' %}-quantity{% else %}quantity{% endif %}" class="sort-link">
-                  Кількість (т)
+                  Кількість (т/кг)
                   <span class="sort-icon">
                     {% if current_order == 'quantity' %}
                       ▲
@@ -337,65 +351,48 @@
             <tr class="formset-row" data-form-index="{{ forloop.counter0 }}">
               <td class="text-center">
                 {{ forloop.counter }}
-                {{ form.id }}  <!-- Приховане поле ID -->
-              </td>
+                {{ form.id }}  </td>
 
-              <!-- Місце -->
               <td>
-                <select name="{{ form.place.html_name }}" class="select-in-table">
-                  {% for place in form.fields.place.queryset %}
-                    <option value="{{ place.pk }}" 
-                      {% if form.place.value|stringformat:"s" == place.pk|stringformat:"s" or form.instance.place and form.instance.place.pk == place.pk %}
-                        selected
-                      {% endif %}>
-                      {{ place.name }}
-                    </option>
-                  {% endfor %}
-                </select>
                 {% if form.place.errors %}
                   <small class="text-danger d-block mt-1">{{ form.place.errors }}</small>
                 {% endif %}
+                {{ form.place }}
               </td>
 
-              <!-- Культура -->
               <td>
-                <select name="{{ form.culture.html_name }}" class="select-in-table">
-                  {% for culture in form.fields.culture.queryset %}
-                    <option value="{{ culture.pk }}" 
-                      {% if form.culture.value|stringformat:"s" == culture.pk|stringformat:"s" or form.instance.culture and form.instance.culture.pk == culture.pk %}
-                        selected
-                      {% endif %}>
-                      {{ culture.name }}
-                    </option>
-                  {% endfor %}
-                </select>
                 {% if form.culture.errors %}
                   <small class="text-danger d-block mt-1">{{ form.culture.errors }}</small>
                 {% endif %}
+                {{ form.culture }}
               </td>
 
-              <!-- Тип балансу -->
               <td>
-                <select name="{{ form.balance_type.html_name }}" class="select-in-table">
-                  <option value="stock" {% if form.balance_type.value == 'stock' or form.instance.balance_type == 'stock' %}selected{% endif %}>Зерно</option>
-                  <option value="waste" {% if form.balance_type.value == 'waste' or form.instance.balance_type == 'waste' %}selected{% endif %}>Відходи</option>
-                </select>
                 {% if form.balance_type.errors %}
                   <small class="text-danger d-block mt-1">{{ form.balance_type.errors }}</small>
                 {% endif %}
+                {{ form.balance_type }}
               </td>
 
-              <!-- Кількість -->
               <td>
-                <input type="number" name="{{ form.quantity.html_name }}" 
-                       value="{{ form.quantity.value|default:'0.000' }}" 
-                       class="input-in-table" step="0.001" min="0" style="text-align:right;">
-                {% if form.quantity.errors %}
-                  <small class="text-danger d-block mt-1">{{ form.quantity.errors }}</small>
+                <div class="quantity-unit-wrapper">
+                    <div class="quantity-input-container">
+                        {% if form.quantity.errors %}
+                          <small class="text-danger d-block mt-1">{{ form.quantity.errors }}</small>
+                        {% endif %}
+                        {{ form.quantity }}
+                    </div>
+                    <div class="unit-select-container">
+                        {{ form.unit }} 
+                    </div>
+                </div>
+                {% if form.non_field_errors %}
+                    {% for error in form.non_field_errors %}
+                        <small class="text-danger d-block mt-1">{{ error }}</small>
+                    {% endfor %}
                 {% endif %}
               </td>
 
-              <!-- Видалити -->
               <td class="delete-checkbox-wrapper">
                 {{ form.DELETE }}
               </td>

@@ -528,47 +528,192 @@ class ReportService:
     @staticmethod
     def get_total_income_period_data(date_from, date_to, filters=None):
         """
-        Отримує дані для звіту 'Прихід зерна (Загальний за період)',
-        об'єднуючи надходження з полів та зовнішні ввезення.
+        Звіт 'Прихід зерна (Загальний за період)'.
+        Працює ВИКЛЮЧНО з історією рухів, без BalanceSnapshot.
         """
-        # 1. Дані з полів (використовуємо новий псевдонім)
-        field_data_full = ReportService.get_field_income_data(date_from, date_to, filters)
-        field_data = field_data_full.get('data', [])
-        
-        # 2. Дані зовнішнього ввезення (Shipment Summary - лише 'Ввезення')
-        # Використовуємо новий псевдонім
-        shipment_summary_data_full = ReportService.get_shipment_summary_data(date_from, date_to, filters)
-        
-        # Фільтруємо лише 'Ввезення' (action_type 'income' або 'Ввезення')
-        income_data = [
-            item for item in shipment_summary_data_full.get('data', [])
-            if item.get('action_type') == 'Ввезення' # Або 'income', залежно від вашої моделі
-        ]
-        
-        # 3. Об'єднання та агрегація
-        total_income = field_data + income_data
-        total_weight = sum(item.get('weight_net', 0.0) for item in total_income)
-        
-        # Загальна агрегація по культурах
-        by_culture = {}
-        for item in total_income:
-            culture = item.get('culture', '—')
-            weight = item.get('weight_net', 0.0)
-            by_culture[culture] = by_culture.get(culture, 0.0) + weight
 
-        report_data = {
-            'date_from': date_from.strftime('%d.%m.%Y'),
-            'date_to': date_to.strftime('%d.%m.%Y'),
-            'total_income': total_income,
-            'field_income': field_data,          # Окремо: з полів
-            'external_income': income_data,          # Окремо: ввезення
+        filters = filters or {}
+
+        # =========================================================
+        # 1. Надходження з полів
+        # =========================================================
+        field_data_full = ReportService.get_field_income_data(
+            date_from, date_to, filters
+        )
+
+        field_data = field_data_full.get('data', [])
+
+        # Уніфікуємо вагу
+        for item in field_data:
+            if 'weight_net' not in item:
+                item['weight_net'] = item.get('quantity', 0) or 0
+
+            item['source'] = 'Поле'
+
+        # =========================================================
+        # 2. Зовнішнє ввезення
+        # =========================================================
+        shipment_data_full = ReportService.get_shipment_summary_data(
+            date_from, date_to, filters
+        )
+
+        external_income = [
+            item for item in shipment_data_full.get('data', [])
+            if item.get('action_type') in ('Ввезення', 'income')
+        ]
+
+        for item in external_income:
+            item['weight_net'] = item.get('weight_net', 0) or 0
+            item['source'] = 'Ввезення'
+
+        # =========================================================
+        # 3. Обʼєднання
+        # =========================================================
+        all_income = field_data + external_income
+
+        # =========================================================
+        # 4. Агрегація
+        # =========================================================
+        total_weight = 0
+        by_culture = {}
+
+        for item in all_income:
+            weight = float(item.get('weight_net', 0) or 0)
+            culture = item.get('culture') or '—'
+
+            total_weight += weight
+            by_culture[culture] = by_culture.get(culture, 0) + weight
+
+        # =========================================================
+        # 5. Фінальна структура (КРИТИЧНО ВАЖЛИВО)
+        # =========================================================
+        return {
+            'data': all_income,
+            'total_rows': len(all_income),
             'aggregation': {
                 'total_weight': total_weight,
                 'by_culture': by_culture,
-                # Використовуємо агрегації з підзвітів
-                'field_aggregation': field_data_full.get('aggregation', {'total_weight': 0}),
-                'external_aggregation': ReportService._aggregate_income_data(income_data),
+                'field_aggregation': field_data_full.get(
+                    'aggregation', {'total_weight': 0}
+                ),
+                'external_aggregation': ReportService._aggregate_income_data(
+                    external_income
+                ),
             }
         }
 
-        return report_data
+    @staticmethod
+    def get_total_income_period_from_balance_history(date_from, date_to, filters=None):
+        """
+        Звіт 'Прихід зерна (Загальний за період)'
+        ПРАЦЮЄ СУТО ВІД ІСТОРІЇ ЗАЛИШКІВ (BalanceHistory)
+        """
+
+        from balances.models import BalanceHistory
+
+        filters = filters or {}
+
+        qs = BalanceHistory.objects.select_related(
+            'place', 'culture'
+        ).filter(
+            created_at__date__gte=date_from,
+            created_at__date__lte=date_to
+        )
+
+        # 🔹 Фільтри
+        if filters.get('place_id'):
+            qs = qs.filter(place_id=filters['place_id'])
+
+        if filters.get('culture_id'):
+            qs = qs.filter(culture_id=filters['culture_id'])
+
+        if filters.get('balance_type'):
+            qs = qs.filter(balance_type=filters['balance_type'])
+
+        # 🔹 ВАЖЛИВО:
+        # беремо ТІЛЬКИ ПРИХІД
+        qs = qs.filter(quantity__gt=0)
+
+        data = []
+        total_weight = 0.0
+        by_culture = {}
+
+        for h in qs:
+            weight = float(h.quantity)
+            culture = h.culture.name if h.culture else '—'
+
+            data.append({
+                'date': h.created_at.strftime('%d.%m.%Y'),
+                'place': h.place.name if h.place else '—',
+                'culture': culture,
+                'balance_type': h.balance_type,
+                'weight_net': weight,
+                'source': 'Історія залишків',
+            })
+
+            total_weight += weight
+            by_culture[culture] = by_culture.get(culture, 0) + weight
+
+        return {
+            'data': data,
+            'total_rows': len(data),
+            'aggregation': {
+                'total_weight': total_weight,
+                'by_culture': by_culture,
+            }
+        }
+        
+    @staticmethod
+    def get_balance_period_from_history(
+        date_from,
+        date_to,
+        filters: dict | None = None
+    ) -> dict:
+        """
+        Звіт залишків за період, розрахований виключно
+        з історії змін залишків (BalanceHistory).
+        """
+
+        filters = filters or {}
+
+        qs = BalanceHistory.objects.filter(
+            created_at__date__gte=date_from,
+            created_at__date__lte=date_to
+        )
+
+        # 🔎 ФІЛЬТРИ
+        if place_id := filters.get('place_id'):
+            qs = qs.filter(place_id=place_id)
+
+        if culture_id := filters.get('culture_id'):
+            qs = qs.filter(culture_id=culture_id)
+
+        if balance_type := filters.get('balance_type'):
+            qs = qs.filter(balance_type=balance_type)
+
+        # ========================================================
+        # АГРЕГАЦІЯ
+        # ========================================================
+        aggregation = qs.values(
+            'place__name',
+            'culture__name',
+            'balance_type'
+        ).annotate(
+            total_delta=Sum('delta')
+        ).order_by(
+            'place__name',
+            'culture__name'
+        )
+
+        total_weight = sum(row['total_delta'] or 0 for row in aggregation)
+
+        return {
+            'date_from': date_from,
+            'date_to': date_to,
+            'rows': list(aggregation),
+            'aggregation': {
+                'total_weight': total_weight,
+            },
+            'total_rows': aggregation.count()
+        }
+

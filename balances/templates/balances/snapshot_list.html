@@ -40,10 +40,10 @@
 /* Налаштування ширини колонок */
 .journal-table th:nth-child(1), .journal-table td:nth-child(1) { width: 3%; text-align: center; }  /* # */
 .journal-table th:nth-child(2), .journal-table td:nth-child(2) { width: 15%; text-align: center; }  /* Дата */
-.journal-table th:nth-child(3), .journal-table td:nth-child(3) { width: 35%; text-align: center; }  /* Опис */
-.journal-table th:nth-child(4), .journal-table td:nth-child(4) { width: 15%; text-align: center; }  /* Створено ким */
+.journal-table th:nth-child(3), .journal-table td:nth-child(3) { width: 30%; text-align: left; }  /* Опис */
+.journal-table th:nth-child(4), .journal-table td:nth-child(4) { width: 10%; text-align: center; }  /* Створено ким */
 .journal-table th:nth-child(5), .journal-table td:nth-child(5) { width: 10%; text-align: center; }  /* Кількість записів */
-.journal-table th:nth-child(6), .journal-table td:nth-child(6) { width: 15%; text-align: center; }  /* Загальна кількість */
+.journal-table th:nth-child(6), .journal-table td:nth-child(6) { width: 15%; text-align: right; }  /* Загальна кількість */
 .journal-table th:nth-child(7), .journal-table td:nth-child(7) { width: 7%; text-align: center; }   /* Дії */
 
 /* Стилі для кнопок дій */
@@ -105,29 +105,113 @@
     box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
     color: white;
 }
+
+/* --- СТИЛІ СЕГМЕНТОВАНОГО ПЕРЕМИКАЧА ОДИНИЦЬ --- */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem; /* Проміжок між кнопками та перемикачем */
+}
+
+.unit-switch {
+    display: flex;
+    font-family: "Inter", sans-serif;
+    user-select: none;
+}
+
+.segmented-control {
+    display: flex;
+    background-color: #e2e8f0;
+    border-radius: 10px;
+    padding: 3px;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.control-item {
+    padding: 7px 16px; 
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    z-index: 1;
+    transition: color 0.3s ease;
+    min-width: 45px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.control-item.active {
+    color: #1e293b;
+}
+
+/* Прихований чекбокс */
+.toggle-input {
+    display: none;
+}
+
+/* Повзунок (індикатор активного стану) */
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    width: calc(50% - 3px);
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+/* Переміщення повзунка на "кг" (при checked=true) */
+.toggle-input:checked ~ .toggle-slider {
+    transform: translateX(100%);
+}
+
+.control-item:hover {
+    color: #0f172a; 
+}
+.control-item.active:hover {
+    color: #1e293b;
+}
+
 </style>
 
 <link rel="stylesheet" href="{% static 'css/journal.css' %}">
 
 <div class="journal-container">
-<!-- У файлі snapshot_list.html додайте до блоку кнопок -->
 <div class="page-header">
     <h1 class="page-title">📊 Зліпки залишків</h1>
-    <div style="display: flex; gap: 0.75rem;">
+    
+    {# ВИПРАВЛЕНА СТРУКТУРА: Згруповано кнопки та перемикач #}
+    <div class="header-actions">
       <a href="{% url 'balance_list' %}" class="btn-add" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
         <span>↩️</span>
         <span>До залишків</span>
       </a>
-      <!-- Нова кнопка для створення зліпка -->
       <a href="{% url 'balance_snapshot_empty_create' %}" class="btn-add" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
         <span>📄</span>
         <span>Новий зліпок</span>
       </a>
-      <!-- Стара кнопка для зліпка з поточних залишків -->
       <button type="button" class="btn-add" data-bs-toggle="modal" data-bs-target="#createSnapshotModal">
         <span>💾</span>
         <span>Зліпок з поточних залишків</span>
       </button>
+
+      {# СЕГМЕНТОВАНИЙ ПЕРЕМИКАЧ ОДИНИЦЬ #}
+      <div class="unit-switch" id="unitSwitchContainerSnapshot">
+          <div class="segmented-control">
+              <input type="checkbox" id="unitToggleSnapshot" class="toggle-input">
+              
+              <label for="unitToggleSnapshot" class="control-item active" data-unit="t" id="labelTSnapshot">т</label>
+              <label for="unitToggleSnapshot" class="control-item" data-unit="kg" id="labelKGSnapshot">кг</label>
+
+              <span class="toggle-slider"></span>
+          </div>
+      </div>
+      {# КІНЕЦЬ ПЕРЕМИКАЧА #}
+
     </div>
 </div>
 
@@ -167,9 +251,10 @@
                 </span>
               </a>
             </th>
-            <th>
+            <th id="header-quantity-snapshot">
               <a href="?order={% if current_order == 'total_quantity' %}-total_quantity{% else %}total_quantity{% endif %}" class="sort-link">
-                Загальна кількість (т)
+                {# ВИПРАВЛЕНО: Розділено текст і одиницю для коректного оновлення JS #}
+                <span id="base-quantity-text">Загальна кількість</span> <span id="unit-label-snapshot">(т)</span>
                 <span class="sort-icon">
                   {% if current_order == 'total_quantity' %}
                     ▲
@@ -192,7 +277,10 @@
             <td>{{ snapshot.description|default:"—" }}</td>
             <td class="text-center">{{ snapshot.created_by }}</td>
             <td class="text-center">{{ snapshot.total_records }}</td>
-            <td class="text-end">{{ snapshot.total_quantity|floatformat:3 }}</td>
+            {# Додаємо клас та data-t атрибут для роботи JS #}
+            <td class="text-end quantity-value-snapshot" data-t="{{ snapshot.total_quantity|stringformat:'f' }}">
+              {{ snapshot.total_quantity|floatformat:3 }}
+            </td>
             <td>
               <div class="actions-cell">
                 <a href="{% url 'balance_snapshot_detail' snapshot.pk %}" class="btn-action" style="background: #3b82f6; color: white;" title="Переглянути">👁️</a>
@@ -206,7 +294,6 @@
       </table>
     </div>
 
-    <!-- ===== Пагінація ===== -->
     {% if is_paginated %}
       <nav aria-label="Page navigation" class="mt-3">
         <ul class="pagination justify-content-center">
@@ -237,7 +324,6 @@
   {% endif %}
 </div>
 
-<!-- Модальне вікно для створення зліпку -->
 <div class="modal fade" id="createSnapshotModal" tabindex="-1" aria-labelledby="createSnapshotModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -267,33 +353,104 @@
 </div>
 
 <script>
-// Додаємо JavaScript для підсвічування активного сортування
-document.addEventListener('DOMContentLoaded', function() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentOrder = urlParams.get('order') || '-snapshot_date';
-  
-  // Знаходимо всі посилання сортування
-  const sortLinks = document.querySelectorAll('.sort-link');
-  
-  sortLinks.forEach(link => {
-    const href = link.getAttribute('href');
-    if (href && href.includes('order=')) {
-      // Отримуємо параметр сортування з посилання
-      const orderParam = href.split('order=')[1].split('&')[0];
-      
-      // Якщо це поточне сортування, додаємо стиль
-      if (orderParam === currentOrder) {
-        link.style.color = '#2563eb';
-        link.style.fontWeight = '600';
-        
-        // Знаходимо іконку всередині посилання і додаємо колір
-        const icon = link.querySelector('.sort-icon');
-        if (icon) {
-          icon.style.color = '#2563eb';
+    /**
+     * Форматує число. Для кг округлює до цілого та додає роздільник тисяч.
+     */
+    function formatValue(value, isTons) {
+        if (value === null || value === undefined || isNaN(value)) return '—';
+
+        if (isTons) {
+            // Для тонн: 3 знаки після коми
+            return parseFloat(value).toFixed(3);
+        } else {
+            // Для кг: округлення до цілого, роздільник тисяч (нерозривний пробіл)
+            const kgValue = Math.round(parseFloat(value) * 1000); 
+            return kgValue.toLocaleString('uk-UA', { 
+                maximumFractionDigits: 0,
+                minimumFractionDigits: 0
+            }).replace(/\s/g, '\u00A0'); 
         }
-      }
     }
-  });
-});
+
+    function updateUnits() {
+        const toggle = document.getElementById("unitToggleSnapshot");
+        const tLabel = document.getElementById('labelTSnapshot');
+        const kgLabel = document.getElementById('labelKGSnapshot');
+        const values = document.querySelectorAll(".quantity-value-snapshot");
+        // ВИПРАВЛЕНО: Тепер ми знаходимо span з ID "unit-label-snapshot"
+        const unitLabel = document.getElementById("header-quantity-snapshot").querySelector("#unit-label-snapshot"); 
+        const storageKey = 'snapshotListUnit'; 
+
+        const modeKG = toggle.checked; 
+        const unitText = modeKG ? " (кг)" : " (т)";
+
+        // 1. Оновлення заголовка стовпця таблиці
+        // Оновлюємо лише span з одиницею
+        unitLabel.textContent = unitText;
+
+        // 2. Оновлення значень у таблиці
+        values.forEach(v => {
+            let tons = parseFloat(v.dataset.t);
+            if (isNaN(tons)) tons = 0;
+
+            v.textContent = formatValue(tons, !modeKG);
+        });
+
+        // 3. Оновлення активної одиниці (візуал)
+        if (modeKG) {
+            tLabel.classList.remove('active');
+            kgLabel.classList.add('active');
+        } else {
+            tLabel.classList.add('active');
+            kgLabel.classList.remove('active');
+        }
+
+        // 4. Зберігання стану
+        localStorage.setItem(storageKey, modeKG ? 'kg' : 't');
+    }
+
+    // Додаємо JavaScript для підсвічування активного сортування
+    document.addEventListener('DOMContentLoaded', function() {
+        const storageKey = 'snapshotListUnit'; 
+        const toggle = document.getElementById("unitToggleSnapshot");
+        
+        // --- Логіка перемикача одиниць ---
+        const savedUnit = localStorage.getItem(storageKey);
+        const initialModeKG = savedUnit === 'kg';
+        
+        toggle.checked = initialModeKG;
+        toggle.addEventListener('change', updateUnits);
+        
+        // Ініціалізуємо одиниці при завантаженні, щоб застосувати збережений стан
+        updateUnits();
+
+
+        // --- Логіка сортування ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentOrder = urlParams.get('order') || '-snapshot_date';
+        
+        // Знаходимо всі посилання сортування
+        const sortLinks = document.querySelectorAll('.sort-link');
+        
+        sortLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && href.includes('order=')) {
+            // Отримуємо параметр сортування з посилання
+            const orderParam = href.split('order=')[1].split('&')[0];
+            
+            // Якщо це поточне сортування, додаємо стиль
+            if (orderParam === currentOrder) {
+                link.style.color = '#2563eb';
+                link.style.fontWeight = '600';
+                
+                // Знаходимо іконку всередині посилання і додаємо колір
+                const icon = link.querySelector('.sort-icon');
+                if (icon) {
+                icon.style.color = '#2563eb';
+                }
+            }
+            }
+        });
+    });
 </script>
 {% endblock %}

@@ -118,7 +118,7 @@
 .journal-table th:nth-child(2), .journal-table td:nth-child(2) { width: 25%; text-align: center; }  /* Місце */
 .journal-table th:nth-child(3), .journal-table td:nth-child(3) { width: 25%; text-align: center; }  /* Культура */
 .journal-table th:nth-child(4), .journal-table td:nth-child(4) { width: 15%; text-align: center; }  /* Тип балансу */
-.journal-table th:nth-child(5), .journal-table td:nth-child(5) { width: 15%; text-align: center; }  /* Кількість */
+.journal-table th:nth-child(5), .journal-table td:nth-child(5) { width: 15%; text-align: right; }  /* Кількість */
 
 /* Стилі для кнопок заголовка */
 .page-header {
@@ -136,6 +136,7 @@
 
 .page-header-right {
     display: flex;
+    align-items: center; /* Вирівнюємо перемикач та кнопки */
     gap: 0.75rem;
 }
 
@@ -165,11 +166,75 @@
     box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
     color: white;
 }
+
+/* --- СТИЛІ СЕГМЕНТОВАНОГО ПЕРЕМИКАЧА ОДИНИЦЬ (скопійовано) --- */
+.unit-switch {
+    display: flex;
+    font-family: "Inter", sans-serif;
+    user-select: none;
+}
+
+.segmented-control {
+    display: flex;
+    background-color: #e2e8f0;
+    border-radius: 10px;
+    padding: 3px;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.control-item {
+    padding: 7px 16px; 
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    z-index: 1;
+    transition: color 0.3s ease;
+    min-width: 45px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.control-item.active {
+    color: #1e293b;
+}
+
+/* Прихований чекбокс */
+.toggle-input {
+    display: none;
+}
+
+/* Повзунок (індикатор активного стану) */
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    width: calc(50% - 3px);
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+/* Переміщення повзунка на "кг" (при checked=true) */
+.toggle-input:checked ~ .toggle-slider {
+    transform: translateX(100%);
+}
+
+.control-item:hover {
+    color: #0f172a; 
+}
+.control-item.active:hover {
+    color: #1e293b;
+}
+
 </style>
 
 <div class="journal-container">
 
-  <!-- ===== Заголовок ===== -->
   <div class="page-header">
     <div class="page-header-left">
       <h1 class="page-title">📊 Детальний перегляд зліпка</h1>
@@ -181,6 +246,20 @@
     </div>
 
     <div class="page-header-right">
+      
+      {# СЕГМЕНТОВАНИЙ ПЕРЕМИКАЧ ОДИНИЦЬ #}
+      <div class="unit-switch" id="unitSwitchContainerDetail">
+          <div class="segmented-control">
+              <input type="checkbox" id="unitToggleDetail" class="toggle-input">
+              
+              <label for="unitToggleDetail" class="control-item active" data-unit="t" id="labelTDetail">т</label>
+              <label for="unitToggleDetail" class="control-item" data-unit="kg" id="labelKGDetail">кг</label>
+
+              <span class="toggle-slider"></span>
+          </div>
+      </div>
+      {# КІНЕЦЬ ПЕРЕМИКАЧА #}
+
       <a href="{% url 'balance_snapshot_update' snapshot.pk %}" class="btn-add"
          style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
         ✏️ Редагувати
@@ -193,7 +272,6 @@
     </div>
   </div>
 
-  <!-- ===== Статистика ===== -->
   <div class="stats-row">
     <div class="stats-card">
       <h5>📦 Всього записів</h5>
@@ -201,7 +279,10 @@
     </div>
     <div class="stats-card">
       <h5>⚖️ Загальна кількість</h5>
-      <h2>{{ total_quantity|floatformat:3 }} т</h2>
+      {# Додаємо ID та data-t для JS #}
+      <h2 id="totalQuantityStat" data-t="{{ total_quantity|stringformat:'f' }}">
+        {{ total_quantity|floatformat:3 }} <span id="totalQuantityUnit">т</span>
+      </h2>
     </div>
     <div class="stats-card">
       <h5>🕒 Дата збереження</h5>
@@ -210,7 +291,6 @@
     </div>
   </div>
 
-  <!-- ===== Таблиця ===== -->
   {% if history_records %}
   <div class="table-wrapper">
     <table class="journal-table">
@@ -259,9 +339,10 @@
               </span>
             </a>
           </th>
-          <th>
+          <th id="header-quantity-detail">
             <a href="?order={% if current_order == 'quantity' %}-quantity{% else %}quantity{% endif %}" class="sort-link">
-              Кількість (т)
+              {# Розділяємо на два span для динамічного оновлення одиниці #}
+              <span id="quantity-text-detail">Кількість</span> <span id="unit-label-detail">(т)</span>
               <span class="sort-icon">
                 {% if current_order == 'quantity' %}
                   ▲
@@ -289,8 +370,9 @@
               <span class="badge-waste">Відходи</span>
             {% endif %}
           </td>
-          <td class="text-center">
-            <span class="quantity-value">{{ record.quantity|floatformat:3 }}</span>
+          <td class="text-end">
+            {# Додаємо клас та data-t атрибут для роботи JS #}
+            <span class="quantity-value" data-t="{{ record.quantity|stringformat:'f' }}">{{ record.quantity|floatformat:3 }}</span>
           </td>
         </tr>
         {% endfor %}
@@ -298,7 +380,6 @@
     </table>
   </div>
 
-  <!-- ===== Пагінація ===== -->
   {% if is_paginated %}
     <nav aria-label="Page navigation" class="mt-3">
       <ul class="pagination justify-content-center">
@@ -352,33 +433,109 @@
 </div>
 
 <script>
-// JavaScript для підсвічування активного сортування
-document.addEventListener('DOMContentLoaded', function() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentOrder = urlParams.get('order') || 'place__name';
-  
-  // Знаходимо всі посилання сортування
-  const sortLinks = document.querySelectorAll('.sort-link');
-  
-  sortLinks.forEach(link => {
-    const href = link.getAttribute('href');
-    if (href && href.includes('order=')) {
-      // Отримуємо параметр сортування з посилання
-      const orderParam = href.split('order=')[1].split('&')[0];
-      
-      // Якщо це поточне сортування, додаємо стиль
-      if (orderParam === currentOrder) {
-        link.style.color = '#2563eb';
-        link.style.fontWeight = '600';
-        
-        // Знаходимо іконку всередині посилання і додаємо колір
-        const icon = link.querySelector('.sort-icon');
-        if (icon) {
-          icon.style.color = '#2563eb';
+    /**
+     * Форматує число. Для кг округлює до цілого та додає роздільник тисяч.
+     */
+    function formatValue(value, isTons) {
+        if (value === null || value === undefined || isNaN(value)) return '—';
+
+        if (isTons) {
+            // Для тонн: 3 знаки після коми
+            return parseFloat(value).toFixed(3);
+        } else {
+            // Для кг: округлення до цілого, роздільник тисяч (нерозривний пробіл)
+            const kgValue = Math.round(parseFloat(value) * 1000); 
+            return kgValue.toLocaleString('uk-UA', { 
+                maximumFractionDigits: 0,
+                minimumFractionDigits: 0
+            }).replace(/\s/g, '\u00A0'); 
         }
-      }
     }
-  });
-});
+
+    function updateUnits() {
+        const toggle = document.getElementById("unitToggleDetail");
+        const tLabel = document.getElementById('labelTDetail');
+        const kgLabel = document.getElementById('labelKGDetail');
+        const values = document.querySelectorAll(".quantity-value");
+        const quantityHeaderUnit = document.getElementById("unit-label-detail"); 
+        const totalQuantityStat = document.getElementById("totalQuantityStat");
+        const totalQuantityUnit = document.getElementById("totalQuantityUnit");
+        
+        // Використовуємо той самий ключ, що і в списку, для синхронізації
+        const storageKey = 'snapshotListUnit'; 
+
+        const modeKG = toggle.checked; 
+        const unitTextHeader = modeKG ? "(кг)" : "(т)";
+        const unitTextStat = modeKG ? "кг" : "т";
+
+        // 1. Оновлення заголовка стовпця таблиці
+        quantityHeaderUnit.textContent = unitTextHeader;
+
+        // 2. Оновлення загальної кількості у статистиці
+        let totalTons = parseFloat(totalQuantityStat.dataset.t);
+        totalQuantityStat.firstChild.textContent = formatValue(totalTons, !modeKG) + '\u00A0'; // Додаємо нерозривний пробіл
+        totalQuantityUnit.textContent = unitTextStat;
+
+        // 3. Оновлення значень у таблиці
+        values.forEach(v => {
+            let tons = parseFloat(v.dataset.t);
+            if (isNaN(tons)) tons = 0;
+
+            v.textContent = formatValue(tons, !modeKG);
+        });
+
+        // 4. Оновлення активної одиниці (візуал)
+        if (modeKG) {
+            tLabel.classList.remove('active');
+            kgLabel.classList.add('active');
+        } else {
+            tLabel.classList.add('active');
+            kgLabel.classList.remove('active');
+        }
+
+        // 5. Зберігання стану
+        localStorage.setItem(storageKey, modeKG ? 'kg' : 't');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const storageKey = 'snapshotListUnit'; 
+        const toggle = document.getElementById("unitToggleDetail");
+        
+        // --- Логіка перемикача одиниць ---
+        const savedUnit = localStorage.getItem(storageKey);
+        const initialModeKG = savedUnit === 'kg';
+        
+        // Встановлюємо початковий стан перемикача
+        toggle.checked = initialModeKG;
+        toggle.addEventListener('change', updateUnits);
+        
+        // Ініціалізуємо одиниці при завантаженні, щоб застосувати збережений стан
+        updateUnits();
+
+
+        // --- Логіка підсвічування сортування ---
+        const urlParams = new URLSearchParams(window.location.search);
+        // За замовчуванням сортуємо за Місцем (place__name)
+        const currentOrder = urlParams.get('order') || 'place__name'; 
+        
+        const sortLinks = document.querySelectorAll('.sort-link');
+        
+        sortLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && href.includes('order=')) {
+                const orderParam = href.split('order=')[1].split('&')[0];
+                
+                if (orderParam === currentOrder) {
+                    link.style.color = '#2563eb';
+                    link.style.fontWeight = '600';
+                    
+                    const icon = link.querySelector('.sort-icon');
+                    if (icon) {
+                        icon.style.color = '#2563eb';
+                    }
+                }
+            }
+        });
+    });
 </script>
 {% endblock %}

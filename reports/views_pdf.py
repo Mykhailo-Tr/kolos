@@ -504,6 +504,61 @@ class TotalIncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, V
             'report_title': 'Прихід зерна (Загальний за період)'
         }
         return render(request, self.template_name, context)
+    
+class BalancePeriodHistoryReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
+    """
+    📊 Звіт залишків за період (по історії)
+    """
+
+    template_name = 'reports/pdf/report_form_base.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {
+            'form': BalancePeriodReportForm(),
+            'page': 'reports',
+            'report_title': 'Залишки за період (історія)'
+        })
+
+    def post(self, request):
+        form = BalancePeriodReportForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {
+                'form': form,
+                'page': 'reports',
+                'report_title': 'Залишки за період (історія)'
+            })
+
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        filters = self._prepare_filters(form.cleaned_data)
+
+        try:
+            data = ReportService.get_balance_period_from_history(
+                date_from,
+                date_to,
+                filters
+            )
+        except Exception as e:
+            messages.error(request, f'Помилка формування звіту: {e}')
+            return redirect(request.path)
+
+        pdf_buffer = ReportPDFBuilder.build_balance_period_history_report(
+            data,
+            date_from,
+            date_to,
+            filters
+        )
+
+        self.save_report_execution(
+            template=None,
+            report_type='balance_period_history',
+            filters={'date_from': date_from, 'date_to': date_to, **filters},
+            data=data,
+            pdf_buffer=pdf_buffer
+        )
+
+        filename = f"Залишки_період_історія_{date_from:%d%m%Y}_{date_to:%d%m%Y}.pdf"
+        return self.generate_pdf_response(pdf_buffer, filename)
 
 
 class ReportTemplateListView(LoginRequiredMixin, ListView):

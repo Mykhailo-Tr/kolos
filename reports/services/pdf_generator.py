@@ -688,3 +688,44 @@ class ReportPDFBuilder:
             generator.add_paragraph("Немає зовнішніх ввезень за вказаний період.")
 
         return generator.build()
+    
+    @staticmethod
+    def build_balance_period_history_report(data, date_from, date_to, filters):
+        """
+        PDF: Залишки за період (Історія)
+        """
+        from io import BytesIO
+        buffer = BytesIO()
+
+        # якщо у тебе вже є helper
+        c = ReportPDFBuilder._create_canvas(
+            buffer,
+            orientation=filters.get('orientation', 'portrait')
+        )
+
+        ReportPDFBuilder._draw_title(
+            c,
+            f"Залишки за період (історія)\n{date_from:%d.%m.%Y} — {date_to:%d.%m.%Y}"
+        )
+
+        headers = ['Склад', 'Культура', 'Тип', 'Зміна, т']
+        rows = [
+            [
+                r['place__name'],
+                r['culture__name'],
+                r['balance_type'],
+                round(r['total_delta'], 3)
+            ]
+            for r in data['rows']
+        ]
+
+        ReportPDFBuilder._draw_table(c, headers, rows)
+
+        ReportPDFBuilder._draw_footer(
+            c,
+            f"Загальна зміна: {round(data['aggregation']['total_weight'], 3)} т"
+        )
+
+        c.save()
+        buffer.seek(0)
+        return buffer

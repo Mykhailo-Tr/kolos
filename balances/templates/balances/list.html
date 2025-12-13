@@ -6,29 +6,51 @@
 <link rel="stylesheet" href="{% static 'css/balance_list.css' %}">
 
 <div class="container mt-4">
-  <div class="page-header">
-    <h2 class="page-title">
-      <span class="page-title-icon">📦</span>
-      {{ model_name|default:"Залишки" }}
-    </h2>
-    <a href="{% url 'balance_create' %}" class="btn-add-new">
-      <span>➕</span>
-      <span>Додати запис</span>
-    </a>
+  {# ВИПРАВЛЕНО: Розділено заголовок та дії у два блоки, вирівняні по краях #}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    
+    {# БЛОК ЗАГОЛОВКА (ЛІВОРУЧ) #}
+    <div class="page-header">
+      <h2 class="page-title">
+        <span class="page-title-icon">📦</span>
+        {{ model_name|default:"Залишки" }}
+      </h2>
+    </div>
+
+    {# БЛОК ДІЙ ТА ПЕРЕМИКАЧА (ПРАВОРУЧ) #}
+    <div class="header-actions d-flex align-items-center">
+        <a href="{% url 'balance_create' %}" class="btn-add-new me-3">
+          <span>➕</span>
+          <span>Додати запис</span>
+        </a>
+
+        {# СЕГМЕНТОВАНИЙ ПЕРЕМИКАЧ ОДИНИЦЬ #}
+        <div class="unit-switch" id="unitSwitchContainer">
+            <div class="segmented-control">
+                <input type="checkbox" id="unitToggleBalance" class="toggle-input">
+                
+                <label for="unitToggleBalance" class="control-item active" data-unit="t" id="labelTBalance">т</label>
+                <label for="unitToggleBalance" class="control-item" data-unit="kg" id="labelKGBalance">кг</label>
+
+                <span class="toggle-slider"></span>
+            </div>
+        </div>
+        {# КІНЕЦЬ ПЕРЕМИКАЧА #}
+    </div>
   </div>
 
   <div class="stats-mini-bar">
     <div class="mini-stat-item">
       <div class="mini-stat-label">Загальна вага</div>
-      <div class="mini-stat-value" id="grandTotal">-<span class="mini-stat-suffix">т</span></div>
+      <div class="mini-stat-value" id="grandTotal" data-t="0">-<span class="mini-stat-suffix">т</span></div>
     </div>
     <div class="mini-stat-item">
       <div class="mini-stat-label" style="color: #10b981;">Зернова група</div>
-      <div class="mini-stat-value" id="totalGrain">-<span class="mini-stat-suffix">т</span></div>
+      <div class="mini-stat-value" id="totalGrain" data-t="0">-<span class="mini-stat-suffix">т</span></div>
     </div>
     <div class="mini-stat-item">
       <div class="mini-stat-label" style="color: #f59e0b;">Відходи</div>
-      <div class="mini-stat-value" id="totalWaste">-<span class="mini-stat-suffix">т</span></div>
+      <div class="mini-stat-value" id="totalWaste" data-t="0">-<span class="mini-stat-suffix">т</span></div>
     </div>
   </div>
 
@@ -64,7 +86,7 @@
                   </span>
                 </a>
               </th>
-              <th class="text-end">
+              <th class="text-end" id="header-quantity-balance">
                 <a href="?order={% if current_order == 'quantity' %}-quantity{% else %}quantity{% endif %}" class="sort-link">
                   <span>Кількість (т)</span>
                   <span class="sort-icon">
@@ -88,7 +110,7 @@
                 </span>
               </td>
               <td class="text-end">
-                <span class="quantity-value">{{ b.quantity|floatformat:3 }}</span>
+                <span class="quantity-value-balance" data-t="{{ b.quantity|stringformat:'f' }}">{{ b.quantity|floatformat:3 }}</span>
               </td>
               <td>
                 <div class="action-buttons">
@@ -152,10 +174,215 @@
       place: "{{ b.place.name|escapejs }}",
       culture: "{{ b.culture.name|escapejs }}",
       balanceType: "{{ b.balance_type|escapejs }}",
-      quantity: {{ b.quantity|stringformat:"f" }} // Використовуємо stringformat, щоб уникнути помилок з комами
+      quantity: {{ b.quantity|stringformat:"f" }} 
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
   ];
+  
+  // Обчислення загальних сум тут, щоб отримати їх до ініціалізації JS
+  let grandTotalValue = 0;
+  let totalGrainValue = 0;
+  let totalWasteValue = 0;
+
+  {% for b in balances %}
+    grandTotalValue += {{ b.quantity|default:0 }};
+    {% if 'зерно' in b.get_balance_type_display|lower or 'grain' in b.get_balance_type_display|lower %}
+      totalGrainValue += {{ b.quantity|default:0 }};
+    {% elif 'відход' in b.get_balance_type_display|lower or 'waste' in b.get_balance_type_display|lower %}
+      totalWasteValue += {{ b.quantity|default:0 }};
+    {% endif %}
+  {% endfor %}
+  
+</script>
+
+<style>
+/* --- СТИЛІ СЕГМЕНТОВАНОГО ПЕРЕМИКАЧА ОДИНИЦЬ --- */
+
+/* Контейнер для кнопки та перемикача */
+.header-actions {
+    gap: 15px; /* Додаємо невеликий проміжок між кнопкою та перемикачем */
+}
+
+.unit-switch {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-family: "Inter", sans-serif;
+    user-select: none;
+}
+
+.segmented-control {
+    display: flex;
+    background-color: #e2e8f0;
+    border-radius: 10px;
+    padding: 3px;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.control-item {
+    padding: 7px 16px; 
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    z-index: 1;
+    transition: color 0.3s ease;
+    min-width: 45px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.control-item.active {
+    color: #1e293b;
+}
+
+/* Прихований чекбокс */
+.toggle-input {
+    display: none;
+}
+
+/* Повзунок (індикатор активного стану) */
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    width: calc(50% - 3px);
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+/* Переміщення повзунка на "кг" (при checked=true) */
+.toggle-input:checked ~ .toggle-slider {
+    transform: translateX(100%);
+}
+
+/* Додатковий ефект при наведенні на неактивний елемент */
+.control-item:hover {
+    color: #0f172a; 
+}
+.control-item.active:hover {
+    color: #1e293b;
+}
+
+/* Стилі для міні-статистики */
+.mini-stat-value {
+    display: flex;
+    align-items: baseline;
+}
+.mini-stat-suffix {
+    font-size: 0.8em;
+    font-weight: 500;
+    margin-left: 5px;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Елементи перемикача
+    const toggle = document.getElementById("unitToggleBalance");
+    const tLabel = document.getElementById('labelTBalance');
+    const kgLabel = document.getElementById('labelKGBalance');
+    
+    // Елементи таблиці
+    const values = document.querySelectorAll(".quantity-value-balance");
+    // Оновлено: тепер header-quantity-balance містить <a>, тому шукаємо <span> в ньому
+    const quantityHeader = document.getElementById("header-quantity-balance").querySelector("a span:first-child"); 
+    
+    // Елементи міні-статистики
+    const grandTotalElement = document.getElementById("grandTotal");
+    const totalGrainElement = document.getElementById("totalGrain");
+    const totalWasteElement = document.getElementById("totalWaste");
+
+    const storageKey = 'balanceListUnit'; 
+    
+    // Ініціалізуємо data-t атрибути міні-статистики значеннями з Django
+    grandTotalElement.dataset.t = grandTotalValue;
+    totalGrainElement.dataset.t = totalGrainValue;
+    totalWasteElement.dataset.t = totalWasteValue;
+
+
+    /**
+     * Форматує число. Для кг округлює до цілого та додає роздільник тисяч.
+     */
+    function formatValue(value, isTons) {
+        if (value === null || value === undefined || isNaN(value)) return '—';
+
+        if (isTons) {
+            // Для тонн: 3 знаки після коми
+            return parseFloat(value).toFixed(3);
+        } else {
+            // Для кг: округлення до цілого, роздільник тисяч (нерозривний пробіл)
+            const kgValue = Math.round(parseFloat(value) * 1000); 
+            return kgValue.toLocaleString('uk-UA', { 
+                maximumFractionDigits: 0,
+                minimumFractionDigits: 0
+            }).replace(/\s/g, '\u00A0'); 
+        }
+    }
+
+    function updateUnits() {
+        const modeKG = toggle.checked; 
+        const unitText = modeKG ? " (кг)" : " (т)";
+        const suffixText = modeKG ? "кг" : "т";
+
+        // 1. Оновлення заголовка стовпця таблиці
+        // Змінюємо текст спану, що містить "Кількість (т)"
+        quantityHeader.textContent = `Кількість ${unitText}`;
+
+        // 2. Оновлення значень у таблиці
+        values.forEach(v => {
+            let tons = parseFloat(v.dataset.t);
+            if (isNaN(tons)) tons = 0;
+
+            v.textContent = formatValue(tons, !modeKG);
+        });
+
+        // 3. Оновлення міні-статистики
+        const updateMiniStat = (element) => {
+            let tons = parseFloat(element.dataset.t);
+            if (isNaN(tons)) tons = 0;
+
+            // Оновлюємо значення та суфікс
+            // Використовуємо element.firstChild, оскільки суфікс знаходиться у <span>
+            element.firstChild.textContent = formatValue(tons, !modeKG);
+            element.querySelector(".mini-stat-suffix").textContent = suffixText;
+        };
+
+        updateMiniStat(grandTotalElement);
+        updateMiniStat(totalGrainElement);
+        updateMiniStat(totalWasteElement);
+
+
+        // 4. Оновлення активної одиниці (візуал)
+        if (modeKG) {
+            tLabel.classList.remove('active');
+            kgLabel.classList.add('active');
+        } else {
+            tLabel.classList.add('active');
+            kgLabel.classList.remove('active');
+        }
+
+        // 5. Зберігання стану
+        localStorage.setItem(storageKey, modeKG ? 'kg' : 't');
+    }
+
+    // Слухаємо подію 'change' на прихованому чекбоксі.
+    // Це забезпечує коректну роботу при кліку на будь-яку мітку.
+    toggle.addEventListener('change', updateUnits);
+
+    // Ініціалізація з Local Storage
+    const savedUnit = localStorage.getItem(storageKey);
+    const initialModeKG = savedUnit === 'kg';
+    
+    toggle.checked = initialModeKG;
+    // Оновлюємо одиниці при завантаженні, щоб застосувати збережений стан
+    updateUnits();
+});
 </script>
 
 <script src="{% static 'js/balance_charts.js' %}"></script>

@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="mb-3">
+    {% if view.object %}
+      ✏️ Редагування: {{ view.object }}
+    {% else %}
+      ➕ Створення нового запису
+    {% endif %}
+  </h3>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    
+    <div class="row g-3">
+      {% for field in form.visible_fields %}
+        
+        {% comment %} 
+        Обробка вагових полів з індивідуальними перемикачами одиниць.
+        Використовуємо окремі if/elif гілки з повним блоком {% with %} / {% endwith %} 
+        для коректної роботи контексту в Django шаблонах.
+        {% endcomment %}
+        
+        {% if field.name == 'weight_gross' %}
+            {% with unit_field=form.gross_unit %}
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                        {{ field.label }}
+                        <span class="weight-unit-label-span" data-field-name="{{ field.name }}">
+                            ({{ unit_field.value|default:'т' }})
+                        </span>
+                        {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    
+                    <div class="input-group">
+                        {{ field }}
+                        <span class="input-group-text p-0">
+                            {{ unit_field }}
+                        </span>
+                    </div>
+                    
+                    <div class="form-text mt-1 conversion-display" data-field-name="{{ field.name }}"></div>
+                    
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endwith %}
+        
+        {% elif field.name == 'weight_tare' %}
+            {% with unit_field=form.tare_unit %}
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                        {{ field.label }}
+                        <span class="weight-unit-label-span" data-field-name="{{ field.name }}">
+                            ({{ unit_field.value|default:'т' }})
+                        </span>
+                        {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    
+                    <div class="input-group">
+                        {{ field }}
+                        <span class="input-group-text p-0">
+                            {{ unit_field }}
+                        </span>
+                    </div>
+                    
+                    <div class="form-text mt-1 conversion-display" data-field-name="{{ field.name }}"></div>
+                    
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endwith %}
+
+        {% elif field.name == 'weight_loss' %}
+            {% with unit_field=form.loss_unit %}
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                        {{ field.label }}
+                        <span class="weight-unit-label-span" data-field-name="{{ field.name }}">
+                            ({{ unit_field.value|default:'т' }})
+                        </span>
+                        {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    
+                    <div class="input-group">
+                        {{ field }}
+                        <span class="input-group-text p-0">
+                            {{ unit_field }}
+                        </span>
+                    </div>
+                    
+                    <div class="form-text mt-1 conversion-display" data-field-name="{{ field.name }}"></div>
+                    
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endwith %}
+            
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Вага нетто (т)</label>
+                <input
+                  type="number"
+                  id="weight-net-display"
+                  class="form-control"
+                  step="0.001"
+                  readonly
+                >
+                <div class="form-text">Розраховується автоматично в тоннах</div>
+              </div>
+            </div>
+
+        {% elif field.name != 'gross_unit' and field.name != 'tare_unit' and field.name != 'loss_unit' and field.name != 'action_type' and field.name != 'note' %}
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+              </label>
+              {{ field }}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% for error in field.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+        
+        {% elif field.name == 'action_type' or field.name == 'note' %}
+          <div class="col-md-12">
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+              </label>
+              {{ field }}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% for error in field.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    
+    <div class="mt-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        💾 Зберегти
+      </button>
+      <a href="{% url url_name|add:'_list' %}" class="btn btn-secondary">
+        ⬅ Повернутися до списку
+      </a>
+    </div>
+  </form>
+</div>
+<style>
+/* Основний стиль Select2 під Bootstrap */
+.select2-container .select2-selection--single {
+    height: 38px !important;
+    padding: 6px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+}
+.select2-selection__rendered {
+    color: #212529 !important;
+    line-height: 26px !important;
+}
+/* ... (стилі Select2) ... */
+.select2-container--default .select2-results__option {
+    padding: 8px 12px;
+}
+.select2-container--default .select2-results__option--highlighted {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+.select2-container--default .select2-selection--multiple {
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 2px 6px;
+}
+/* Стиль для перемикача одиниць */
+.unit-switcher {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    width: 120px !important; /* Ширина для 'Тонни (т)' */
+}
+</style>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    
+    // Карта для прив'язки поля ваги до його перемикача одиниць
+    const unitMap = {
+        '#id_weight_gross': '#id_gross_unit',
+        '#id_weight_tare': '#id_tare_unit',
+        '#id_weight_loss': '#id_loss_unit'
+    };
+    
+    // Функція для форматування числа:
+    // - Якщо число ціле, відображає без дробової частини (наприклад, 1 000 кг).
+    // - Якщо число дробове, відображає з трьома знаками (наприклад, 1 000,500 кг).
+    const formatNumber = (num) => {
+        // Перевіряємо, чи є число цілим
+        if (num === Math.floor(num)) {
+            // Якщо ціле: мінімально 0 дробів, максимально 0 дробів
+            return num.toLocaleString('uk-UA', { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 0 
+            });
+        } else {
+            // Якщо дробове: мінімально 3 дроби, максимально 3 дроби
+            return num.toLocaleString('uk-UA', { 
+                minimumFractionDigits: 3, 
+                maximumFractionDigits: 3 
+            });
+        }
+    };
+
+    // Helper: Конвертує значення з вказаної одиниці ('t' або 'kg') у Тонни
+    function convertToTons(value, unit) {
+        if (unit === 'kg') {
+            return value / 1000;
+        }
+        return value; // Вже в тоннах
+    }
+
+    // 1. Функція для оновлення міток та відображення конвертації для ОДНОГО поля
+    function updateWeightDisplay(weightInput) {
+        const weightSelector = '#' + weightInput.attr('id');
+        const unitSelector = unitMap[weightSelector];
+        
+        if (!unitSelector) return;
+        
+        const unitSwitcher = $(unitSelector);
+        const fieldName = weightInput.attr('name');
+        
+        // Замінюємо кому на крапку для коректного парсингу
+        const rawValue = weightInput.val();
+        const value = parseFloat(rawValue.replace(/,/g, '.')) || 0; 
+        const unit = unitSwitcher.val() || 't';
+        
+        const unitLabelSpan = $(`.weight-unit-label-span[data-field-name="${fieldName}"]`);
+        const conversionDisplay = $(`.conversion-display[data-field-name="${fieldName}"]`);
+        
+        // Оновлення напису одиниці в дужках
+        const shortUnit = unit === 't' ? 'т' : 'кг';
+        unitLabelSpan.text(`(${shortUnit})`);
+        
+        let displayHTML = '';
+        if (rawValue.length > 0 && !isNaN(value) && value >= 0) {
+            let convertedValue;
+            let convertedUnit;
+
+            if (unit === 't') {
+                // Якщо введено тонни, показуємо скільки це кілограмів (t -> kg)
+                convertedValue = value * 1000;
+                convertedUnit = 'кг';
+            } else if (unit === 'kg') {
+                // Якщо введено кілограми, показуємо скільки це тонн (kg -> t)
+                convertedValue = value / 1000;
+                convertedUnit = 'т';
+            }
+            // Використовуємо оновлену функцію formatNumber
+            displayHTML = `Це приблизно <strong>${formatNumber(convertedValue)} ${convertedUnit}</strong>.`;
+        }
+        
+        conversionDisplay.html(displayHTML);
+    }
+    
+    // 2. Функція для оновлення ВСІХ вагових полів
+    function updateAllWeightDisplays() {
+        for (const selector in unitMap) {
+            updateWeightDisplay($(selector));
+        }
+    }
+
+
+    // 3. Розрахунок Ваги нетто (виконується в тоннах)
+    function calculateNet() {
+        // 1. Зчитуємо сирі значення та їх одиниці
+        const rawGross = parseFloat($('#id_weight_gross').val().replace(/,/g, '.')) || 0;
+        const grossUnit = $('#id_gross_unit').val() || 't';
+
+        const rawTare = parseFloat($('#id_weight_tare').val().replace(/,/g, '.')) || 0;
+        const tareUnit = $('#id_tare_unit').val() || 't';
+
+        const rawLoss = parseFloat($('#id_weight_loss').val().replace(/,/g, '.')) || 0;
+        const lossUnit = $('#id_loss_unit').val() || 't';
+
+        // 2. Конвертуємо всі значення в тонни
+        const grossTons = convertToTons(rawGross, grossUnit);
+        const tareTons = convertToTons(rawTare, tareUnit);
+        const lossTons = convertToTons(rawLoss, lossUnit);
+        
+        // 3. Розраховуємо нетто в тоннах
+        const netTons = grossTons - tareTons - lossTons;
+        
+        // 4. Відображаємо результат (в тоннах)
+        $('#weight-net-display').val(netTons.toFixed(3));
+        
+        // Оновлюємо відображення конвертації для всіх вагових полів
+        updateAllWeightDisplays();
+    }
+    
+
+    // Додаємо обробники подій
+    
+    // Подія зміни вводу на вагових полях
+    for (const selector in unitMap) {
+        $(selector).on('input', calculateNet);
+    }
+
+    // Подія зміни перемикача одиниць
+    for (const selector in unitMap) {
+        const unitSelector = unitMap[selector];
+        $(unitSelector).on('change', calculateNet);
+    }
+
+    // Початковий розрахунок та відображення
+    calculateNet();
+
+    // Ініціалізація Select2 для всіх select полів
+    $('select:not(.unit-switcher)').select2({
+        width: '100%',
+        language: 'uk',
+        placeholder: 'Оберіть значення...',
+        allowClear: true
+    });
+});
+</script>
+{% endblock %}

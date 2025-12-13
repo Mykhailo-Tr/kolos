@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout, authenticate, update_session_auth_hash # Імпортовано update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib import messages # Імпортовано messages
 
 from activity.models import ActivityLog
-from .forms import UserRegistrationForm, UserLoginForm, EditProfileForm
+from .forms import UserRegistrationForm, UserLoginForm, EditProfileForm, ChangePasswordForm # Імпортовано ChangePasswordForm
 
 
 def register_view(request):
@@ -14,6 +15,7 @@ def register_view(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
+            messages.success(request, "Реєстрація успішна. Ласкаво просимо!")
             return redirect("home")
     else:
         form = UserRegistrationForm()
@@ -35,6 +37,7 @@ def login_view(request):
 @login_required
 def logout_view(request):
     logout(request)
+    messages.info(request, "Ви успішно вийшли з облікового запису.")
     return redirect("login")
 
 
@@ -50,16 +53,57 @@ def profile_view(request):
 @login_required
 def edit_profile_view(request):
     user = request.user
+    
+    # Ініціалізація форм
+    profile_form = EditProfileForm(instance=user)
+    # Ініціалізація форми пароля для відображення в модальному вікні
+    password_form = ChangePasswordForm(user=request.user) 
+    
+    # Змінна для автоматичного відкриття модального вікна
+    open_password_modal = False 
 
     if request.method == "POST":
-        form = EditProfileForm(request.POST, instance=user)
-        if form.is_valid():
-            form.save()
-            return redirect("profile")
-    else:
-        form = EditProfileForm(instance=user)
+        # Логіка обробки POST-запиту
+        
+        if 'profile_submit' in request.POST:
+            profile_form = EditProfileForm(request.POST, instance=user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Дані профілю успішно оновлено!")
+                return redirect("edit_profile") 
+            else:
+                messages.error(request, "Помилка при оновленні даних профілю. Перевірте поля.")
+                # Форма пароля залишається чистою
+                password_form = ChangePasswordForm(user=request.user) 
 
-    return render(request, "accounts/edit_profile.html", {"form": form, "page": "edit_profile"})
+        elif 'password_submit' in request.POST:
+            password_form = ChangePasswordForm(user=request.user, data=request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)  
+                messages.success(request, 'Пароль успішно змінено!')
+                # Перенаправляємо, щоб очистити форму
+                return redirect('edit_profile') 
+            else:
+                messages.error(request, 'Помилка при зміні пароля. Будь ласка, перевірте поточний та новий паролі.')
+                # Якщо є помилки, встановлюємо прапорець для автоматичного відкриття модального вікна
+                open_password_modal = True
+                # Профільна форма залишається чистою
+                profile_form = EditProfileForm(instance=user) 
+
+    # Перевіряємо, чи є GET-параметр для відкриття модального вікна (наприклад, з profile.html)
+    if request.GET.get('action') == 'change_password':
+        open_password_modal = True
+
+    # Якщо є помилки, модальне вікно має бути відкрито (це вже встановлено в POST-обробнику)
+    
+    context = {
+        "form": profile_form,
+        "password_form": password_form,
+        "page": "edit_profile",
+        "open_password_modal": open_password_modal # Передаємо змінну для JS
+    }
+    return render(request, "accounts/edit_profile.html", context)
 
 
 @login_required
@@ -73,8 +117,10 @@ def delete_profile_view(request):
 
         if user is None:
             error = "Невірний пароль."
+            messages.error(request, "Невірний пароль.")
         else:
             request.user.delete()
+            messages.success(request, "Ваш обліковий запис було видалено.")
             return redirect("login")
 
     return render(request, "accounts/delete_profile.html", {"error": error})

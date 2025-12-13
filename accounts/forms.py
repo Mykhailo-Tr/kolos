@@ -1,7 +1,14 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
+from django.core.validators import RegexValidator
 from .models import User
 
+
+# Валідатор для номера телефону
+phone_validator = RegexValidator(
+    regex=r'^\+?\d{9,15}$', 
+    message="Номер телефону має бути в міжнародному форматі (наприклад, +380XXXXXXXXX). Дозволено 9-15 цифр."
+)
 
 
 class UserRegistrationForm(UserCreationForm):
@@ -21,7 +28,8 @@ class UserRegistrationForm(UserCreationForm):
         max_length=20, 
         required=False, 
         label="Телефон",
-        widget=forms.TextInput(attrs={"class": "form-control"})
+        validators=[phone_validator], # <-- ДОДАНО ВАЛІДАЦІЮ
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "+380XXXXXXXXX"})
     )
     password1 = forms.CharField(
         label="Пароль",
@@ -50,13 +58,48 @@ class UserLoginForm(AuthenticationForm):
 
 
 class EditProfileForm(forms.ModelForm):
+    # Явно перевизначаємо phone, щоб додати валідатор
+    phone = forms.CharField(
+        max_length=20, 
+        required=False, 
+        label="Телефон",
+        validators=[phone_validator], # <-- ДОДАНО ВАЛІДАЦІЮ
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "+380XXXXXXXXX"})
+    )
+    
     class Meta:
         model = User
-        fields = ["username", "first_name", "last_name", "phone"]  # role не даємо редагувати звичайним користувачам
+        fields = ["username", "first_name", "last_name", "phone"]  # role не даємо редагувати
         widgets = {
             "username": forms.TextInput(attrs={"class": "form-control"}),
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name": forms.TextInput(attrs={"class": "form-control"}),
-            "phone": forms.TextInput(attrs={"class": "form-control"}),
+            # "phone" вже перевизначено вище з валідатором
         }
-        labels = {"username": "Логін", "first_name": "Ім'я", "last_name": "Прізвище", "email": "Email", "phone": "Телефон",}
+        labels = {"username": "Логін", "first_name": "Ім'я", "last_name": "Прізвище", "phone": "Телефон",}
+
+
+# Нова форма для зміни пароля (для використання в edit_profile_view)
+class ChangePasswordForm(PasswordChangeForm):
+    # Перевизначаємо віджети для застосування класу form-control
+    old_password = forms.CharField(
+        label="Поточний пароль",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control"})
+    )
+    new_password1 = forms.CharField(
+        label="Новий пароль",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control"})
+    )
+    new_password2 = forms.CharField(
+        label="Підтвердження нового пароля",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control"})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Прибираємо email, якщо він є у базовому класі
+        if 'email' in self.fields:
+            del self.fields['email']

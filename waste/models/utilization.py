@@ -11,7 +11,7 @@ class Utilization(WasteOperation):
     quantity = models.DecimalField(
         max_digits=10,
         decimal_places=3,
-        verbose_name="Кількість (т)"
+        verbose_name="Кількість"
     )
 
     class Meta:

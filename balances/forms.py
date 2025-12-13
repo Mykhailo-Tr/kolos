@@ -2,7 +2,41 @@ from django import forms
 from .models import Balance, BalanceSnapshot, BalanceHistory
 
 
-class BalanceForm(forms.ModelForm):
+UNIT_CHOICES = (
+    ('t', 'Тонни (т)'),
+    ('kg', 'Кілограми (кг)'),
+)
+
+# Базовий клас для форм з полем quantity, який має логіку перетворення
+class BaseQuantityForm(forms.ModelForm):
+    # Додаємо нове поле для вибору одиниці виміру. Воно не пов'язане з моделлю.
+    unit = forms.ChoiceField(
+        choices=UNIT_CHOICES,
+        label="", 
+        initial='t',  
+        widget=forms.Select(attrs={'class': 'form-select unit-switcher'}) 
+    )
+
+    def clean_quantity(self):
+        q = self.cleaned_data.get('quantity')
+        
+        # ОТРИМУЄМО ОДИНИЦЮ З СИРИХ ДАНИХ (self.data) ДЛЯ НАДІЙНОСТІ
+        # Якщо форма була відправлена (тобто self.data існує)
+        unit = self.data.get('unit') if hasattr(self, 'data') else 't'
+        
+        # 1. Валідація на від'ємне значення
+        if q is not None and q < 0:
+            raise forms.ValidationError("Кількість не може бути від'ємною.")
+            
+        # 2. Логіка перетворення: Всі значення зберігаємо у ТОННАХ (t)
+        if q is not None and unit == 'kg':
+            # q тут вже має бути числом завдяки NumberInput та Django
+            q = q / 1000 # <--- ТУТ ВІДБУВАЄТЬСЯ ДІЛЕННЯ
+        
+        # Повертаємо стандартизоване значення (вже в тоннах)
+        return q
+
+class BalanceForm(BaseQuantityForm):
     class Meta:
         model = Balance
         fields = ['place', 'culture', 'balance_type', 'quantity']
@@ -10,15 +44,8 @@ class BalanceForm(forms.ModelForm):
             'place': forms.Select(attrs={'class': 'form-select'}),
             'culture': forms.Select(attrs={'class': 'form-select'}),
             'balance_type': forms.Select(attrs={'class': 'form-select'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control quantity-input', 'step': '0.001'}),
         }
-
-    def clean_quantity(self):
-        q = self.cleaned_data.get('quantity')
-        if q is not None and q < 0:
-            raise forms.ValidationError("Кількість не може бути від'ємною.")
-        return q
-
 
 class BalanceSnapshotForm(forms.ModelForm):
     class Meta:
@@ -36,7 +63,7 @@ class BalanceSnapshotForm(forms.ModelForm):
             self.initial['snapshot_date'] = self.instance.snapshot_date.strftime('%Y-%m-%dT%H:%M')
 
 
-class BalanceHistoryForm(forms.ModelForm):
+class BalanceHistoryForm(BaseQuantityForm):
     class Meta:
         model = BalanceHistory
         fields = ['place', 'culture', 'balance_type', 'quantity']
@@ -44,14 +71,8 @@ class BalanceHistoryForm(forms.ModelForm):
             'place': forms.Select(attrs={'class': 'form-select'}),
             'culture': forms.Select(attrs={'class': 'form-select'}),
             'balance_type': forms.Select(attrs={'class': 'form-select'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control quantity-input', 'step': '0.001'}),
         }
-
-    def clean_quantity(self):
-        q = self.cleaned_data.get('quantity')
-        if q is not None and q < 0:
-            raise forms.ValidationError("Кількість не може бути від'ємною.")
-        return q
     
 
 class EmptySnapshotForm(forms.ModelForm):

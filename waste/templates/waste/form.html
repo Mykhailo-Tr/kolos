@@ -57,20 +57,110 @@
 
         <div class="row g-3">
             {% for field in form.visible_fields %}
-                <div class="col-md-6 {% if field.name == 'note'%}col-md-12{% endif %}">
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
-                            {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-                        </label>
-                        {{ field }}
-                        {% if field.help_text %}
-                            <div class="form-text">{{ field.help_text }}</div>
-                        {% endif %}
-                        {% for error in field.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                        {% endfor %}
+                
+                {% if field.name == 'quantity' %}
+                    {% with quantity_field=field unit_field=form.input_unit %}
+                        <div class="col-md-6">
+                            <div class="mb-3" id="field-group-quantity">
+                                <label for="{{ quantity_field.id_for_label }}" class="form-label fw-semibold">
+                                    {{ quantity_field.label }}
+                                    <span class="unit-label-span" data-field-name="quantity">({{ unit_field.value|default:'т' }})</span>
+                                    {% if quantity_field.field.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                
+                                <div class="input-group">
+                                    {{ quantity_field }}
+                                    <span class="input-group-text p-0">
+                                        {{ form.input_unit }}
+                                    </span>
+                                </div>
+                                
+                                <div class="form-text mt-1 conversion-display" data-field-name="quantity"></div>
+                                
+                                {% if quantity_field.help_text %}
+                                    <div class="form-text">{{ quantity_field.help_text }}</div>
+                                {% endif %}
+                                {% for error in quantity_field.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endwith %}
+                
+                {% elif field.name == 'input_quantity' %}
+                    {% with quantity_field=field unit_field=form.input_unit %}
+                        <div class="col-md-6">
+                            <div class="mb-3" id="field-group-input_quantity">
+                                <label for="{{ quantity_field.id_for_label }}" class="form-label fw-semibold">
+                                    {{ quantity_field.label }}
+                                    <span class="unit-label-span" data-field-name="input_quantity">({{ unit_field.value|default:'т' }})</span>
+                                    {% if quantity_field.field.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                
+                                <div class="input-group">
+                                    {{ quantity_field }}
+                                    <span class="input-group-text p-0">
+                                        {{ form.input_unit }}
+                                    </span>
+                                </div>
+                                
+                                <div class="form-text mt-1 conversion-display" data-field-name="input_quantity"></div>
+                                
+                                {% if quantity_field.help_text %}
+                                    <div class="form-text">{{ quantity_field.help_text }}</div>
+                                {% endif %}
+                                {% for error in quantity_field.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endwith %}
+                
+                {% elif field.name == 'output_quantity' %}
+                    {% with quantity_field=field unit_field=form.output_unit %}
+                        <div class="col-md-6">
+                            <div class="mb-3" id="field-group-output_quantity">
+                                <label for="{{ quantity_field.id_for_label }}" class="form-label fw-semibold">
+                                    {{ quantity_field.label }}
+                                    <span class="unit-label-span" data-field-name="output_quantity">({{ unit_field.value|default:'т' }})</span>
+                                    {% if quantity_field.field.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                
+                                <div class="input-group">
+                                    {{ quantity_field }}
+                                    <span class="input-group-text p-0">
+                                        {{ form.output_unit }}
+                                    </span>
+                                </div>
+                                
+                                <div class="form-text mt-1 conversion-display" data-field-name="output_quantity"></div>
+                                
+                                {% if quantity_field.help_text %}
+                                    <div class="form-text">{{ quantity_field.help_text }}</div>
+                                {% endif %}
+                                {% for error in quantity_field.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endwith %}
+
+                {% elif field.name != 'input_unit' and field.name != 'output_unit' %}
+                    <div class="col-md-6 {% if field.name == 'note'%}col-md-12{% endif %}">
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                                {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             {% endfor %}
         </div>
 
@@ -79,5 +169,81 @@
             <a href="{% url 'waste_list' %}" class="btn btn-secondary">⬅ Повернутися до списку</a>
         </div>
     </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Функція для форматування числа
+            const formatNumber = (num) => {
+                // Перевіряємо, чи є число цілим (ігноруючи незначні помилки плаваючої точки)
+                if (Math.abs(num - Math.floor(num)) < 1e-9) { // Використовуємо допуск для цілих чисел
+                    // Якщо ціле: мінімально 0 дробів, максимально 0 дробів
+                    return num.toLocaleString('uk-UA', { 
+                        minimumFractionDigits: 0, 
+                        maximumFractionDigits: 0 
+                    });
+                } else {
+                    // Якщо дробове: мінімально 3 дроби, максимально 3 дроби
+                    return num.toLocaleString('uk-UA', { 
+                        minimumFractionDigits: 3, 
+                        maximumFractionDigits: 3 
+                    });
+                }
+            };
+
+            // Функція, яка обробляє конкретне поле кількості та його перемикач
+            const setupUnitSwitcher = (quantityFieldSelector, unitFieldSelector) => {
+                
+                const quantityInput = document.querySelector(quantityFieldSelector);
+                const unitSwitcher = document.querySelector(unitFieldSelector);
+                
+                if (!quantityInput || !unitSwitcher) return; 
+
+                // Визначаємо унікальний ідентифікатор поля, щоб знайти відповідні елементи
+                const fieldName = quantityInput.name; 
+
+                const convertedValueDisplay = document.querySelector(`.conversion-display[data-field-name="${fieldName}"]`);
+                const unitLabelSpan = document.querySelector(`.unit-label-span[data-field-name="${fieldName}"]`);
+
+                const updateDisplay = () => {
+                    // Замінюємо кому на крапку для коректного парсингу
+                    const value = parseFloat(quantityInput.value.replace(/,/g, '.')); 
+                    const unit = unitSwitcher.value;
+                    let displayHTML = '';
+
+                    // Оновлення напису одиниці в дужках
+                    unitLabelSpan.textContent = `(${unit})`;
+
+                    if (!isNaN(value)) {
+                        if (unit === 't') {
+                            // Якщо введено тонни, показуємо скільки це кілограмів (t -> kg)
+                            const kgValue = value * 1000;
+                            displayHTML = `Це приблизно <strong>${formatNumber(kgValue)} кг</strong>.`;
+                        } else if (unit === 'kg') {
+                            // Якщо введено кілограми, показуємо скільки це тонн (kg -> t)
+                            const tValue = value / 1000;
+                            displayHTML = `Це приблизно <strong>${formatNumber(tValue)} т</strong>.`;
+                        }
+                    } else {
+                        convertedValueDisplay.innerHTML = '';
+                        return;
+                    }
+
+                    convertedValueDisplay.innerHTML = displayHTML;
+                };
+
+                updateDisplay(); 
+                quantityInput.addEventListener('input', updateDisplay);
+                unitSwitcher.addEventListener('change', updateDisplay);
+            };
+
+            // 1. Обробка полів для RecyclingForm
+            setupUnitSwitcher('[name="input_quantity"]', '[name="input_unit"]');
+            setupUnitSwitcher('[name="output_quantity"]', '[name="output_unit"]');
+            
+            // 2. Обробка поля для UtilizationForm
+            setupUnitSwitcher('[name="quantity"]', '[name="input_unit"]');
+        });
+    </script>
 </div>
 {% endblock %}

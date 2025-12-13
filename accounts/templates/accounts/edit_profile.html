@@ -11,6 +11,8 @@
     --header-bg: #f8fafc;
     --dark-text: #1e293b;
     --error-bg: #fee2e2;
+    --success-bg: #d1fae5;
+    --success-text: #059669;
   }
 
   /* 📋 Контейнер форми */
@@ -76,14 +78,28 @@
     color: var(--dark-text);
     box-sizing: border-box;
   }
+  
+  /* Select-поля (для сумісності з роллю, якщо вона додана) */
+  .form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: white;
+    color: var(--dark-text);
+    box-sizing: border-box;
+  }
 
-  .form-group input:focus {
+  .form-group input:focus,
+  .form-group select:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 
-  /* ⚠️ Помилки */
+  /* ⚠️ Помилки та повідомлення */
   .alert-danger {
     background: var(--error-bg);
     color: var(--danger-color);
@@ -93,6 +109,19 @@
     font-size: 0.9rem;
     margin-top: 0.5rem;
     margin-bottom: 1rem;
+    font-weight: 500;
+  }
+
+  .alert-success { 
+    background: var(--success-bg);
+    color: var(--success-text);
+    padding: 10px 14px;
+    border-radius: 6px;
+    border-left: 3px solid var(--success-text);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
   }
 
   /* 🎬 Кнопки */
@@ -133,25 +162,73 @@
     color: var(--dark-text);
     text-decoration: none;
   }
+  
+  .btn-password { 
+    background: #f3f4f6;
+    color: var(--dark-text);
+    border: 1px solid #d1d5db;
+    margin-top: 5px; 
+    margin-bottom: 15px;
+  }
+  .btn-password:hover {
+    background: #e5e7eb;
+  }
+  
+  /* ==================================== */
+  /* 🔑 СТИЛІ МОДАЛЬНОГО ВІКНА ПАРОЛЯ */
+  /* ==================================== */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none; /* Приховано за замовчуванням */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
 
-  /* 📱 Адаптивність */
-  @media (max-width: 768px) {
-    .edit-container {
-      padding: 0 1rem;
-      margin: 2rem auto;
-    }
+  .modal-overlay.open {
+    display: flex; /* Показати, коли відкрито */
+  }
 
-    .edit-header {
-      padding: 20px;
-    }
+  .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 400px; /* Обмеження ширини */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: fadeIn 0.3s ease-out;
+  }
 
-    .edit-header h2 {
-      font-size: 1.3rem;
-    }
+  .modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--secondary-color);
+    line-height: 1;
+  }
+  
+  .modal-content h3 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--dark-text);
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+  }
 
-    .edit-body {
-      padding: 20px;
-    }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
   }
 </style>
 
@@ -164,10 +241,21 @@
       </h2>
     </div>
 
-    <form method="post">
-      <div class="edit-body">
+    <div class="edit-body">
+      
+      {# ВІДОБРАЖЕННЯ ЗАГАЛЬНИХ ПОВІДОМЛЕНЬ (Django messages) #}
+      {% if messages %}
+          {% for message in messages %}
+              <div class="alert-{{ message.tags }}">
+                  {{ message }}
+              </div>
+          {% endfor %}
+      {% endif %}
+
+      <form method="post" action="{% url 'edit_profile' %}">
         {% csrf_token %}
 
+        {# Загальні помилки форми профілю #}
         {% if form.non_field_errors %}
         <div class="alert-danger">
           {% for error in form.non_field_errors %}
@@ -176,6 +264,9 @@
         </div>
         {% endif %}
 
+        <h3>Основні дані</h3>
+        
+        {# ПОЛЯ ФОРМИ ПРОФІЛЮ #}
         <div class="form-group">
           {{ form.username.label_tag }}
           {{ form.username }}
@@ -216,10 +307,104 @@
           {% endif %}
         </div>
 
-        <button type="submit" class="btn-edit btn-primary">Зберегти</button>
-        <a href="{% url 'profile' %}" class="btn-edit btn-secondary">Назад до профілю</a>
-      </div>
+        <button type="submit" name="profile_submit" class="btn-edit btn-primary">Зберегти дані профілю</button> 
+      </form>
+        
+      {# КНОПКА ДЛЯ ВІДКРИТТЯ МОДАЛЬНОГО ВІКНА ПАРОЛЯ #}
+      <button type="button" id="open-password-modal-btn" class="btn-edit btn-password" onclick="openModal('password-modal')">
+        <span>🔑</span>
+        <span>Змінити пароль</span>
+      </button>
+
+      <a href="{% url 'profile' %}" class="btn-edit btn-secondary">Назад до профілю</a>
+
+    </div>
+  </div>
+</div>
+
+{# ==================================== #}
+{# МОДАЛЬНЕ ВІКНО ЗМІНИ ПАРОЛЯ #}
+{# ==================================== #}
+<div id="password-modal" class="modal-overlay">
+  <div class="modal-content">
+    <button type="button" class="modal-close-btn" onclick="closeModal('password-modal')">&times;</button>
+    
+    <h3>Зміна пароля</h3>
+
+    <form method="post" action="{% url 'edit_profile' %}">
+        {% csrf_token %}
+
+        {# Загальні помилки форми пароля #}
+        {% if password_form.non_field_errors %}
+        <div class="alert-danger">
+          {% for error in password_form.non_field_errors %}
+            {{ error }}<br>
+          {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="form-group">
+          {{ password_form.old_password.label_tag }}
+          {{ password_form.old_password }}
+          {% if password_form.old_password.errors %}
+          <div class="alert-danger">
+            {{ password_form.old_password.errors|join:", " }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          {{ password_form.new_password1.label_tag }}
+          {{ password_form.new_password1 }}
+          {% if password_form.new_password1.errors %}
+          <div class="alert-danger">
+            {{ password_form.new_password1.errors|join:", " }}
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          {{ password_form.new_password2.label_tag }}
+          {{ password_form.new_password2 }}
+          {% if password_form.new_password2.errors %}
+          <div class="alert-danger">
+            {{ password_form.new_password2.errors|join:", " }}
+          </div>
+          {% endif %}
+        </div>
+
+        <button type="submit" name="password_submit" class="btn-edit btn-primary">Зберегти новий пароль</button>
     </form>
   </div>
 </div>
+{# ==================================== #}
+
+
+<script>
+    // Функція відкриття модального вікна
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('open');
+    }
+
+    // Функція закриття модального вікна
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('open');
+    }
+    
+    // Автоматичне відкриття модального вікна при завантаженні, якщо є помилки
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('password-modal');
+        // Логіка, якщо є прапорець open_password_modal від view (після помилки або переходу з profile.html)
+        {% if open_password_modal %}
+            openModal('password-modal');
+        {% endif %}
+        
+        // Закриття модального вікна по кліку поза ним
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeModal('password-modal');
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -18,3 +18,14 @@ pytz
 
 gunicorn
 transliterate
+
+reportlab
+PyPDF2
+
+# Excel support (опціонально, для експорту в Excel)
+openpyxl
+xlsxwriter
+
+# Додаткові утиліти
+python-dateutil
+pillow

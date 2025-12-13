@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+/* Залишаємо стилі без змін для чистоти та узгодженості інтерфейсу */
+  :root {
+    --primary: #2563eb;
+    --border: #e2e8f0;
+    --bg-light: #f8fafc;
+  }
+
+  .report-form-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+  }
+
+  .form-header {
+    background: white;
+    border-bottom: 3px solid var(--primary);
+    padding: 20px 25px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+  }
+
+  .form-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+    color: #1e293b;
+  }
+
+  .form-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .form-section {
+    margin-bottom: 30px;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #1e293b;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .form-control, .form-select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+  }
+
+  .form-control:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .form-check {
+    margin-bottom: 10px;
+  }
+
+  .form-check-input {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-right: 8px;
+  }
+
+  .form-check-label {
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-generate {
+    background: var(--primary);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-generate:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+  }
+
+  .btn-cancel {
+    background: white;
+    color: #64748b;
+    padding: 12px 30px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover {
+    background: var(--bg-light);
+    color: #1e293b;
+    text-decoration: none;
+  }
+
+  .help-text {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 5px;
+  }
+
+  .error-message {
+    color: #ef4444;
+    font-size: 0.85rem;
+    margin-top: 5px;
+  }
+</style>
+
+<div class="report-form-container">
+  <div class="form-header">
+    <h1 class="form-title">📊 {{ report_title }}</h1>
+  </div>
+
+  <div class="form-card">
+    <form method="post" id="reportForm">
+      {% csrf_token %}
+
+      <div class="form-section">
+        <h3 class="section-title">Параметри звіту</h3>
+
+        <div class="row">
+          {% if form.report_date %}
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form.report_date.label_tag }}
+              {{ form.report_date }}
+              {% if form.report_date.help_text %}<div class="help-text">{{ form.report_date.help_text }}</div>{% endif %}
+              {% if form.report_date.errors %}<div class="error-message">{{ form.report_date.errors }}</div>{% endif %}
+            </div>
+          </div>
+          {% elif form.date_from and form.date_to %}
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form.date_from.label_tag }}
+              {{ form.date_from }}
+              {% if form.date_from.errors %}<div class="error-message">{{ form.date_from.errors }}</div>{% endif %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form.date_to.label_tag }}
+              {{ form.date_to }}
+              {% if form.date_to.errors %}<div class="error-message">{{ form.date_to.errors }}</div>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="row">
+          {% if form.place %}
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form.place.label_tag }}
+              {{ form.place }}
+              <div class="help-text">Залиште порожнім для всіх місць</div>
+              {% if form.place.errors %}<div class="error-message">{{ form.place.errors }}</div>{% endif %}
+            </div>
+          </div>
+          {% elif form.field %}
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form.field.label_tag }}
+              {{ form.field }}
+              <div class="help-text">Залиште порожнім для всіх полів</div>
+              {% if form.field.errors %}<div class="error-message">{{ form.field.errors }}</div>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if form.culture %}
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form.culture.label_tag }}
+              {{ form.culture }}
+              <div class="help-text">Залиште порожнім для всіх культур</div>
+              {% if form.culture.errors %}<div class="error-message">{{ form.culture.errors }}</div>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="row">
+            {% if form.balance_type %}
+            <div class="col-md-6">
+                <div class="form-group">
+                    {{ form.balance_type.label_tag }}
+                    {{ form.balance_type }}
+                    {% if form.balance_type.errors %}<div class="error-message">{{ form.balance_type.errors }}</div>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if form.place_to %}
+            <div class="col-md-6">
+                <div class="form-group">
+                    {{ form.place_to.label_tag }}
+                    {{ form.place_to }}
+                    {% if form.place_to.errors %}<div class="error-message">{{ form.place_to.errors }}</div>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if form.action_type %}
+            <div class="col-md-6">
+                <div class="form-group">
+                    {{ form.action_type.label_tag }}
+                    {{ form.action_type }}
+                    {% if form.action_type.errors %}<div class="error-message">{{ form.action_type.errors }}</div>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if form.group_by %}
+            <div class="col-md-6">
+                <div class="form-group">
+                    {{ form.group_by.label_tag }}
+                    {{ form.group_by }}
+                    {% if form.group_by.errors %}<div class="error-message">{{ form.group_by.errors }}</div>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3 class="section-title">Налаштування виводу</h3>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form.output_format.label_tag }}
+              {{ form.output_format }}
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form.orientation.label_tag }}
+              {{ form.orientation }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-check">
+          {{ form.include_charts }}
+          {{ form.include_charts.label_tag }}
+          {% if form.include_charts.help_text %}
+            <div class="help-text">{{ form.include_charts.help_text }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3 class="section-title">Збереження шаблону (опціонально)</h3>
+
+        <div class="form-check">
+          {{ form.save_template }}
+          {{ form.save_template.label_tag }}
+        </div>
+
+        <div class="form-group" id="templateNameGroup" style="display: {% if form.template_name.value %}block{% else %}none{% endif %};">
+          {{ form.template_name.label_tag }}
+          {{ form.template_name }}
+          {% if form.template_name.errors %}
+            <div class="error-message">{{ form.template_name.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-generate">
+          📄 Згенерувати звіт
+        </button>
+        <a href="{% url 'pdf_reports_dashboard' %}" class="btn-cancel">
+          ← Назад
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const saveTemplateCheckbox = document.getElementById('id_save_template');
+  const templateNameGroup = document.getElementById('templateNameGroup');
+  const templateNameInput = document.getElementById('id_template_name');
+  
+  // Функція для перевірки наявності поля у формі
+  function hasField(fieldName) {
+      return !!document.getElementById(`id_${fieldName}`);
+  }
+
+  // 1. Логіка збереження шаблону
+  if (saveTemplateCheckbox) {
+    // Встановлюємо початковий стан, якщо форма була відправлена з помилками
+    if (saveTemplateCheckbox.checked) {
+        templateNameGroup.style.display = 'block';
+        templateNameInput.required = true;
+    }
+
+    saveTemplateCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        templateNameGroup.style.display = 'block';
+        templateNameInput.required = true;
+      } else {
+        templateNameGroup.style.display = 'none';
+        templateNameInput.required = false;
+      }
+    });
+  }
+
+  // 2. Валідація форми
+  const form = document.getElementById('reportForm');
+  form.addEventListener('submit', function(e) {
+    let isValid = true;
+    
+    // Перевірка дати/періоду (обов'язкові поля)
+    if (hasField('report_date')) {
+      const reportDate = document.getElementById('id_report_date').value;
+      if (!reportDate) {
+        alert('Будь ласка, оберіть дату звіту');
+        isValid = false;
+      }
+    } else if (hasField('date_from')) {
+      const dateFrom = document.getElementById('id_date_from').value;
+      const dateTo = document.getElementById('id_date_to').value;
+      if (!dateFrom || !dateTo) {
+        alert('Будь ласка, оберіть початок та кінець періоду');
+        isValid = false;
+      }
+    }
+
+    // Перевірка назви шаблону
+    if (isValid && saveTemplateCheckbox && saveTemplateCheckbox.checked && templateNameInput && !templateNameInput.value) {
+      alert('Будь ласка, введіть назву шаблону');
+      templateNameInput.focus();
+      isValid = false;
+    }
+    
+    if (!isValid) {
+        e.preventDefault();
+        return false;
+    }
+  });
+});
+</script>
+
+{% endblock %}

@@ -16,12 +16,12 @@ class Recycling(WasteOperation):
     input_quantity = models.DecimalField(
         max_digits=10,
         decimal_places=3,
-        verbose_name="Кількість (т)"
+        verbose_name="Кількість"
     )
     output_quantity = models.DecimalField(
         max_digits=10,
         decimal_places=3,
-        verbose_name="Кількість на виході (т)"
+        verbose_name="Кількість на виході"
     )
 
     class Meta:

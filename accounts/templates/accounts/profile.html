@@ -129,6 +129,17 @@
     text-decoration: none;
   }
 
+  .btn-password { /* Спеціальний стиль для кнопки зміни пароля */
+    background: #4ade80; 
+    color: white;
+  }
+
+  .btn-password:hover {
+    background: #16a34a;
+    color: white;
+    text-decoration: none;
+  }
+
   .btn-logout {
     background: var(--secondary-color);
     color: white;
@@ -217,7 +228,7 @@
       <div class="profile-field">
         <span class="field-label">Роль:</span>
         <span class="field-value">
-          <span class="role-badge">{{ user.role|default:"Користувач" }}</span>
+          <span class="role-badge">{{ user.get_role_display|default:"Користувач" }}</span>
         </span>
       </div>
 
@@ -230,7 +241,8 @@
     <div class="profile-actions">
       <a href="{% url 'edit_profile' %}" class="btn-profile btn-edit">
         <span>✏️</span>
-        <span>Редагувати</span>
+        <span>Редагувати профіль</span>
+      </a>
       </a>
       <a href="{% url 'logout' %}" class="btn-profile btn-logout">
         <span>🚪</span>

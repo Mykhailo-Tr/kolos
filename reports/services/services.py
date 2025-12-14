@@ -404,9 +404,7 @@ class ReportService:
         Використовується в get_total_income_period_data.
         """
         return ReportService.get_fields_report(date_from, date_to, filters)
-        
-    # ... (решта методів: export_to_csv, get_daily_summary, _aggregate_income_data, get_total_income_period_data)
-    
+            
     @staticmethod
     def export_to_csv(data, columns):
         """Експорт даних в CSV"""

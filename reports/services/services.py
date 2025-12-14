@@ -285,6 +285,7 @@ class ReportService:
         for journal in queryset:
             data.append({
                 'date': journal.date_time.strftime('%d.%m.%Y'),
+                'time': journal.date_time.strftime('%H:%M'),
                 'document': journal.document_number or '—',
                 'action_type': journal.get_action_type_display() if journal.action_type else '—',
 
@@ -358,6 +359,7 @@ class ReportService:
         for journal in queryset:
             data.append({
                 'date': journal.date_time.strftime('%d.%m.%Y'),
+                'time': journal.date_time.strftime('%H:%M'),
                 'document': journal.document_number or '—',
                 'field': journal.field.name if journal.field else '—',
 

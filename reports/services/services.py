@@ -287,11 +287,21 @@ class ReportService:
                 'date': journal.date_time.strftime('%d.%m.%Y'),
                 'document': journal.document_number or '—',
                 'action_type': journal.get_action_type_display() if journal.action_type else '—',
-                'place_from': journal.display_place_from or '—',
-                'place_to': journal.display_place_to or '—',
+
+                'place_from': ReportService._resolve_place(
+                    journal.place_from,
+                    journal.place_from_text
+                ),
+
+                'place_to': ReportService._resolve_place(
+                    journal.place_to,
+                    journal.place_to_text
+                ),
+
                 'culture': journal.culture.name if journal.culture else '—',
-                'weight_net': float(journal.weight_net) if journal.weight_net else 0.0,
+                'weight_net': float(journal.weight_net or 0),
             })
+
         
         aggregation = {
             'total_weight': sum(item['weight_net'] for item in data) if data else 0,
@@ -350,11 +360,16 @@ class ReportService:
                 'date': journal.date_time.strftime('%d.%m.%Y'),
                 'document': journal.document_number or '—',
                 'field': journal.field.name if journal.field else '—',
-                'place_to': journal.place_to.name if journal.place_to else '—',
+
+                'place_to': ReportService._resolve_place(
+                    journal.place_to
+                ),
+
                 'culture': journal.culture.name if journal.culture else '—',
-                'weight_net': float(journal.weight_net) if journal.weight_net else 0.0,
-                # Додамо place_from для сумісності з логікою get_total_income_period_data
-                'place_from': journal.field.name if journal.field else '—', 
+                'weight_net': float(journal.weight_net or 0),
+
+                # важливо для агрегацій
+                'place_from': journal.field.name if journal.field else '—',
             })
         
         aggregation = {
@@ -505,6 +520,20 @@ class ReportService:
             'sparklines': sparkline_data,
             'grand_total': today_weigher['total'] + today_shipment['in_total'] + today_shipment['out_total'] + today_fields['total']
         }
+        
+    @staticmethod
+    def _resolve_place(place_obj, place_text=None):
+        """
+        Уніфіковане отримання назви місця:
+        FK → name
+        текст → text
+        None → —
+        """
+        if place_obj:
+            return place_obj.name
+        if place_text:
+            return place_text
+        return '—'
         
     @staticmethod
     def _aggregate_income_data(data):

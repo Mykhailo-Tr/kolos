@@ -576,119 +576,119 @@ class ReportPDFBuilder:
     @staticmethod
     def build_total_income_period_report(data, date_from, date_to, filters=None):
         """Створює звіт 'Прихід зерна (Загальний за період)'."""
+
         filters = filters or {}
+
         generator = PDFReportGenerator(
             "Прихід зерна (Загальний за період)",
             orientation=filters.get('orientation', 'portrait')
         )
 
-        date_range = (date_from.strftime('%d.%m.%Y'), date_to.strftime('%d.%m.%Y'))
+        date_range = (
+            date_from.strftime('%d.%m.%Y'),
+            date_to.strftime('%d.%m.%Y')
+        )
+
         generator.add_header(
             subtitle="Загальне надходження (Поля + Ввезення)",
             date_range=date_range
         )
 
-        # --- Зведена таблиця (Загальний звіт) ---
+        # =========================================================
+        # Зведена інформація
+        # =========================================================
         generator.add_subtitle("Зведена інформація (Загалом)", level=1)
 
-        total_weight = data['aggregation']['total_weight']
-        culture_agg = data['aggregation']['by_culture']
+        aggregation = data.get('aggregation', {})
+        total_weight = aggregation.get('total_weight', 0.0)
+        culture_agg = aggregation.get('by_culture', {})
 
-        # 1. Таблиця "Загальна вага"
-        summary_data = [
-            ['Загальна вага приходу', f"{total_weight:,.3f} т"]
-        ]
         generator.add_table(
             headers=['Параметр', 'Значення'],
-            data=summary_data,
+            data=[['Загальна вага приходу', f"{total_weight:,.3f} т"]],
             col_widths=[6.5 * cm, 6.5 * cm],
             style=[('FONTSIZE', (0, 0), (-1, -1), 10)]
         )
 
         generator.add_spacer(8)
 
-        # 2. Агрегація по культурах
         if culture_agg:
-            rows = [[culture, f"{weight:,.3f}"] for culture, weight in culture_agg.items()]
-
             generator.add_table(
                 headers=['Культура', 'Вага (т)'],
-                data=rows,
+                data=[[c, f"{w:,.3f}"] for c, w in culture_agg.items()],
                 col_widths=[6.5 * cm, 6.5 * cm],
                 style=[('FONTSIZE', (0, 0), (-1, -1), 10)]
             )
 
-        # --- Окремий звіт 1: Надходження з полів ---
+        # =========================================================
+        # 1. Надходження з полів
+        # =========================================================
         generator.add_page_break()
         generator.add_subtitle("1. Надходження з полів", level=1)
 
-        field_data = data['field_income']
-        field_agg = data['aggregation']['field_aggregation']
+        rows = data.get('data', [])
+
+        field_data = [r for r in rows if r.get('source') == 'Поле']
+        field_agg = aggregation.get('field_aggregation', {})
 
         if field_data:
-            # Зведена інформація по полях
-            field_summary = [
-                ['Загальна вага з полів', f"{field_agg.get('total_weight', 0.0):,.3f} т"]
-            ]
-
             generator.add_table(
                 headers=['Параметр', 'Значення'],
-                data=field_summary,
+                data=[['Загальна вага з полів', f"{field_agg.get('total_weight', 0.0):,.3f} т"]],
                 col_widths=[6.5 * cm, 6.5 * cm]
             )
+
             generator.add_spacer(8)
 
-            # Детальна таблиця
-            headers = ['Дата', 'Час', 'Документ', 'Поле', 'Культура', 'На місце', 'Вага (т)']
-            table_data = [
-                [
-                    r.get('date'), r.get('time'), r.get('document'),
-                    r.get('field'), r.get('culture'), r.get('place_to'),
-                    f"{r.get('weight_net', 0.0):,.3f}"
+            generator.add_table(
+                headers=['Дата', 'Час', 'Документ', 'Поле', 'Культура', 'На місце', 'Вага (т)'],
+                data=[
+                    [
+                        r.get('date'), r.get('time'), r.get('document'),
+                        r.get('field'), r.get('culture'),
+                        r.get('place_to'),
+                        f"{r.get('weight_net', 0.0):,.3f}"
+                    ]
+                    for r in field_data
                 ]
-                for r in field_data
-            ]
-            generator.add_table(headers, table_data)
-
+            )
         else:
             generator.add_paragraph("Немає надходжень з полів за вказаний період.")
 
-        # --- Окремий звіт 2: Зовнішнє ввезення ---
+        # =========================================================
+        # 2. Зовнішнє ввезення
+        # =========================================================
         generator.add_page_break()
         generator.add_subtitle("2. Зовнішнє ввезення", level=1)
 
-        external_data = data['external_income']
-        external_agg = data['aggregation']['external_aggregation']
+        external_data = [r for r in rows if r.get('source') == 'Ввезення']
+        external_agg = aggregation.get('external_aggregation', {})
 
         if external_data:
-            # Зведена інформація по ввезенням
-            external_summary = [
-                ['Загальна вага ввезення', f"{external_agg.get('total_weight', 0.0):,.3f} т"]
-            ]
-
             generator.add_table(
                 headers=['Параметр', 'Значення'],
-                data=external_summary,
+                data=[['Загальна вага ввезення', f"{external_agg.get('total_weight', 0.0):,.3f} т"]],
                 col_widths=[6.5 * cm, 6.5 * cm]
             )
+
             generator.add_spacer(8)
 
-            # Детальна таблиця
-            headers = ['Дата', 'Час', 'Документ', 'Звідки', 'Культура', 'На місце', 'Вага (т)']
-            table_data = [
-                [
-                    r.get('date'), r.get('time'), r.get('document'),
-                    r.get('place_from'), r.get('culture'), r.get('place_to'),
-                    f"{r.get('weight_net', 0.0):,.3f}"
+            generator.add_table(
+                headers=['Дата', 'Час', 'Документ', 'Звідки', 'Культура', 'На місце', 'Вага (т)'],
+                data=[
+                    [
+                        r.get('date'), r.get('time'), r.get('document'),
+                        r.get('place_from'), r.get('culture'),
+                        r.get('place_to'),
+                        f"{r.get('weight_net', 0.0):,.3f}"
+                    ]
+                    for r in external_data
                 ]
-                for r in external_data
-            ]
-            generator.add_table(headers, table_data)
+            )
         else:
             generator.add_paragraph("Немає зовнішніх ввезень за вказаний період.")
 
         return generator.build()
-    
     @staticmethod
     def build_balance_period_history_report(data, date_from, date_to, filters):
         """

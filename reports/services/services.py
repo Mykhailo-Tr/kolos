@@ -543,11 +543,8 @@ class ReportService:
 
         field_data = field_data_full.get('data', [])
 
-        # Уніфікуємо вагу
         for item in field_data:
-            if 'weight_net' not in item:
-                item['weight_net'] = item.get('quantity', 0) or 0
-
+            item['weight_net'] = item.get('weight_net') or item.get('quantity') or 0
             item['source'] = 'Поле'
 
         # =========================================================
@@ -563,7 +560,7 @@ class ReportService:
         ]
 
         for item in external_income:
-            item['weight_net'] = item.get('weight_net', 0) or 0
+            item['weight_net'] = item.get('weight_net') or 0
             item['source'] = 'Ввезення'
 
         # =========================================================
@@ -574,7 +571,7 @@ class ReportService:
         # =========================================================
         # 4. Агрегація
         # =========================================================
-        total_weight = 0
+        total_weight = 0.0
         by_culture = {}
 
         for item in all_income:
@@ -582,25 +579,26 @@ class ReportService:
             culture = item.get('culture') or '—'
 
             total_weight += weight
-            by_culture[culture] = by_culture.get(culture, 0) + weight
+            by_culture[culture] = by_culture.get(culture, 0.0) + weight
 
         # =========================================================
-        # 5. Фінальна структура (КРИТИЧНО ВАЖЛИВО)
+        # 5. Фінальна структура (СТАБІЛЬНИЙ КОНТРАКТ)
         # =========================================================
         return {
-            'data': all_income,
+            'data': all_income,                 # ← єдине джерело рядків
             'total_rows': len(all_income),
             'aggregation': {
                 'total_weight': total_weight,
                 'by_culture': by_culture,
                 'field_aggregation': field_data_full.get(
-                    'aggregation', {'total_weight': 0}
+                    'aggregation', {'total_weight': 0.0}
                 ),
                 'external_aggregation': ReportService._aggregate_income_data(
                     external_income
                 ),
             }
         }
+
 
     @staticmethod
     def get_total_income_period_from_balance_history(date_from, date_to, filters=None):

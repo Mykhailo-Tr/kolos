@@ -185,8 +185,10 @@ class PDFReportGeneratorMixin:
         # -----------------------------
         send_to_server = self.request.POST.get("send_to_report_server")
 
+
         if send_to_server:
             try:
+                filename = f"{report_type}_{filters.get('date_from') or filters.get('date')}.pdf"
                 status = ReportSenderService.send_pdf(
                     execution.file_path,
                     metadata={
@@ -194,6 +196,7 @@ class PDFReportGeneratorMixin:
                         "date_from": filters.get("date_from"),
                         "date_to": filters.get("date_to"),
                         "user": self.request.user.username,
+                        "filename": filename
                     }
                 )
 

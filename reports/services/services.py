@@ -78,10 +78,7 @@ class ReportService:
             data.append({
                 'place': history.place.name,
                 'culture': history.culture.name,
-                # Примітка: BalanceHistory не має get_balance_type_display(). 
-                # Використовуємо поле 'balance_type', а перетворення має відбуватися 
-                # в шаблоні або бути додане до моделі BalanceHistory.
-                'type': history.balance_type, 
+                'type': dict(history._meta.get_field('balance_type').choices).get(history.balance_type, history.balance_type),
                 'quantity': float(history.quantity),
             })
             
@@ -743,4 +740,56 @@ class ReportService:
             },
             'total_rows': aggregation.count()
         }
+
+    @staticmethod
+    def compare_balance_snapshots(start_snapshot, end_snapshot, filters=None):
+        """
+        Порівнює два снепшоти для аналізу динаміки
+        
+        Args:
+            start_snapshot: BalanceSnapshot на початок періоду
+            end_snapshot: BalanceSnapshot на кінець періоду
+            filters: dict з фільтрами
+        
+        Returns:
+            list з даними порівняння
+        """
+        # Отримуємо дані з обох снепшотів
+        start_data_full = ReportService.get_balance_snapshot_data(start_snapshot, filters)
+        end_data_full = ReportService.get_balance_snapshot_data(end_snapshot, filters)
+        
+        start_map = {}
+        # Створюємо унікальний ключ (place, culture, type) -> quantity
+        for item in start_data_full['data']:
+            key = (item['place'], item['culture'], item['type'])
+            start_map[key] = item['quantity']
+            
+        end_map = {}
+        for item in end_data_full['data']:
+            key = (item['place'], item['culture'], item['type'])
+            end_map[key] = item['quantity']
+
+        # Об'єднуємо всі унікальні ключі
+        all_keys = set(start_map.keys()) | set(end_map.keys())
+        
+        comparison = []
+        
+        for key in sorted(list(all_keys)):
+            place, culture, b_type = key
+            start_qty = start_map.get(key, 0.0)
+            end_qty = end_map.get(key, 0.0)
+            change = end_qty - start_qty
+            change_percent = ((change / start_qty) * 100) if start_qty != 0 else 0
+            
+            comparison.append({
+                'place': place,
+                'culture': culture,
+                'type': b_type,
+                'start_quantity': start_qty,
+                'end_quantity': end_qty,
+                'change': change,
+                'change_percent': change_percent,
+            })
+            
+        return comparison
 

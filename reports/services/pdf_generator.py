@@ -694,38 +694,35 @@ class ReportPDFBuilder:
         """
         PDF: Залишки за період (Історія)
         """
-        from io import BytesIO
-        buffer = BytesIO()
-
-        # якщо у тебе вже є helper
-        c = ReportPDFBuilder._create_canvas(
-            buffer,
+        filters = filters or {}
+        generator = PDFReportGenerator(
+            "Залишки за період (історія)",
             orientation=filters.get('orientation', 'portrait')
         )
+        
+        date_range = (date_from.strftime('%d.%m.%Y'), date_to.strftime('%d.%m.%Y'))
+        generator.add_header(subtitle="Аналіз змін залишків", date_range=date_range)
 
-        ReportPDFBuilder._draw_title(
-            c,
-            f"Залишки за період (історія)\n{date_from:%d.%m.%Y} — {date_to:%d.%m.%Y}"
-        )
+        # Підсумки
+        if data.get('aggregation'):
+            summary = {
+                'Загальна зміна': f"{data['aggregation'].get('total_weight', 0):.3f} т",
+                'Кількість позицій': len(data.get('rows', [])),
+            }
+            generator.add_summary_box(summary)
 
-        headers = ['Склад', 'Культура', 'Тип', 'Зміна, т']
-        rows = [
-            [
-                r['place__name'],
-                r['culture__name'],
-                r['balance_type'],
-                round(r['total_delta'], 3)
-            ]
-            for r in data['rows']
-        ]
-
-        ReportPDFBuilder._draw_table(c, headers, rows)
-
-        ReportPDFBuilder._draw_footer(
-            c,
-            f"Загальна зміна: {round(data['aggregation']['total_weight'], 3)} т"
-        )
-
-        c.save()
-        buffer.seek(0)
-        return buffer
+        # Таблиця
+        headers = ['Склад', 'Культура', 'Тип', 'Зміна (т)']
+        table_data = []
+        
+        for row in data.get('rows', []):
+            table_data.append([
+                row.get('place__name', '—'),
+                row.get('culture__name', '—'),
+                row.get('balance_type', '—'),
+                f"{row.get('total_delta', 0):.3f}"
+            ])
+        
+        generator.add_table(headers, table_data, col_widths=[6*cm, 6*cm, 4*cm, 4*cm])
+        
+        return generator.build()

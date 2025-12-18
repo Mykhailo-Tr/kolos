@@ -43,7 +43,15 @@ class BalanceCreateView(CreateView):
     def form_valid(self, form):
         messages.success(self.request, 'Запис створено')
         return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        context.update({
+            "page": "balances"
+        })
 
+        return context
 
 class BalanceUpdateView(UpdateView):
     model = Balance
@@ -54,6 +62,15 @@ class BalanceUpdateView(UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Запис оновлено')
         return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context.update({
+            "page": "balances"
+        })
+
+        return context
 
 
 class BalanceDeleteView(DeleteView):
@@ -64,6 +81,11 @@ class BalanceDeleteView(DeleteView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['cancel_url'] = self.success_url
+
+        context.update({
+            "page": "balances"
+        })
+
         return context
 
 
@@ -159,6 +181,10 @@ class BalanceSnapshotDetailView(ListView):
         from django.db.models import Sum
         total_qty = self.get_queryset().aggregate(total=Sum('quantity'))['total'] or 0
         context['total_quantity'] = total_qty
+
+        context.update({
+            "page": "balanceshistory"
+        })
         
         return context
 
@@ -191,6 +217,10 @@ class BalanceSnapshotUpdateView(View):
             'current_order': order,
         }
         
+        context.update({
+            "page": "balanceshistory"
+        })
+
         return render(request, 'balances/snapshot_edit_full.html', context)
 
     def post(self, request, pk):
@@ -235,6 +265,11 @@ class BalanceSnapshotDeleteView(DeleteView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['cancel_url'] = self.success_url
+
+        context.update({
+            "page": "balanceshistory"
+        })
+
         return context
 
     def delete(self, request, *args, **kwargs):
@@ -295,6 +330,15 @@ class EmptySnapshotCreateView(LoginRequiredMixin, FormView):
         
         # Після створення переходимо на редагування цього зліпка
         return redirect('balance_snapshot_update', pk=snapshot.pk)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        context.update({
+            "page": "balanceshistory"
+        })
+        
+        return context
     
     
 class QuickEmptySnapshotCreateView(LoginRequiredMixin, View):

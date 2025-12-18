@@ -59,6 +59,14 @@ class BasePDFReportForm(forms.Form):
             'placeholder': 'Введіть назву для збереження'
         })
     )
+    
+    send_to_report_server = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Відправити на Report Server",
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
 
 
 class BalanceDateReportForm(BasePDFReportForm):

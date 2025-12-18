@@ -19,6 +19,7 @@ from .forms_pdf import (
 )
 from .services.services import ReportService
 from .services.pdf_generator import ReportPDFBuilder
+from .services.report_sender import ReportSenderService
 from balances.models import BalanceSnapshot
 
 def make_json_safe(value):
@@ -135,9 +136,10 @@ class PDFReportGeneratorMixin:
         pdf_buffer,
         file_format: str = 'pdf'
     ) -> ReportExecution:
-        """Save report execution record."""
 
-        # Determine row count
+        # -----------------------------
+        # 1. Row count
+        # -----------------------------
         if isinstance(data, dict) and 'total_rows' in data:
             row_count = data['total_rows']
         elif isinstance(data, list):
@@ -147,10 +149,15 @@ class PDFReportGeneratorMixin:
         else:
             row_count = 0
 
-        # Make JSON safe
+        # -----------------------------
+        # 2. JSON safe
+        # -----------------------------
         safe_filters = self.make_json_safe(filters)
         safe_data = self.make_json_safe(data)
 
+        # -----------------------------
+        # 3. Create execution (БЕЗ файлу)
+        # -----------------------------
         execution = ReportExecution.objects.create(
             template=template,
             executed_by=self.request.user,
@@ -163,13 +170,49 @@ class PDFReportGeneratorMixin:
             file_format=file_format
         )
 
-        # Save file
+        # -----------------------------
+        # 4. SAVE FILE (КРИТИЧНО!)
+        # -----------------------------
         filename = f"report_{execution.id}.{file_format}"
         execution.file_path.save(
             filename,
             ContentFile(pdf_buffer.getvalue()),
             save=True
         )
+
+        # -----------------------------
+        # 5. SEND TO REPORT SERVER
+        # -----------------------------
+        send_to_server = self.request.POST.get("send_to_report_server")
+
+        if send_to_server:
+            try:
+                status = ReportSenderService.send_pdf(
+                    execution.file_path,
+                    metadata={
+                        "report_type": report_type,
+                        "date_from": filters.get("date_from"),
+                        "date_to": filters.get("date_to"),
+                        "user": self.request.user.username,
+                    }
+                )
+
+                if status == "duplicate":
+                    messages.warning(
+                        self.request,
+                        "Такий звіт вже існує на Report Server"
+                    )
+                else:
+                    messages.success(
+                        self.request,
+                        "Звіт успішно відправлено на Report Server"
+                    )
+
+            except Exception as e:
+                messages.error(
+                    self.request,
+                    f"Помилка відправки на Report Server: {e}"
+                )
 
         return execution
 

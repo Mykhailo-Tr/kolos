@@ -295,12 +295,6 @@
       </div>
 
       <div class="form-section">
-        <h3 class="section-title">Збереження шаблону (опціонально)</h3>
-
-        <div class="form-check">
-          {{ form.save_template }}
-          {{ form.save_template.label_tag }}
-        </div>
 
         <div class="form-group" id="templateNameGroup" style="display: {% if form.template_name.value %}block{% else %}none{% endif %};">
           {{ form.template_name.label_tag }}

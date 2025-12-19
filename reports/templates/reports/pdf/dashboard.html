@@ -3,15 +3,27 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'reports/css/pdf_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/live_clock.css' %}">
+
 {% endblock %}
 
 {% block content %}
 <div class="pdf-reports-container">
     <div class="reports-header">
-        <h1 class="reports-title">
-            <span>📄</span>
-            <span>PDF Звіти</span>
-        </h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h1 class="reports-title">
+                <span>📄</span>
+                <span>PDF Звіти</span>
+
+            </h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div id="live-clock" class="live-clock-badge"></div> 
+
+                <a href="{% url 'reports_dashboard' %}" class="btn btn-primary">
+                    <i class="fas fa-file-pdf" style="margin-right: 8px;"></i> ← Звіти 
+                </a>
+            </div>
+        </div>
     </div>
 
     <!-- Типи звітів -->
@@ -202,6 +214,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/live_clock.js' %}"></script>
 <script>
     // Додатковий JavaScript для покращення UX
     document.addEventListener('DOMContentLoaded', function() {

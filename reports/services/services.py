@@ -507,16 +507,36 @@ class ReportService:
 
         return {
             'date': date.strftime('%d.%m.%Y'),
+
+            # 🔥 ПЛОСКИЙ КОНТРАКТ (для шаблонів)
+            'weigher': today_weigher,
+            'shipment': {
+                **today_shipment,
+                'count': today_shipment['in_count'] + today_shipment['out_count'],
+                'total': today_shipment['in_total'] + today_shipment['out_total'],
+            },
+            'fields': today_fields,
+            'balance': total_balance,
+
+            # 🔁 вкладений (для PDF / API / Telegram)
             'today': {
                 'weigher': today_weigher,
                 'shipment': today_shipment,
                 'fields': today_fields,
-                'balance': total_balance
+                'balance': total_balance,
             },
+
             'trends': trends,
             'sparklines': sparkline_data,
-            'grand_total': today_weigher['total'] + today_shipment['in_total'] + today_shipment['out_total'] + today_fields['total']
+
+            'grand_total': (
+                today_weigher['total']
+                + today_shipment['in_total']
+                + today_shipment['out_total']
+                + today_fields['total']
+            ),
         }
+
         
     @staticmethod
     def _resolve_place(place_obj, place_text=None):

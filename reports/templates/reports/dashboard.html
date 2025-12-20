@@ -4,6 +4,7 @@
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <link rel="stylesheet" href="{% static 'reports/css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/live_clock.css' %}">
 
 <div class="reports-container">
     
@@ -14,7 +15,8 @@
                 <span>Звіти та аналітика</span>
             </h1>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <div id="live-clock" class="live-clock-badge"></div> <a href="{% url 'pdf_reports_dashboard' %}" class="btn btn-primary">
+                <div id="live-clock" class="live-clock-badge"></div> 
+                <a href="{% url 'pdf_reports_dashboard' %}" class="btn btn-primary">
                     <i class="fas fa-file-pdf" style="margin-right: 8px;"></i> PDF Звіти
                 </a>
             </div>
@@ -274,7 +276,7 @@
           </div>
         </div>
 
-        <div class="col-md-6">
+        {% comment %} <div class="col-md-6">
           <div class="reports-section">
             <h2 class="section-title">
               <span>💾 Збережені звіти</span>
@@ -297,27 +299,16 @@
               </div>
             {% endif %}
           </div>
-        </div>
+        </div> {% endcomment %}
     </div>
 </div>
 
+{% block extra_scripts %}
+<script src="{% static 'js/live_clock.js' %}"></script>
+{% endblock extra_scripts %}
+
 <script>
-    // Функція для оновлення динамічного годинника
-    function updateClock() {
-        const now = new Date();
-        const options = { weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-        const dateString = now.toLocaleTimeString('uk-UA', options);
-        const clockElement = document.getElementById('live-clock');
-        if (clockElement) {
-             clockElement.textContent = dateString;
-        }
-    }
-    
     document.addEventListener('DOMContentLoaded', function () {
-        
-        // Ініціалізація та оновлення годинника
-        updateClock();
-        setInterval(updateClock, 1000);
 
         // Дані з бекенду (змінні з Python)
         const sparklineDates = {{ daily_summary.sparklines.dates|safe }};

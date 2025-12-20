@@ -3,15 +3,27 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'reports/css/pdf_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/live_clock.css' %}">
+
 {% endblock %}
 
 {% block content %}
 <div class="pdf-reports-container">
     <div class="reports-header">
-        <h1 class="reports-title">
-            <span>📄</span>
-            <span>PDF Звіти</span>
-        </h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h1 class="reports-title">
+                <span>📄</span>
+                <span>PDF Звіти</span>
+
+            </h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div id="live-clock" class="live-clock-badge"></div> 
+
+                <a href="{% url 'reports_dashboard' %}" class="btn btn-primary">
+                    <i class="fas fa-file-pdf" style="margin-right: 8px;"></i> ← Звіти 
+                </a>
+            </div>
+        </div>
     </div>
 
     <!-- Типи звітів -->
@@ -111,97 +123,13 @@
                 {% endif %}
             </div>
         </div>
-
-        <!-- Шаблони -->
-        <div class="col-md-6">
-            <div class="section">
-                <h2 class="section-title">
-                    <span>📋 Мої шаблони</span>
-                    <a href="{% url 'report_template_list' %}" class="section-link">Переглянути всі →</a>
-                </h2>
-
-                {% if templates %}
-                    <ul class="recent-list">
-                        {% for template in templates %}
-                        <li class="recent-item">
-                            <div>
-                                <div class="recent-item-title">{{ template.name }}</div>
-                                <div class="recent-item-meta">
-                                    {{ template.get_report_type_display|default:template.report_type }} • 
-                                    {{ template.created_at|date:"d.m.Y" }}
-                                </div>
-                            </div>
-                            <div class="recent-item-actions">
-                                <a href="{% url 'report_template_update' template.pk %}" class="btn-download" style="background-color: #3b82f6;">
-                                    ✏️ Редагувати
-                                </a>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <div class="empty-state">
-                        <div class="empty-icon">📋</div>
-                        <p>Немає збережених шаблонів</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
     </div>
 </div>
 
-{% if not templates and not recent_executions %}
-<!-- Додаткова інформація для нових користувачів -->
-<div class="pdf-reports-container">
-    <div class="section">
-        <h2 class="section-title">🎯 Як почати роботу з PDF звітами</h2>
-        
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 bg-light h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">📝 Створення звіту</h5>
-                        <p class="card-text">
-                            1. Виберіть тип звіту<br>
-                            2. Заповніть параметри<br>
-                            3. Натисніть "Сформувати"<br>
-                            4. Завантажте PDF
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 bg-light h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">💾 Збереження шаблонів</h5>
-                        <p class="card-text">
-                            Після створення звіту збережіть параметри як шаблон для швидкого повторного використання
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 bg-light h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">📊 Доступні типи звітів</h5>
-                        <p class="card-text">
-                            • Залишки на складах<br>
-                            • Надходження з полів<br>
-                            • Ввезення/вивезення<br>
-                            • Динаміка змін
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/live_clock.js' %}"></script>
 <script>
     // Додатковий JavaScript для покращення UX
     document.addEventListener('DOMContentLoaded', function() {

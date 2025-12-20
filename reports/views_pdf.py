@@ -135,7 +135,11 @@ class PDFReportGeneratorMixin:
         data: Union[Dict[str, Any], list],
         pdf_buffer,
         file_format: str = 'pdf'
-    ) -> ReportExecution:
+    ) -> dict:
+        """
+        Saves report execution, file and optionally sends to Report Server.
+        Returns status dict for UI layer.
+        """
 
         # -----------------------------
         # 1. Row count
@@ -156,7 +160,7 @@ class PDFReportGeneratorMixin:
         safe_data = self.make_json_safe(data)
 
         # -----------------------------
-        # 3. Create execution (БЕЗ файлу)
+        # 3. Create execution
         # -----------------------------
         execution = ReportExecution.objects.create(
             template=template,
@@ -171,7 +175,7 @@ class PDFReportGeneratorMixin:
         )
 
         # -----------------------------
-        # 4. SAVE FILE (КРИТИЧНО!)
+        # 4. Save file
         # -----------------------------
         filename = f"report_{execution.id}.{file_format}"
         execution.file_path.save(
@@ -181,14 +185,17 @@ class PDFReportGeneratorMixin:
         )
 
         # -----------------------------
-        # 5. SEND TO REPORT SERVER
+        # 5. Send to Report Server
         # -----------------------------
-        send_to_server = self.request.POST.get("send_to_report_server")
+        result = {
+            "execution": execution,
+            "sent": False,
+            "duplicate": False,
+            "error": None,
+        }
 
-
-        if send_to_server:
+        if self.request.POST.get("send_to_report_server"):
             try:
-                filename = f"{report_type}_{filters.get('date_from') or filters.get('date')}.pdf"
                 status = ReportSenderService.send_pdf(
                     execution.file_path,
                     metadata={
@@ -196,28 +203,42 @@ class PDFReportGeneratorMixin:
                         "date_from": filters.get("date_from"),
                         "date_to": filters.get("date_to"),
                         "user": self.request.user.username,
-                        "filename": filename
+                        "filename": filename,
                     }
                 )
 
-                if status == "duplicate":
-                    messages.warning(
-                        self.request,
-                        "Такий звіт вже існує на Report Server"
-                    )
-                else:
-                    messages.success(
-                        self.request,
-                        "Звіт успішно відправлено на Report Server"
-                    )
+                result["sent"] = True
+                result["duplicate"] = (status == "duplicate")
 
             except Exception as e:
-                messages.error(
-                    self.request,
-                    f"Помилка відправки на Report Server: {e}"
-                )
+                result["error"] = str(e)
 
-        return execution
+        return result
+    
+    def handle_execution_messages(self, result: dict):
+        """
+        Standard UI reaction for report execution result
+        """
+        if result.get("error"):
+            messages.error(
+                self.request,
+                f"Помилка відправки: {result['error']}"
+            )
+        elif result.get("duplicate"):
+            messages.warning(
+                self.request,
+                "Такий звіт вже існує на Report Server"
+            )
+        elif result.get("sent"):
+            messages.success(
+                self.request,
+                "Звіт успішно відправлено на Report Server"
+            )
+        else:
+            messages.success(
+                self.request,
+                "Звіт успішно сформовано"
+            )
 
     def _get_context(self, form, report_title: str) -> Dict[str, Any]:
         """Get common context for report views."""
@@ -284,7 +305,7 @@ class BalanceDateReportView(BasePDFReportView):
         )
         
         # Save execution
-        self.save_report_execution(
+        result = self.save_report_execution(
             template=None,
             report_type='balance_snapshot',
             filters={'date': report_date.isoformat(), **filters},
@@ -292,6 +313,10 @@ class BalanceDateReportView(BasePDFReportView):
             pdf_buffer=pdf_buffer
         )
         
+        self.handle_execution_messages(result)
+                
+        if result.get("error") or result.get("duplicate"):
+            return redirect('pdf_balance_date')
         # Return PDF
         filename = f"balance_report_{report_date.strftime('%Y%m%d')}.pdf"
         return self.generate_pdf_response(pdf_buffer, filename)
@@ -339,7 +364,7 @@ class BalancePeriodReportView(BasePDFReportView):
         )
         
         # Save execution
-        self.save_report_execution(
+        result = self.save_report_execution(
             template=None,
             report_type='balance_period',
             filters={
@@ -351,6 +376,11 @@ class BalancePeriodReportView(BasePDFReportView):
             pdf_buffer=pdf_buffer
         )
         
+        self.handle_execution_messages(result)
+        
+        if result.get("error") or result.get("duplicate"):
+            return redirect('pdf_balance_period')
+
         # Return PDF
         filename = f"balance_period_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
         return self.generate_pdf_response(pdf_buffer, filename)
@@ -382,7 +412,7 @@ class IncomeDateReportView(BasePDFReportView):
         )
         
         # Save execution
-        self.save_report_execution(
+        result = self.save_report_execution(
             template=None,
             report_type='income_date',
             filters={'date': report_date.isoformat(), **filters},
@@ -390,6 +420,10 @@ class IncomeDateReportView(BasePDFReportView):
             pdf_buffer=pdf_buffer
         )
         
+        self.handle_execution_messages(result)
+        
+        if result.get("error") or result.get("duplicate"):
+            return redirect('pdf_income_date')
         # Return PDF
         filename = f"income_report_{report_date.strftime('%Y%m%d')}.pdf"
         return self.generate_pdf_response(pdf_buffer, filename)
@@ -422,7 +456,7 @@ class IncomePeriodReportView(BasePDFReportView):
         )
         
         # Save execution
-        self.save_report_execution(
+        result = self.save_report_execution(
             template=None,
             report_type='income_period',
             filters={
@@ -433,11 +467,15 @@ class IncomePeriodReportView(BasePDFReportView):
             data=data,
             pdf_buffer=pdf_buffer
         )
+
+        self.handle_execution_messages(result)
         
+        if result.get("error") or result.get("duplicate"):
+            return redirect('pdf_income_period')
+
         # Return PDF
         filename = f"income_period_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
-        return self.generate_pdf_response(pdf_buffer, filename)
-
+        return self.generate_pdf_response(pdf_buffer, filename)        
 
 class ShipmentSummaryReportView(BasePDFReportView):
     """Import/export report for a period."""
@@ -466,7 +504,7 @@ class ShipmentSummaryReportView(BasePDFReportView):
         )
         
         # Save execution
-        self.save_report_execution(
+        result = self.save_report_execution(
             template=None,
             report_type='shipment_summary',
             filters={
@@ -478,9 +516,15 @@ class ShipmentSummaryReportView(BasePDFReportView):
             pdf_buffer=pdf_buffer
         )
         
+        self.handle_execution_messages(result)
+        
+        if result.get("error") or result.get("duplicate"):
+            return redirect('pdf_shipment_summary')
+        
         # Return PDF
         filename = f"shipment_summary_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.pdf"
         return self.generate_pdf_response(pdf_buffer, filename)
+        
 
 
 class TotalIncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, View):
@@ -533,14 +577,18 @@ class TotalIncomePeriodReportView(LoginRequiredMixin, PDFReportGeneratorMixin, V
             filename = f"Прихід_зерна_загальний_{date_from:%d%m%Y}_{date_to:%d%m%Y}.pdf"
             
             # 3. Save execution
-            self.save_report_execution(
+            result = self.save_report_execution(
                 template=None,
                 report_type='total_income_period',
                 filters=filters,
                 data=data,
                 pdf_buffer=pdf_buffer
             )
+
+            if result.get("error") or result.get("duplicate"):
+                return redirect('pdf_total_income_period')
             
+            self.handle_execution_messages(result)
             return self.generate_pdf_response(pdf_buffer, filename)
         
         messages.warning(request, f"Формат {output_format.upper()} не підтримується для цього звіту.")
@@ -595,7 +643,7 @@ class BalancePeriodHistoryReportView(LoginRequiredMixin, PDFReportGeneratorMixin
             filters
         )
 
-        self.save_report_execution(
+        result = self.save_report_execution(
             template=None,
             report_type='balance_period_history',
             filters={'date_from': date_from, 'date_to': date_to, **filters},
@@ -603,6 +651,11 @@ class BalancePeriodHistoryReportView(LoginRequiredMixin, PDFReportGeneratorMixin
             pdf_buffer=pdf_buffer
         )
 
+        self.handle_execution_messages(result)
+        
+        if result.get("error") or result.get("duplicate"):
+            return redirect('pdf_balance_period_history')
+        
         filename = f"Залишки_період_історія_{date_from:%d%m%Y}_{date_to:%d%m%Y}.pdf"
         return self.generate_pdf_response(pdf_buffer, filename)
 

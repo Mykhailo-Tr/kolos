@@ -1,5 +1,6 @@
 from django import forms
 from .models import Balance, BalanceSnapshot, BalanceHistory
+from datetime import timedelta
 
 
 UNIT_CHOICES = (
@@ -59,7 +60,7 @@ class BalanceSnapshotForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
-            self.initial['snapshot_date'] = self.instance.snapshot_date.strftime('%Y-%m-%dT%H:%M')
+            self.initial['snapshot_date'] = (self.instance.snapshot_date + timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M')
 
 
 class BalanceHistoryForm(BaseQuantityForm):

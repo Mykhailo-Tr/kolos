@@ -112,8 +112,6 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Europe/Kyiv'  
 USE_TZ = True    
 
-USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/

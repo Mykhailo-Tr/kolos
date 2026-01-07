@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages # Імпортовано messages
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from activity.models import ActivityLog
 from .forms import UserRegistrationForm, UserLoginForm, EditProfileForm, ChangePasswordForm # Імпортовано ChangePasswordForm
@@ -130,21 +131,40 @@ def home_view(request):
     if not request.user.is_authenticated:
         context = {"page": "home"}
         return render(request, "home.html", context)
-    period = request.GET.get("period", "today")
+
+    # 1. Отримуємо параметри з URL
+    period = request.GET.get("period", "today") # За замовчуванням 'all', щоб бачити історію
+    page_number = request.GET.get('page')
     now = timezone.now()
 
+    # 2. Початковий запит із оптимізацією та сортуванням
+    # Використовуємо select_related, щоб не перевантажувати базу запитами про користувача
+    queryset = ActivityLog.objects.filter(user=request.user).select_related('user').order_by('-created_at')
+
+    # 3. Фільтрація за періодом
     if period == "today":
-        logs = ActivityLog.objects.filter(user=request.user, created_at__date=now.date())
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        queryset = queryset.filter(created_at__gte=start_date)
     elif period == "week":
-        logs = ActivityLog.objects.filter(user=request.user, created_at__gte=now - timedelta(days=7))
+        start_date = now - timedelta(days=7)
+        queryset = queryset.filter(created_at__gte=start_date)
     elif period == "month":
-        logs = ActivityLog.objects.filter(user=request.user, created_at__gte=now - timedelta(days=30))
-    else:
-        logs = ActivityLog.objects.filter(user=request.user)
+        start_date = now - timedelta(days=30)
+        queryset = queryset.filter(created_at__gte=start_date)
+
+    # 4. Пагінація (наприклад, 15 записів на сторінку)
+    paginator = Paginator(queryset, 20) 
+    
+    try:
+        logs = paginator.page(page_number)
+    except PageNotAnInteger:
+        logs = paginator.page(1)
+    except EmptyPage:
+        logs = paginator.page(paginator.num_pages)
 
     context = {
         "page": "home",
-        "logs": logs,
-        "filter_period": period,
+        "logs": logs,            # Це об'єкт сторінки для циклу в HTML
+        "filter_period": period, # Щоб підсвічувати активну кнопку фільтра
     }
     return render(request, "home.html", context)

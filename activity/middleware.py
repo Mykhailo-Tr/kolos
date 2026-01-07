@@ -5,7 +5,9 @@ from directory.models import Driver, Car, Trailer, Culture, Place, Field
 from logistics.models import WeigherJournal, ShipmentJournal, FieldsIncome
 from waste.models.recycling import Recycling
 from waste.models.utilization import Utilization
-from balances.models import Balance
+from balances.models import Balance, BalanceSnapshot
+from datetime import timedelta, datetime
+from activity.translations import MODEL_MAPPING
 
 class ActivityLogMiddleware:
     def __init__(self, get_response):
@@ -23,7 +25,7 @@ class ActivityLogMiddleware:
         pre_info = None
 
         if request.user.is_authenticated:
-            if action_type_url == 'delete' or action_type_url == 'edit':
+            if action_type_url == 'delete':
                 if app_url == 'drivers':
                     pre_info = Driver.objects.filter(id=request.path.strip('/').split('/')[2]).first()
                 elif app_url == 'cars':
@@ -48,6 +50,8 @@ class ActivityLogMiddleware:
                     pre_info = Utilization.objects.filter(id=request.path.strip('/').split('/')[2]).first()
                 elif app_url == 'history':
                     pre_info = timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")
+                    pre_info = BalanceSnapshot.objects.filter(id=request.path.strip('/').split('/')[2]).values_list('snapshot_date', flat=True).first()
+                    pre_info = (pre_info + timedelta(hours=2)).strftime("%d.%m.%Y %H:%M")
                 elif app_url_shr == 'balances':
                     pre_info = Balance.objects.filter(id=request.path.strip('/').split('/')[1]).first()
 
@@ -57,78 +61,94 @@ class ActivityLogMiddleware:
 
         if request.user.is_authenticated and request.method == "POST":
             # Перевіряємо успішність дії (зазвичай редирект 302 після збереження)
-            if response.status_code in [200, 302]:
-                
-                if app_url == 'drivers':              
-                    object_name = request.POST.get('full_name')
-                    category = ["driver", "водія"]
-                elif app_url == 'cars':
-                    object_name = request.POST.get('number')
-                    category = ["car", "автомобіль"]
-                elif app_url == "trailers":
-                    object_name = request.POST.get('number')
-                    category = ["trailer", "причеп"]
-                elif app_url == "cultures":
-                    object_name = request.POST.get('name')
-                    category = ["culture", "культуру"]
-                elif app_url == "places":
-                    object_name = request.POST.get('name')
-                    category = ["place", "місце"]
-                elif app_url == "fields":
-                    object_name = request.POST.get('name')
-                    category = ["field", "поле"]
-                elif app_url_shr == "logistics":
-                    object_name = request.POST.get('document_number') + '; ' + request.POST.get('initial-date_time')
-                    category = ["document", "документ"]
-                elif app_url_shr == "waste":
-                    object_name = request.POST.get('initial-date_time')
-                    if app_url == "recycling":
-                        category = ["recycling", "переробку"]
+            if response.status_code == 302:
+
+                reqPOST = request.POST.dict()
+
+                description = ""
+
+                path_clear = request.path.strip('/').split('/')
+
+                if path_clear[0] == 'directory' or path_clear[0] == 'logistics' or path_clear[0] == 'waste' or path_clear[0] == 'balances':
+                    if path_clear[0] != 'balances':
+                        reqPOST['model'] = path_clear[1][:-1].capitalize()
+                    elif path_clear[1] == 'history':
+                        reqPOST['model'] = 'balance_history'
+                        if 'edit' not in path_clear:
+                            reqPOST['new_snapshot_date'] = timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")
                     else:
-                        category = ["utilization", "утилізацію"]
-                elif app_url == "history":
-                    object_name = timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")
-                    category = ["snapshot", "зліпок"]
-                elif app_url_shr == "balances":
-                    if action_type_url == "create":
-                        object_name = str(request.POST.get('quantity')) + str(request.POST.get('unit'))
+                        reqPOST['model'] = path_clear[0][:-1].capitalize()
+                    raw_model_name = reqPOST['model'].lower()
+                    description += f"{MODEL_MAPPING.get(raw_model_name, raw_model_name)}: "
 
-                        if request.POST.get('balance_type') == "waste":
-                            object_name += " відходів "
-                        else:
-                            object_name += " зерна "
+                    if action_type_url == 'delete':
+                        pre_info = f"{MODEL_MAPPING.get(raw_model_name, raw_model_name)}: {pre_info}"
 
-                        object_name += f"'{str(Culture.objects.get(pk=request.POST.get('culture')).name)}' "     
-                        
-                        object_name += f"в '{str(Place.objects.get(pk=request.POST.get('place')).name)}'"
-                    else:
-                        object_name = None
+                    for key in reqPOST:
 
-                    category = ["balance", "залишок"]
+                        if key not in ['csrfmiddlewaretoken', 'model'] and reqPOST[key] != '':
+                            if app_url_shr == 'directory' and key not in ['default_driver', 'parent']:
+                                raw_data = key
+                                if key == 'place_type':
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {MODEL_MAPPING.get(reqPOST[key], reqPOST[key])}; "
+                                else:
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}; "
+
+                            elif app_url_shr == 'logistics' and key not in ['date_time', 'driver', 'car', 'trailer', 'culture', 'field', 'place_to', 'place_from','gross_unit', 'tare_unit', 'loss_unit', 'from_place', 'to_place']:
+                                raw_data = key
+                                if key == 'weight_gross':
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}{reqPOST['gross_unit']}; "
+                                elif key == 'weight_tare':
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}{reqPOST['tare_unit']}; "
+                                elif key == 'weight_loss':
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}{reqPOST['loss_unit']}; "
+                                elif key == 'action_type':
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {MODEL_MAPPING.get(reqPOST[key], reqPOST[key])}; "
+                                else:
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}; "
+
+                            elif app_url_shr == 'waste' and key not in ['date_time', 'place_to', 'input_unit', 'output_unit']:
+                                raw_data = key
+                                if key == 'input_quantity' or key == 'quantity':
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}{reqPOST['input_unit']}; "
+                                elif key == 'output_quantity':
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}{reqPOST['output_unit']}; "
+                                else:
+                                    description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}; "
+                            elif app_url_shr == 'balances':
+                                if app_url != 'history' and key not in ['unit']:
+                                    raw_data = key
+                                    if key == 'place':
+                                        description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {Place.objects.filter(id=reqPOST[key]).first()}; "
+                                    elif key == 'culture':
+                                        description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {Culture.objects.filter(id=reqPOST[key]).first()}; "
+                                    elif key == 'quantity':
+                                        description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}{reqPOST['unit']}; "
+                                    elif key == 'balance_type':
+                                        description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {MODEL_MAPPING.get(reqPOST[key], reqPOST[key])}; "
+                                    else:
+                                        description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}; "
+                                elif app_url == 'history' and key in ['new_snapshot_date', 'initial-snapshot_date', 'description']:
+                                    raw_data = key
+                                    if key == 'initial-snapshot_date':
+                                        description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {((datetime.fromisoformat(reqPOST[key]) + timedelta(hours=2)).strftime("%d.%m.%Y %H:%M"))}; "
+                                    else:
+                                        description += f"{MODEL_MAPPING.get(raw_data, raw_data)}: {reqPOST[key]}; "
+
+                if 'edit' in request.path.strip('/').split('/'):
+                    action_type = "update"
+                elif 'delete' in request.path.strip('/').split('/'):
+                    action_type = "delete"
+                    description = pre_info
                 else:
-                    object_name = None
-                    category = ["object", "об'єкт"]
+                    action_type = "create"
 
-                path = request.path.lower()
-
-                if "add" in path or "create" in path:
-                    action_type = ["create", "створив"]
-                elif "delete" in path:
-                    action_type = ["delete", "видалив"]
-                else:
-                    action_type = ["update", "оновив"]
-
-                if "edit" in path:
-                    description = f"Користувач {request.user.username} {action_type[1]} {category[1]}: {pre_info}"
-                elif "delete" in path:
-                    description = f"Користувач {request.user.username} {action_type[1]} {category[1]}: {pre_info}"
-                else:
-                    description = f"Користувач {request.user.username} {action_type[1]} {category[1]}: {object_name}"
-                
-                ActivityLog.objects.create(
-                    user=request.user,
-                    action=action_type[0],
-                    description=description
-                )
+                if path_clear[0] in ['directory', 'logistics', 'waste', 'balances']:
+                    print(path_clear)
+                    ActivityLog.objects.create(
+                        user=request.user,
+                        action=action_type,
+                        description=description
+                    )
 
         return response

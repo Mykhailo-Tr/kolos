@@ -144,7 +144,7 @@ class ActivityLogMiddleware:
                     action_type = "create"
 
                 if path_clear[0] in ['directory', 'logistics', 'waste', 'balances']:
-                    print(path_clear)
+                    
                     ActivityLog.objects.create(
                         user=request.user,
                         action=action_type,

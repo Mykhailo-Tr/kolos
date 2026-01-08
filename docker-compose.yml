@@ -1,13 +1,12 @@
-
+version: '3.9'
 
 services:
   web:
     build: .
-    container_name: my_django_app
+    container_name: kolos_web
     ports:
       - "8000:8000"
     volumes:
-      - .:/app               # монтуємо код
-      - ./db.sqlite3:/app/db.sqlite3  # монтуємо існуючу базу
-
+      - .:/app          # монтуємо код, щоб зміни відразу були видимі
+      - ./db.sqlite3:/app/db.sqlite3  # монтуємо базу даних
     restart: unless-stopped

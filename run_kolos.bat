@@ -1,53 +1,83 @@
 @echo off
 setlocal
 
-echo ==============================
-echo 🚀 Kolos Project Launcher
-echo ==============================
+REM ====================================
+REM Kolos Django Local Launcher
+REM ====================================
 
-REM --- Перевірка, чи встановлений Docker ---
-where docker >nul 2>nul
-if %errorlevel% neq 0 (
-    echo ❌ Docker не знайдено! Встанови Docker Desktop і повтори запуск.
+REM Force correct working directory (directory of this BAT file)
+cd /d "%~dp0"
+
+echo ====================================
+echo Project directory:
+echo %cd%
+echo ====================================
+
+REM ------------------------------------
+REM Check manage.py
+REM ------------------------------------
+if not exist manage.py (
+    echo ERROR: manage.py not found in this directory!
+    echo Please place run_kolos.bat next to manage.py
     pause
     exit /b
 )
 
-REM --- Перевірка, чи Docker запущений ---
-docker info >nul 2>nul
+REM ------------------------------------
+REM Check Python
+REM ------------------------------------
+where python >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ⚠️ Docker не запущено. Запусти Docker Desktop і натисни Enter.
+    echo ERROR: Python not found!
+    echo Please install Python from https://www.python.org/downloads/
     pause
+    exit /b
 )
 
-REM --- Назва контейнера ---
-set CONTAINER=my_django_app
-set IMAGE=kolos-web
+REM ------------------------------------
+REM Virtual environment
+REM ------------------------------------
+if not exist venv (
+    echo Creating virtual environment...
+    python -m venv venv
+)
 
-echo 🔍 Перевірка, чи контейнер вже працює...
-docker ps --filter "name=%CONTAINER%" --format "{{.Names}}" | find "%CONTAINER%" >nul
-if %errorlevel%==0 (
-    echo ✅ Контейнер вже запущений.
+call venv\Scripts\activate
+
+REM ------------------------------------
+REM Upgrade pip
+REM ------------------------------------
+echo Upgrading pip...
+python -m pip install --upgrade pip
+
+REM ------------------------------------
+REM Install dependencies
+REM ------------------------------------
+if exist requirements.txt (
+    echo Installing dependencies...
+    pip install -r requirements.txt
 ) else (
-    echo ⚙️ Перевірка, чи образ вже збілджений...
-    docker images | find "%IMAGE%" >nul
-    if %errorlevel%==0 (
-        echo 🧠 Образ знайдено — запускаємо контейнер...
-        docker compose up -d
-    ) else (
-        echo 🛠 Збираємо Docker образ...
-        docker compose up --build -d
-    )
+    echo WARNING: requirements.txt not found!
 )
 
-REM --- Очікуємо запуск сервера ---
-echo ⏳ Очікуємо запуск Django-сервера...
-timeout /t 5 >nul
+REM ------------------------------------
+REM Django database
+REM ------------------------------------
+echo Running database migrations...
+python manage.py migrate --noinput
 
-REM --- Відкриваємо у браузері ---
-echo 🌐 Відкриваємо сайт: http://localhost:8000
-start http://localhost:8000
+REM ------------------------------------
+REM Static files
+REM ------------------------------------
+echo Collecting static files...
+python manage.py collectstatic --noinput
 
-echo ✅ Проєкт Kolos запущено!
+REM ------------------------------------
+REM Run server
+REM ------------------------------------
+echo Starting Django development server...
+start http://127.0.0.1:8000
+python manage.py runserver 127.0.0.1:8000
+
 pause
 endlocal

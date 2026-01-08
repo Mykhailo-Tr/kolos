@@ -29,3 +29,5 @@ xlsxwriter
 # Додаткові утиліти
 python-dateutil
 pillow
+
+matplotlib

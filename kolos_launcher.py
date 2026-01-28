@@ -2,21 +2,36 @@ import os
 import sys
 import subprocess
 import threading
-import time
 import webbrowser
 import signal
-import re
+import socket
 import tkinter as tk
-from tkinter import ttk, scrolledtext
+from tkinter import scrolledtext, ttk
 from datetime import datetime
 
-FIRST_WEB_OPEN = True
+# ============================================================
+# ГЛОБАЛЬНА КОНФІГУРАЦІЯ
+# ============================================================
+APP_NAME = "Kolos System Management"
+APP_VERSION = "1.3.0"
+APP_ICON = "kolos.ico"
 
-# --- КОНФІГУРАЦІЯ СТИЛЮ ---
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 8000
+AUTO_OPEN_BROWSER = True
+
+VENV_DIR = "venv"
+REQUIREMENTS_FILE = "requirements.txt"
+MANAGE_FILE = "manage.py"
+MIN_PYTHON_VERSION = (3, 8)
+
+PYTHON_EXEC_WIN = r"venv\Scripts\python.exe"
+PYTHON_EXEC_UNIX = "venv/bin/python"
+
 THEME = {
     "bg": "#f0f2f5",
     "sidebar": "#1a1c23",
-    "card": "#ffffff",
+    "sidebar_border": "#2b2f3a",
     "primary": "#0061ff",
     "success": "#28a745",
     "danger": "#e81123",
@@ -25,106 +40,126 @@ THEME = {
     "text_dark": "#323338",
     "text_light": "#ffffff",
     "console_bg": "#0c0c0c",
-    "console_default": "#cccccc"
+    "console_default": "#cccccc",
+    "progress_bg": "#2b2f3a"
 }
 
+# ============================================================
+# ДОПОМІЖНІ ФУНКЦІЇ
+# ============================================================
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+# ============================================================
+# ГОЛОВНИЙ КЛАС ДОДАТКУ
+# ============================================================
 class KolosLauncher:
     def __init__(self, root):
         self.root = root
-        self.root.title("Kolos System Management")
-        self.root.geometry("1000x700")
+        self.root.title(f"{APP_NAME} v{APP_VERSION}")
+        self.root.geometry("1100x750")
+        self.root.minsize(950, 650)
         self.root.configure(bg=THEME["bg"])
-        
+
+        try:
+            self.root.iconbitmap(APP_ICON)
+        except: pass
+
         self.server_process = None
         self.start_time = None
         self.is_running = False
-        
+        self.first_web_open = True
+
         self.setup_ui()
         self.update_clock()
         self.check_dependencies()
         self.log("INFO: Система готова до роботи.")
 
+    # ========================================================
+    # UI СТРУКТУРА
+    # ========================================================
     def setup_ui(self):
-        # --- Sidebar (Ліва панель) ---
-        self.sidebar = tk.Frame(self.root, bg=THEME["sidebar"], width=260)
+        # Sidebar
+        self.sidebar = tk.Frame(self.root, bg=THEME["sidebar"], width=280, highlightthickness=1, highlightbackground=THEME["sidebar_border"])
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
-        tk.Label(self.sidebar, text="KOLOS", font=("Segoe UI", 28, "bold"), 
-                 foreground=THEME["primary"], bg=THEME["sidebar"]).pack(pady=(40, 5))
-        tk.Label(self.sidebar, text="CONTROL DASHBOARD", font=("Segoe UI", 9, "bold"), 
-                 foreground="#5c6370", bg=THEME["sidebar"]).pack(pady=(0, 40))
+        tk.Label(self.sidebar, text="KOLOS", font=("Segoe UI", 28, "bold"), fg=THEME["primary"], bg=THEME["sidebar"]).pack(pady=(40, 5))
+        tk.Label(self.sidebar, text="SYSTEM CONTROL", font=("Segoe UI", 9, "bold"), fg="#5c6370", bg=THEME["sidebar"]).pack()
 
-        # Статуси перевірок
+        # Indicators
         self.status_indicators = {}
-        checks = [
-            ("python", "Python 3.12 [cite: 1]"),
-            ("venv", "Virtual Env [cite: 9]"),
-            ("manage", "Django Core [cite: 2]"),
-            ("deps", "Requirements [cite: 4]")
-        ]
-
+        checks = [("python", "Python Core"), ("venv", "Virtual Env"), ("manage", "Django Files"), ("deps", "Dependencies")]
         for key, label in checks:
             f = tk.Frame(self.sidebar, bg=THEME["sidebar"], padx=25, pady=8)
             f.pack(fill="x")
-            ind = tk.Label(f, text="○", foreground="#5c6370", bg=THEME["sidebar"], font=("Segoe UI", 12, "bold"))
+            ind = tk.Label(f, text="○", fg="#5c6370", bg=THEME["sidebar"], font=("Segoe UI", 14, "bold"))
             ind.pack(side="left")
-            tk.Label(f, text=label, foreground="#a0a0a0", bg=THEME["sidebar"], font=("Segoe UI", 10)).pack(side="left", padx=12)
+            tk.Label(f, text=label, fg="#a0a0a0", bg=THEME["sidebar"], font=("Segoe UI", 10)).pack(side="left", padx=12)
             self.status_indicators[key] = ind
 
-        # Таймер (Uptime)
+        # System Tools Section
+        tk.Label(self.sidebar, text="ДІАГНОСТИКА", font=("Segoe UI", 8, "bold"), fg="#5c6370", bg=THEME["sidebar"]).pack(pady=(30, 10))
+        self.create_sidebar_button("ПЕРЕВІРИТИ СИСТЕМУ", self.check_dependencies).pack(fill="x", padx=20, pady=5)
+        self.btn_restart = self.create_sidebar_button("ПЕРЕЗАПУСТИТИ", self.restart_server, state="disabled")
+        self.btn_restart.pack(fill="x", padx=20, pady=5)
+
+        # Uptime
         self.uptime_frame = tk.Frame(self.sidebar, bg="#252833", pady=15)
         self.uptime_frame.pack(side="bottom", fill="x", padx=20, pady=30)
-        self.lbl_uptime = tk.Label(self.uptime_frame, text="ЧАС РОБОТИ: 00:00:00", font=("Consolas", 12, "bold"), 
-                                  foreground=THEME["warning"], bg="#252833")
+        self.lbl_uptime = tk.Label(self.uptime_frame, text="UPTIME: 00:00:00", font=("Consolas", 11, "bold"), fg=THEME["warning"], bg="#252833")
         self.lbl_uptime.pack()
 
-        # --- Main Area ---
+        # Main Area
         main = tk.Frame(self.root, bg=THEME["bg"])
         main.pack(side="right", fill="both", expand=True, padx=30, pady=30)
 
-        # Header
+        # Header & Clock
         header = tk.Frame(main, bg=THEME["bg"])
-        header.pack(fill="x", pady=(0, 20))
-        tk.Label(header, text="Моніторинг активності", font=("Segoe UI", 16, "bold"), 
-                 foreground=THEME["text_dark"], bg=THEME["bg"]).pack(side="left")
-        self.lbl_clock = tk.Label(header, text="", font=("Segoe UI", 11), foreground="#6c757d", bg=THEME["bg"])
+        header.pack(fill="x", pady=(0, 10))
+        tk.Label(header, text="Статус терміналу", font=("Segoe UI", 16, "bold"), fg=THEME["text_dark"], bg=THEME["bg"]).pack(side="left")
+        self.lbl_clock = tk.Label(header, text="", font=("Segoe UI", 11), fg="#6c757d", bg=THEME["bg"])
         self.lbl_clock.pack(side="right")
 
-        # Консоль з кольорами
-        self.console = scrolledtext.ScrolledText(main, bg=THEME["console_bg"], foreground=THEME["console_default"],
-                                                font=("Consolas", 10), borderwidth=0, padx=15, pady=15)
+        # Progress Bar
+        self.progress_var = tk.DoubleVar()
+        self.progress = ttk.Progressbar(main, variable=self.progress_var, maximum=100)
+        self.progress.pack(fill="x", pady=(0, 15))
+
+        # Console
+        self.console = scrolledtext.ScrolledText(main, bg=THEME["console_bg"], fg=THEME["console_default"], font=("Consolas", 10), borderwidth=0, padx=15, pady=15)
         self.console.pack(fill="both", expand=True)
         self.setup_console_tags()
 
-        # Панель кнопок
-        btn_grid = tk.Frame(main, bg=THEME["bg"])
-        btn_grid.pack(fill="x", pady=(25, 0))
+        # Action Buttons
+        btns = tk.Frame(main, bg=THEME["bg"])
+        btns.pack(fill="x", pady=(25, 0))
 
-        # Стильні кнопки
-        self.btn_start = self.create_button(btn_grid, "▶ ЗАПУСТИТИ", THEME["success"], self.start_server_thread)
-        self.btn_stop = self.create_button(btn_grid, "■ ЗУПИНИТИ", THEME["warning"], self.stop_server, state="disabled")
-        self.btn_web = self.create_button(btn_grid, "🌐 БРАУЗЕР", THEME["primary"], self.open_browser)
-        self.btn_kill = self.create_button(btn_grid, "✕ ВИМКНУТИ ВСЕ", THEME["danger"], self.shutdown_everything)
+        self.btn_toggle = self.create_main_button(btns, "▶ ЗАПУСТИТИ СЕРВЕР", THEME["success"], self.toggle_server)
+        self.btn_web = self.create_main_button(btns, "🌐 БРАУЗЕР", THEME["primary"], self.open_browser)
+        self.btn_kill = self.create_main_button(btns, "✕ ВИЙТИ", THEME["danger"], self.shutdown_everything)
 
-        # Розміщення кнопок
-        self.btn_start.grid(row=0, column=0, padx=5, sticky="nsew")
-        self.btn_stop.grid(row=0, column=1, padx=5, sticky="nsew")
-        self.btn_web.grid(row=0, column=2, padx=5, sticky="nsew")
-        self.btn_kill.grid(row=0, column=3, padx=5, sticky="nsew")
-        btn_grid.columnconfigure((0,1,2,3), weight=1)
+        for i, b in enumerate((self.btn_toggle, self.btn_web, self.btn_kill)):
+            b.grid(row=0, column=i, padx=5, sticky="nsew")
+            btns.columnconfigure(i, weight=1)
 
-    def create_button(self, parent, text, color, command, state="normal"):
-        btn = tk.Button(parent, text=text, bg=color, foreground="white", font=("Segoe UI", 10, "bold"),
-                       relief="flat", activebackground=color, cursor="hand2", 
-                       command=command, state=state, pady=12)
-        btn.bind("<Enter>", lambda e: btn.config(background=self.lighten_color(color)))
-        btn.bind("<Leave>", lambda e: btn.config(background=color))
+    # ========================================================
+    # ВІЗУАЛЬНІ ЕЛЕМЕНТИ
+    # ========================================================
+    def create_sidebar_button(self, text, command, state="normal"):
+        return tk.Button(self.sidebar, text=text, bg="#2b2f3a", fg="white", font=("Segoe UI", 8, "bold"), relief="flat", cursor="hand2", command=command, state=state, pady=8)
+
+    def create_main_button(self, parent, text, color, command):
+        btn = tk.Button(parent, text=text, bg=color, fg="white", font=("Segoe UI", 10, "bold"), relief="flat", cursor="hand2", command=command, pady=12)
+        btn.bind("<Enter>", lambda e: btn.config(bg=self.lighten_color(color)))
+        btn.bind("<Leave>", lambda e: btn.config(bg=color))
         return btn
 
-    def lighten_color(self, hex_color):
-        """Робить колір світлішим для ефекту наведення."""
-        return hex_color # Можна додати складнішу логіку для RGB
+    def lighten_color(self, hex_color, factor=1.15):
+        hex_color = hex_color.lstrip("#")
+        rgb = [int(hex_color[i:i+2], 16) for i in (0, 2, 4)]
+        return f"#{min(255, int(rgb[0]*factor)):02x}{min(255, int(rgb[1]*factor)):02x}{min(255, int(rgb[2]*factor)):02x}"
 
     def setup_console_tags(self):
         self.console.tag_config("timestamp", foreground="#5c6370")
@@ -133,120 +168,146 @@ class KolosLauncher:
         self.console.tag_config("warning", foreground=THEME["warning"])
         self.console.tag_config("info", foreground=THEME["primary"])
 
+    # ========================================================
+    # ЛОГІКА ТА СИСТЕМНІ ФУНКЦІЇ
+    # ========================================================
     def log(self, message):
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        self.console.insert(tk.END, f"[{timestamp}] ", "timestamp")
-        
-        # Парсинг повідомлення для кольорів
-        msg_lower = message.upper()
+        ts = datetime.now().strftime("%H:%M:%S")
+        self.console.insert("end", f"[{ts}] ", "timestamp")
         tag = None
-        if "ERROR" in msg_lower or "FAIL" in msg_lower: tag = "error"
-        elif "SUCCESS" in msg_lower or "OK" in msg_lower or "DONE" in msg_lower: tag = "success"
-        elif "WARNING" in msg_lower: tag = "warning"
-        elif "INFO" in msg_lower or "STARTING" in msg_lower: tag = "info"
-
-        self.console.insert(tk.END, message + "\n", tag)
-        self.console.see(tk.END)
+        msg = message.upper()
+        if "ERROR" in msg: tag = "error"
+        elif "SUCCESS" in msg: tag = "success"
+        elif "WARNING" in msg: tag = "warning"
+        elif "INFO" in msg or "START" in msg: tag = "info"
+        self.console.insert("end", message + "\n", tag)
+        self.console.see("end")
 
     def update_clock(self):
         self.lbl_clock.config(text=datetime.now().strftime("%A, %d %B %Y | %H:%M:%S"))
         if self.is_running and self.start_time:
             delta = datetime.now() - self.start_time
-            self.lbl_uptime.config(text=f"ЧАС РОБОТИ: {str(delta).split('.')[0]}")
+            self.lbl_uptime.config(text=f"UPTIME: {str(delta).split('.')[0]}")
         self.root.after(1000, self.update_clock)
 
     def check_dependencies(self):
-        # Python check [cite: 1]
-        self.set_status("python", sys.version_info >= (3, 8))
-        # manage.py check [cite: 2]
-        self.set_status("manage", os.path.exists("manage.py"))
-        # venv check [cite: 9]
-        venv_exec = "venv\\Scripts\\python.exe" if os.name == 'nt' else "venv/bin/python"
-        self.set_status("venv", os.path.exists(venv_exec))
-        # Requirements check [cite: 4]
-        self.set_status("deps", os.path.exists("requirements.txt"))
+        self.log("INFO: Запуск діагностики системи...")
+        p_ok = sys.version_info >= MIN_PYTHON_VERSION
+        m_ok = os.path.exists(MANAGE_FILE)
+        python_exe = PYTHON_EXEC_WIN if os.name == "nt" else PYTHON_EXEC_UNIX
+        v_ok = os.path.exists(python_exe)
+        d_ok = os.path.exists(REQUIREMENTS_FILE)
+
+        self.set_status("python", p_ok)
+        self.set_status("manage", m_ok)
+        self.set_status("venv", v_ok)
+        self.set_status("deps", d_ok)
+        
+        if all([p_ok, m_ok, v_ok, d_ok]):
+            self.log("SUCCESS: Всі залежності в нормі.")
+        else:
+            self.log("WARNING: Знайдено проблеми в конфігурації.")
 
     def set_status(self, key, ok):
-        color = THEME["success"] if ok else THEME["danger"]
-        self.status_indicators[key].config(text="●" if ok else "✘", foreground=color)
+        self.status_indicators[key].config(text="✔" if ok else "✖", fg=THEME["success"] if ok else THEME["danger"])
+
+    def toggle_server(self):
+        if self.is_running:
+            self.stop_server()
+        else:
+            if is_port_in_use(SERVER_PORT):
+                self.log(f"ERROR: Порт {SERVER_PORT} вже зайнятий! Закрийте інші сервери.")
+                return
+            self.start_server_thread()
+
+    def restart_server(self):
+        self.log("INFO: Перезапуск сервера...")
+        self.stop_server()
+        self.root.after(1000, self.start_server_thread)
 
     def start_server_thread(self):
-        self.btn_start.config(state="disabled", bg="#d1d1d1")
-        self.btn_stop.config(state="normal")
+        self.btn_toggle.config(text="■ ЗУПИНИТИ СЕРВЕР", bg=THEME["warning"])
+        self.btn_restart.config(state="normal")
         threading.Thread(target=self.run_logic, daemon=True).start()
 
     def run_logic(self):
         try:
-            python_exe = "venv\\Scripts\\python.exe" if os.name == 'nt' else "venv/bin/python"
-            
-            if not os.path.exists("venv"):
-                self.log("INFO: Створення віртуального оточення... [cite: 9]")
-                subprocess.run([sys.executable, "-m", "venv", "venv"], check=True)
+            self.progress_var.set(5)
+            python_exe = PYTHON_EXEC_WIN if os.name == "nt" else PYTHON_EXEC_UNIX
+
+            if not os.path.exists(VENV_DIR):
+                self.log("INFO: Створення Virtual Env...")
+                subprocess.run([sys.executable, "-m", "venv", VENV_DIR], check=True)
                 self.set_status("venv", True)
+            self.progress_var.set(25)
 
-            self.log("INFO: Перевірка бібліотек (pip install)... [cite: 10]")
-            subprocess.run([python_exe, "-m", "pip", "install", "-r", "requirements.txt"], capture_output=True)
+            self.log("INFO: Оновлення пакетів (pip)...")
+            subprocess.run([python_exe, "-m", "pip", "install", "-r", REQUIREMENTS_FILE], capture_output=True)
             self.set_status("deps", True)
+            self.progress_var.set(50)
 
-            self.log("INFO: Міграція бази даних... [cite: 8]")
-            subprocess.run([python_exe, "manage.py", "migrate", "--noinput"], capture_output=True)
-            
-            self.log("INFO: Збір статичних файлів... [cite: 7]")
-            subprocess.run([python_exe, "manage.py", "collectstatic", "--noinput"], capture_output=True)
+            self.log("INFO: Міграції бази даних...")
+            subprocess.run([python_exe, MANAGE_FILE, "migrate", "--noinput"], capture_output=True)
+            self.progress_var.set(75)
 
-            self.log("SUCCESS: Запуск сервера на http://127.0.0.1:8000")
-            # Використовуємо CREATE_NEW_PROCESS_GROUP для повного контролю над деревом процесів
+            self.log("INFO: Збір статики...")
+            subprocess.run([python_exe, MANAGE_FILE, "collectstatic", "--noinput"], capture_output=True)
+            self.progress_var.set(90)
+
             self.server_process = subprocess.Popen(
-                [python_exe, "manage.py", "runserver", "127.0.0.1:8000", "--noreload"],
+                [python_exe, MANAGE_FILE, "runserver", f"{SERVER_HOST}:{SERVER_PORT}", "--noreload"],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
             )
 
             self.is_running = True
             self.start_time = datetime.now()
-            
-            global FIRST_WEB_OPEN
-            if FIRST_WEB_OPEN:
-                self.root.after(1500, self.open_browser)
-            
+            self.progress_var.set(100)
+            self.log(f"SUCCESS: Kolos запущено на http://{SERVER_HOST}:{SERVER_PORT}")
+
+            if AUTO_OPEN_BROWSER and self.first_web_open:
+                self.first_web_open = False
+                self.root.after(1000, self.open_browser)
 
             for line in self.server_process.stdout:
                 if line.strip(): self.log(line.strip())
 
         except Exception as e:
-            self.log(f"ERROR: Помилка запуску: {e}")
+            self.log(f"ERROR: Критичний збій: {e}")
             self.stop_server()
 
     def stop_server(self):
         if self.server_process:
-            self.log("WARNING: Зупинка всіх процесів сервера...")
-            if os.name == 'nt':
-                # Примусове завершення всього дерева процесів (Django + Python)
-                subprocess.run(['taskkill', '/F', '/T', '/PID', str(self.server_process.pid)], capture_output=True)
+            self.log("WARNING: Примусова зупинка процесів...")
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(self.server_process.pid)], capture_output=True)
             else:
                 os.killpg(os.getpgid(self.server_process.pid), signal.SIGTERM)
-            
             self.server_process = None
-        
+
         self.is_running = False
-        self.btn_start.config(state="normal", bg=THEME["success"])
-        self.btn_stop.config(state="disabled")
-        self.lbl_uptime.config(text="ЧАС РОБОТИ: 00:00:00")
-        self.log("SUCCESS: Сервер успішно зупинено.")
+        self.start_time = None
+        self.progress_var.set(0)
+        self.btn_toggle.config(text="▶ ЗАПУСТИТИ СЕРВЕР", bg=THEME["success"])
+        self.btn_restart.config(state="disabled")
+        self.lbl_uptime.config(text="UPTIME: 00:00:00")
+        self.log("SUCCESS: Сервер вимкнено.")
 
     def open_browser(self):
-        webbrowser.open("http://127.0.0.1:8000")
-        self.log("INFO: Відкрито браузер.")
+        webbrowser.open(f"http://{SERVER_HOST}:{SERVER_PORT}")
+        self.log("INFO: Запит до браузера надіслано.")
 
     def shutdown_everything(self):
-        """Закриває сервер та сам лаунчер однією командою."""
-        if self.is_running:
-            self.stop_server()
-        self.log("INFO: Завершення роботи лаунчера...")
-        self.root.after(400, self.root.destroy)
+        if self.is_running: self.stop_server()
+        self.log("INFO: Вихід...")
+        self.root.after(300, self.root.destroy)
 
 if __name__ == "__main__":
     root = tk.Tk()
-    root.iconbitmap("kolos.ico")
+    # Налаштування стилю для Progress Bar (темна тема)
+    style = ttk.Style()
+    style.theme_use('default')
+    style.configure("TProgressbar", thickness=10, background=THEME["primary"], troughcolor=THEME["progress_bg"], borderwidth=0)
+    
     app = KolosLauncher(root)
     root.mainloop()

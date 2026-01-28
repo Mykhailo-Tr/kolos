@@ -1,0 +1,10 @@
+{
+    "SERVER_HOST": "127.0.0.1",
+    "SERVER_PORT": 8002,
+    "AUTO_OPEN_BROWSER": true,
+    "VENV_DIR": "venv",
+    "REQUIREMENTS_FILE": "requirements.txt",
+    "MANAGE_FILE": "manage.py",
+    "PYTHON_EXEC_WIN": "venv\\Scripts\\python.exe",
+    "PYTHON_EXEC_UNIX": "venv/bin/python"
+}

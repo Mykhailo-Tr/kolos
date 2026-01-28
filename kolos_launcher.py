@@ -10,6 +10,8 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext
 from datetime import datetime
 
+FIRST_WEB_OPEN = True
+
 # --- КОНФІГУРАЦІЯ СТИЛЮ ---
 THEME = {
     "bg": "#f0f2f5",
@@ -73,7 +75,7 @@ class KolosLauncher:
         # Таймер (Uptime)
         self.uptime_frame = tk.Frame(self.sidebar, bg="#252833", pady=15)
         self.uptime_frame.pack(side="bottom", fill="x", padx=20, pady=30)
-        self.lbl_uptime = tk.Label(self.uptime_frame, text="UPTIME: 00:00:00", font=("Consolas", 12, "bold"), 
+        self.lbl_uptime = tk.Label(self.uptime_frame, text="ЧАС РОБОТИ: 00:00:00", font=("Consolas", 12, "bold"), 
                                   foreground=THEME["warning"], bg="#252833")
         self.lbl_uptime.pack()
 
@@ -150,7 +152,7 @@ class KolosLauncher:
         self.lbl_clock.config(text=datetime.now().strftime("%A, %d %B %Y | %H:%M:%S"))
         if self.is_running and self.start_time:
             delta = datetime.now() - self.start_time
-            self.lbl_uptime.config(text=f"UPTIME: {str(delta).split('.')[0]}")
+            self.lbl_uptime.config(text=f"ЧАС РОБОТИ: {str(delta).split('.')[0]}")
         self.root.after(1000, self.update_clock)
 
     def check_dependencies(self):
@@ -188,6 +190,9 @@ class KolosLauncher:
 
             self.log("INFO: Міграція бази даних... [cite: 8]")
             subprocess.run([python_exe, "manage.py", "migrate", "--noinput"], capture_output=True)
+            
+            self.log("INFO: Збір статичних файлів... [cite: 7]")
+            subprocess.run([python_exe, "manage.py", "collectstatic", "--noinput"], capture_output=True)
 
             self.log("SUCCESS: Запуск сервера на http://127.0.0.1:8000")
             # Використовуємо CREATE_NEW_PROCESS_GROUP для повного контролю над деревом процесів
@@ -199,7 +204,11 @@ class KolosLauncher:
 
             self.is_running = True
             self.start_time = datetime.now()
-            self.root.after(1500, self.open_browser)
+            
+            global FIRST_WEB_OPEN
+            if FIRST_WEB_OPEN:
+                self.root.after(1500, self.open_browser)
+            
 
             for line in self.server_process.stdout:
                 if line.strip(): self.log(line.strip())
@@ -222,7 +231,7 @@ class KolosLauncher:
         self.is_running = False
         self.btn_start.config(state="normal", bg=THEME["success"])
         self.btn_stop.config(state="disabled")
-        self.lbl_uptime.config(text="UPTIME: 00:00:00")
+        self.lbl_uptime.config(text="ЧАС РОБОТИ: 00:00:00")
         self.log("SUCCESS: Сервер успішно зупинено.")
 
     def open_browser(self):
@@ -238,7 +247,6 @@ class KolosLauncher:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    # Якщо у вас є файл kolos.ico, розкоментуйте наступний рядок:
-    # root.iconbitmap("kolos.ico")
+    root.iconbitmap("kolos.ico")
     app = KolosLauncher(root)
     root.mainloop()

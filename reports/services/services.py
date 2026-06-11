@@ -1,7 +1,7 @@
 from django.db.models import Sum, Count, Avg, Q
 from datetime import datetime, timedelta
 from balances.models import Balance, BalanceHistory, BalanceSnapshot
-from logistics.models import WeigherJournal, ShipmentJournal, FieldsIncome
+from logistics.models import WeigherJournal, ShipmentJournal, FieldsIncome, OtherIncome
 from waste.models import Utilization, Recycling
 from directory.models import Culture, Place
 import csv
@@ -405,7 +405,69 @@ class ReportService:
         Використовується в get_total_income_period_data.
         """
         return ReportService.get_fields_report(date_from, date_to, filters)
+    
+    @staticmethod
+    def get_other_income_report(date_from=None, date_to=None, filters=None):
+        """Звіт по іншим надходженням (від людей, продавців)"""
+        queryset = OtherIncome.objects.select_related(
+            'place_to', 'culture'
+        ).all()
+        
+        if date_from:
+            queryset = queryset.filter(date_time__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(date_time__date__lte=date_to)
+        
+        if filters:
+            if filters.get('culture_id'):
+                queryset = queryset.filter(culture_id=filters['culture_id'])
+            if filters.get('place_to_id'):
+                queryset = queryset.filter(place_to_id=filters['place_to_id'])
+        
+        data = []
+        for journal in queryset:
+            data.append({
+                'date': journal.date_time.strftime('%d.%m.%Y'),
+                'time': journal.date_time.strftime('%H:%M'),
+                'document': journal.document_number or '—',
+                'seller': journal.seller or '—',
+
+                'place_to': ReportService._resolve_place(
+                    journal.place_to
+                ),
+
+                'culture': journal.culture.name if journal.culture else '—',
+                'weight_net': float(journal.weight_net or 0),
+            })
+        
+        aggregation = {
+            'total_weight': sum(item['weight_net'] for item in data) if data else 0,
+            'by_seller': {},
+            'by_culture': {},
+        }   
+        
+        for item in data:
+            # По продавцях
+            seller = item['seller']
+            if seller not in aggregation['by_seller']:
+                aggregation['by_seller'][seller] = 0
+            aggregation['by_seller'][seller] += item['weight_net']
             
+            # По культурах
+            culture_name = item['culture']
+            if culture_name not in aggregation['by_culture']:
+                aggregation['by_culture'][culture_name] = 0
+            aggregation['by_culture'][culture_name] += item['weight_net']
+            
+        return {
+            'data': data,
+            'aggregation': aggregation,
+            'total_rows': len(data),
+        }
+
+
+        
+        
     @staticmethod
     def export_to_csv(data, columns):
         """Експорт даних в CSV"""

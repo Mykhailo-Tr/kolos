@@ -1,7 +1,7 @@
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView, ListView, DeleteView
-from .models import WeigherJournal, ShipmentJournal, FieldsIncome
-from .forms import WeigherJournalForm, ShipmentJournalForm, FieldsIncomeForm
+from .models import WeigherJournal, ShipmentJournal, FieldsIncome, OtherIncome
+from .forms import WeigherJournalForm, ShipmentJournalForm, FieldsIncomeForm, OtherIncomeForm
 
 
 # --- Базовий клас для всіх журналів ---
@@ -198,3 +198,37 @@ class FieldsIncomeDeleteView(DeleteView):
         context["model_name"] = self.model._meta.model_name
         context["cancel_url"] = reverse_lazy("fieldsincome_list")
         return context
+    
+# --- Конкретні реалізації: Other Income ---
+class OtherIncomeListView(BaseJournalListView):
+    model = OtherIncome
+    # template_name видалено для успадкування "logistics/journal/list.html"
+
+    journal_valid_orders = [
+        "place_to__name", "-place_to__name",
+        "seller", "-seller",
+    ]
+
+    journal_select_related = ["place_to"]
+    
+class OtherIncomeCreateView(BaseJournalCreateView):
+    model = OtherIncome
+    form_class = OtherIncomeForm
+    template_name = "logistics/form.html"
+    
+class OtherIncomeUpdateView(BaseJournalUpdateView):
+    model = OtherIncome
+    form_class = OtherIncomeForm
+    template_name = "logistics/form.html"
+    
+class OtherIncomeDeleteView(DeleteView):
+    model = OtherIncome
+    template_name = "confirm_delete.html"
+    success_url = reverse_lazy("otherincome_list")
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["model_name"] = self.model._meta.model_name
+        context["cancel_url"] = reverse_lazy("otherincome_list")
+        return context
+    

@@ -3,7 +3,7 @@ from dal import autocomplete
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 # Припустимо, що моделі імпортовані з відповідних місць
-from .models import WeigherJournal, ShipmentJournal, FieldsIncome 
+from .models import WeigherJournal, ShipmentJournal, FieldsIncome, OtherIncome
 from balances.models import Balance
 
 
@@ -333,6 +333,40 @@ class FieldsIncomeForm(BaseJournalForm):
 
         if not field:
             self.add_error('field', ValidationError("Необхідно вказати поле відправлення."))
+        
+        if not place_to:
+            self.add_error('place_to', ValidationError("Необхідно вказати місце прийому."))
+
+        return cleaned_data
+    
+class OtherIncomeForm(BaseJournalForm):
+    """ Форма для інших надходжень (OtherIncome). """
+
+    class Meta(BaseJournalForm.Meta):
+        model = OtherIncome
+        base_fields = BaseJournalForm.Meta.fields.copy()
+        base_fields[-1:-1] = ["seller", "place_to"]
+        fields = base_fields
+        widgets = {
+            **BaseJournalForm.Meta.widgets,
+            "seller": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Продавець або джерело надходження",
+            }),
+            "place_to": forms.Select(attrs={
+                "class": "form-select",
+                "placeholder": "Оберіть місце прийому"
+            }),
+        }
+
+    def clean(self):
+        """Додає логіку перевірки продавця та місця прийому."""
+        cleaned_data = super().clean()
+        seller = cleaned_data.get("seller")
+        place_to = cleaned_data.get("place_to")
+
+        if not seller:
+            self.add_error('seller', ValidationError("Необхідно вказати продавця або джерело надходження."))
         
         if not place_to:
             self.add_error('place_to', ValidationError("Необхідно вказати місце прийому."))

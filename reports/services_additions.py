@@ -218,3 +218,67 @@ def get_income_by_date(date, filters=None):
         'aggregation': aggregation,
         'total_rows': len(data),
     }
+    
+
+@staticmethod
+def get_other_income_by_date(date, filters=None):
+    """
+    Отримує дані про інші надходження зерна за конкретну дату
+    
+    Args:
+        date: Дата звіту
+        filters: dict з фільтрами
+    
+    Returns:
+        dict з даними звіту
+    """
+    from logistics.models import OtherIncome
+    from django.db.models import Sum
+    
+    queryset = OtherIncome.objects.filter(
+        date_time__date=date
+    ).select_related('place_to', 'culture')
+    
+    if filters:
+        if filters.get('culture_id'):
+            queryset = queryset.filter(culture_id=filters['culture_id'])
+        if filters.get('place_to_id'):
+            queryset = queryset.filter(place_to_id=filters['place_to_id'])
+    
+    data = []
+    for journal in queryset:
+        data.append({
+            'date': journal.date_time.strftime('%d.%m.%Y'),
+            'time': journal.date_time.strftime('%H:%M'),
+            'document': journal.document_number or '—',
+            'seller': journal.seller,
+            'culture': journal.culture.name if journal.culture else '—',
+            'place_to': journal.place_to.name if journal.place_to else '—',
+            'weight_net': float(journal.weight_net) if journal.weight_net else 0.0,
+        })
+    
+    # Агрегація
+    aggregation = {
+        'total_weight': sum(item['weight_net'] for item in data) if data else 0,
+        'by_seller': {},
+        'by_culture': {},
+    }
+    
+    for item in data:
+        # По продавцях
+        seller_name = item['seller']
+        if seller_name not in aggregation['by_seller']:
+            aggregation['by_seller'][seller_name] = 0
+        aggregation['by_seller'][seller_name] += item['weight_net']
+        
+        # По культурах
+        culture_name = item['culture']
+        if culture_name not in aggregation['by_culture']:
+            aggregation['by_culture'][culture_name] = 0
+        aggregation['by_culture'][culture_name] += item['weight_net']
+    
+    return {
+        'data': data,
+        'aggregation': aggregation,
+        'total_rows': len(data),
+    }

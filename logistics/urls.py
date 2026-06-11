@@ -20,5 +20,9 @@ urlpatterns = [
     path('fields_income/<int:pk>/edit/', views.FieldsIncomeUpdateView.as_view(), name='fields_income_update'),
     path('fields_income/<int:pk>/delete/', views.FieldsIncomeDeleteView.as_view(), name='fields_income_delete'),
     
-
+    # Other Income URLs
+    path('other_income/', views.OtherIncomeListView.as_view(), name='otherincome_list'),
+    path('other_income/create/', views.OtherIncomeCreateView.as_view(), name='other_income_create'),
+    path('other_income/<int:pk>/edit/', views.OtherIncomeUpdateView.as_view(), name='other_income_update'),
+    path('other_income/<int:pk>/delete/', views.OtherIncomeDeleteView.as_view(), name='other_income_delete'),
 ]

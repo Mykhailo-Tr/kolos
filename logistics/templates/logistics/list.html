@@ -97,6 +97,8 @@
             
             {% if url_name == 'fieldsincome' %}
                 <a href="{% url 'fields_income_create' %}" class="btn-add"><span>➕</span><span>Додати запис</span></a>
+            {% elif url_name == 'otherincome' %}
+                <a href="{% url 'other_income_create' %}" class="btn-add"><span>➕</span><span>Додати запис</span></a>
             {% elif url_name == 'shipmentjournal' %}
                 <a href="{% url 'shipment_journal_create' %}" class="btn-add"><span>➕</span><span>Додати запис</span></a>
             {% elif url_name == 'weigherjournal' %}
@@ -118,6 +120,10 @@
                         {# --- УМОВНІ КОЛОНКИ ЗАЛЕЖНО ВІД ТИПУ ЖУРНАЛУ --- #}
                         {% if url_name == 'fieldsincome' %}
                             <th>{% sort_link request "field__name" "Поле" %}</th>
+                            <th>{% sort_link request "place_to__name" "До місця" %}</th>
+                        
+                        {% elif url_name == 'otherincome' %}
+                            <th>{% sort_link request "seller" "Продавець" %}</th>
                             <th>{% sort_link request "place_to__name" "До місця" %}</th>
 
                         {% elif url_name == 'shipmentjournal' %}
@@ -149,6 +155,10 @@
                         {# --- УМОВНІ ДАНІ ЗАЛЕЖНО ВІД ТИПУ ЖУРНАЛУ --- #}
                         {% if url_name == 'fieldsincome' %}
                             <td>{{ journal.field }}</td>
+                            <td>{{ journal.place_to }}</td>
+
+                        {% elif url_name == 'otherincome' %}
+                            <td>{{ journal.seller }}</td>
                             <td>{{ journal.place_to }}</td>
 
                         {% elif url_name == 'shipmentjournal' %}
@@ -197,6 +207,10 @@
                                     <a href="{% url 'fields_income_update' journal.pk %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
                                     <a href="{% url 'fields_income_delete' journal.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
                                 
+                                {% elif url_name == 'otherincome' %}
+                                    <a href="{% url 'other_income_update' journal.pk %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
+                                    <a href="{% url 'other_income_delete' journal.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>
+                                    
                                 {% elif url_name == 'shipmentjournal' %}
                                     <a href="{% url 'shipment_journal_update' journal.pk %}" class="btn-action btn-edit" title="Редагувати">✏️</a>
                                     <a href="{% url 'shipment_journal_delete' journal.pk %}" class="btn-action btn-delete" title="Видалити">🗑️</a>

@@ -113,6 +113,7 @@
         {% if request.user.is_authenticated %}
           <li class="nav-item"><a href="{% url 'weigherjournal_list' %}" class="nav-link nav-link-custom" id="weigherjournal">📋 Внутрішні переміщення</a></li>
           <li class="nav-item"><a href="{% url 'shipmentjournal_list' %}" class="nav-link nav-link-custom" id="shipmentjournal">🚛 Відвантаження</a></li>
+          <li class="nav-item"><a href="{% url 'otherincome_list' %}" class="nav-link nav-link-custom" id="otherincome">📥 Інші надходження</a></li>
           <li class="nav-item"><a href="{% url 'fieldsincome_list' %}" class="nav-link nav-link-custom" id="fieldsincome">🌱 Надходження з полів</a></li>
           <li class="nav-item"><a href="{% url 'waste_list' %}" class="nav-link nav-link-custom" id="wastejournal">🗑️ Відходи</a></li>
           <li class="nav-item"><a href="{% url 'balance_list' %}" class="nav-link nav-link-custom" id="balances">⚖️ Залишки</a></li>

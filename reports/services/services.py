@@ -261,7 +261,7 @@ class ReportService:
         }
     
     @staticmethod
-    def get_shipment_report(date_from=None, date_to=None, filters=None):
+    def get_shipment_report(date_from=None, date_to=None, place_to=None, filters=None):
         """Звіт по відвантаженням"""
         queryset = ShipmentJournal.objects.select_related(
             'place_from', 'place_to', 'culture', 'car', 'driver'
@@ -277,6 +277,8 @@ class ReportService:
                 queryset = queryset.filter(action_type=filters['action_type'])
             if filters.get('culture_id'):
                 queryset = queryset.filter(culture_id=filters['culture_id'])
+            if filters.get('place_to_id'):
+                queryset = queryset.filter(place_to_id=filters['place_to_id'])
         
         data = []
         for journal in queryset:

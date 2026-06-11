@@ -116,6 +116,12 @@ class ShipmentReportFilterForm(ReportFilterForm):
         label="Культура",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+    place_to = forms.ModelChoiceField(
+        queryset=Place.objects.all(),
+        required=False,
+        label="Місце призначення",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
 
 
 class FieldsReportFilterForm(ReportFilterForm):

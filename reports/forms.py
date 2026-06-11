@@ -140,6 +140,21 @@ class FieldsReportFilterForm(ReportFilterForm):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
+class OtherIncomeReportFilterForm(ReportFilterForm):
+    """Форма фільтрів для звіту по іншим надходженням"""
+    
+    place = forms.ModelChoiceField(
+        queryset=Place.objects.all(),
+        required=False,
+        label="Місце",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    culture = forms.ModelChoiceField(
+        queryset=Culture.objects.all(),
+        required=False,
+        label="Культура",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
 
 class ReportTemplateForm(forms.ModelForm):
     """Форма для створення шаблону звіту"""

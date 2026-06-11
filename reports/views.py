@@ -10,7 +10,7 @@ from .forms import (
     BalanceReportFilterForm, WasteReportFilterForm,
     WeigherReportFilterForm, ShipmentReportFilterForm,
     FieldsReportFilterForm, ReportTemplateForm,
-    SaveReportForm, CustomReportForm
+    SaveReportForm, CustomReportForm, OtherIncomeReportFilterForm
 )
 from .models import ReportTemplate, ReportExecution, SavedReport
 
@@ -197,6 +197,14 @@ class FieldsReportView(BaseReportView):
     report_method = ReportService.get_fields_report
     report_title = 'Звіт по надходженням з полів'
     report_type = 'fields'
+    
+    
+class OtherIncomeReportView(BaseReportView):
+    """Звіт по іншим надходженням"""
+    form_class = OtherIncomeReportFilterForm
+    report_method = ReportService.get_other_income_report
+    report_title = 'Звіт по іншим надходженням'
+    report_type = 'other_income'
 
 
 class ExportReportView(LoginRequiredMixin, View):

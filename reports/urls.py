@@ -13,6 +13,7 @@ urlpatterns = [
     path('weigher/', views.WeigherReportView.as_view(), name='report_weigher'),
     path('shipment/', views.ShipmentReportView.as_view(), name='report_shipment'),
     path('fields/', views.FieldsReportView.as_view(), name='report_fields'),
+    path('other_income/', views.OtherIncomeReportView.as_view(), name='report_other_income'),
     
     # Денний звіт
     path('daily/', views.DailyReportView.as_view(), name='report_daily'),

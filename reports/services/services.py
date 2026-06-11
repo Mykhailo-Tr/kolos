@@ -465,6 +465,13 @@ class ReportService:
             'total_rows': len(data),
         }
 
+    @staticmethod
+    def get_other_income_summary_data(date_from=None, date_to=None, filters=None):
+        """
+        [NEW ALIAS] Псевдонім для get_other_income_report. 
+        Використовується в get_total_income_period_data.
+        """
+        return ReportService.get_other_income_report(date_from, date_to, filters)
 
         
         
@@ -527,11 +534,18 @@ class ReportService:
                 'total': get_safe_sum(f_qs)
             }
             
-            return weigher, shipment, fields
+            # 4. Інші надходження (Other Income)
+            o_qs = OtherIncome.objects.filter(date_time__date=target_date)
+            other_income = {
+                'count': o_qs.count(),
+                'total': get_safe_sum(o_qs)
+            }
+
+            return weigher, shipment, fields, other_income
 
         # --- 1. Отримуємо дані за сьогодні і вчора ---
-        today_weigher, today_shipment, today_fields = get_day_stats(date)
-        yest_weigher, yest_shipment, yest_fields = get_day_stats(yesterday)
+        today_weigher, today_shipment, today_fields, today_other_income = get_day_stats(date)
+        yest_weigher, yest_shipment, yest_fields, yest_other_income = get_day_stats(yesterday)
 
         # --- 2. Розрахунок трендів (%) ---
         def calc_trend(current, previous):
@@ -545,6 +559,7 @@ class ReportService:
             'shipment_in': calc_trend(today_shipment['in_total'], yest_shipment['in_total']),
             'shipment_out': calc_trend(today_shipment['out_total'], yest_shipment['out_total']),
             'fields': calc_trend(today_fields['total'], yest_fields['total']),
+            'other_income': calc_trend(today_other_income['total'], yest_other_income['total']),
         }
 
         # --- 3. Генерація даних для графіків (останні 7 днів) ---
@@ -553,17 +568,19 @@ class ReportService:
             'weigher': [],
             'shipment_in': [],
             'shipment_out': [],
-            'fields': []
+            'fields': [],
+            'other_income': []
         }
 
         for i in range(6, -1, -1):
             d = date - timedelta(days=i)
-            w, s, f = get_day_stats(d)
+            w, s, f, o = get_day_stats(d)
             sparkline_data['dates'].append(d.strftime('%d.%m'))
             sparkline_data['weigher'].append(round(w['total'], 1))
             sparkline_data['shipment_in'].append(round(s['in_total'], 1))
             sparkline_data['shipment_out'].append(round(s['out_total'], 1))
             sparkline_data['fields'].append(round(f['total'], 1))
+            sparkline_data['other_income'].append(round(o['total'], 1))
 
         # --- 4. Залишки (Balance) ---
         balance_val = Balance.objects.aggregate(t=Sum('quantity'))['t']
@@ -580,6 +597,7 @@ class ReportService:
                 'total': today_shipment['in_total'] + today_shipment['out_total'],
             },
             'fields': today_fields,
+            'other_income': today_other_income,
             'balance': total_balance,
 
             # 🔁 вкладений (для PDF / API / Telegram)
@@ -587,6 +605,7 @@ class ReportService:
                 'weigher': today_weigher,
                 'shipment': today_shipment,
                 'fields': today_fields,
+                'other_income': today_other_income,
                 'balance': total_balance,
             },
 
@@ -598,6 +617,7 @@ class ReportService:
                 + today_shipment['in_total']
                 + today_shipment['out_total']
                 + today_fields['total']
+                + today_other_income['total']
             ),
         }
 
@@ -656,6 +676,18 @@ class ReportService:
         for item in field_data:
             item['weight_net'] = item.get('weight_net') or item.get('quantity') or 0
             item['source'] = 'Поле'
+            
+        
+        # Інші надходження (від людей, продавців)
+        other_income_full = ReportService.get_other_income_summary_data(
+            date_from, date_to, filters
+        )
+        other_income = other_income_full.get('data', [])
+        for item in other_income:
+            item['weight_net'] = item.get('weight_net') or 0
+            item['source'] = 'Інші надходження'
+            
+        
 
         # =========================================================
         # 2. Зовнішнє ввезення
@@ -676,7 +708,7 @@ class ReportService:
         # =========================================================
         # 3. Обʼєднання
         # =========================================================
-        all_income = field_data + external_income
+        all_income = field_data + external_income + other_income
 
         # =========================================================
         # 4. Агрегація

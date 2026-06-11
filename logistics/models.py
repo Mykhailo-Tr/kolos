@@ -352,3 +352,68 @@ class FieldsIncome(BaseJournal):
         super().delete(*args, **kwargs)
         
 
+class OtherIncome(BaseJournal):
+    """ Журнал інгорних надходжень (від людей, продавців) """
+    
+    seller = models.CharField(max_length=255, verbose_name="Продавець")
+    
+    place_to = models.ForeignKey(
+        Place,
+        on_delete=models.SET_NULL,
+        related_name="other_incomes",
+        verbose_name="Місце прийому",
+        null=True
+    )
+        
+    class Meta:
+        verbose_name = "Журнал інших надходжень"
+        verbose_name_plural = "Журнали інших надходжень"
+        ordering = ['-date_time']
+        
+    def __str__(self):
+        return f"Надходження {self.document_number} ({self.culture.name}) від {self.seller} до {self.place_to.name}: {self.weight_net} тонн"
+    
+    def revert_balance(self):
+        """Відкат змін балансу (для видалення або редагування)"""
+        original_weight_net = self.get_original_value('weight_net')
+        if original_weight_net is not None and self.place_to:
+            try:
+                BalanceService.adjust_balance(
+                    place=self.place_to,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    delta=-original_weight_net,
+                )
+            except ValueError:
+                BalanceService.set_balance(
+                    place=self.place_to,
+                    culture=self.culture,
+                    balance_type=BalanceType.STOCK,
+                    quantity=0,
+                )
+            
+    def update_balance(self):
+        weight_net = self.weight_net
+        if self.place_to:
+            BalanceService.adjust_balance(
+                place=self.place_to,
+                culture=self.culture,
+                balance_type=BalanceType.STOCK,
+                delta=weight_net,
+            )
+    
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+
+        if not is_new:
+            self.revert_balance()
+
+        super().save(*args, **kwargs)
+
+        self.update_balance()
+        
+    def delete(self, *args, **kwargs):
+        self.revert_balance()
+        super().delete(*args, **kwargs)
+        
+

@@ -227,6 +227,19 @@
       </div>
     </div>
 
+    {% comment %} інші надходження {% endcomment %}
+    <div class="stat-card info">
+      <div class="stat-icon">📦</div>
+      <div class="stat-label">Інші надходження</div>
+      <div class="stat-value">
+        {{ daily_summary.other_income.total|floatformat:1 }}
+        <span class="stat-unit">т</span>
+      </div>
+      <div class="stat-count">
+        Операцій: {{ daily_summary.other_income.count }}
+      </div>
+    </div>
+
     <!-- Надходження з полів -->
     <div class="stat-card success">
       <div class="stat-icon">🌱</div>
@@ -240,18 +253,7 @@
       </div>
     </div>
 
-    {% comment %} інші надходження {% endcomment %}
-    <div class="stat-card info">
-      <div class="stat-icon">📦</div>
-      <div class="stat-label">Інші надходження</div>
-      <div class="stat-value">
-        {{ daily_summary.other_income.total|floatformat:1 }}
-        <span class="stat-unit">т</span>
-      </div>
-      <div class="stat-count">
-        Операцій: {{ daily_summary.other_income.count }}
-      </div>
-    </div>
+
 
     <!-- Загальна вага -->
     <div class="stat-card">
@@ -300,14 +302,14 @@
   new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Переміщення', 'Відвантаження', 'Надходження', 'Інші надходження'],
+      labels: ['Переміщення', 'Відвантаження', 'Інші надходження', 'Надходження з полів'],
       datasets: [{
         label: 'Кількість (т)',
         data: [
           {{ daily_summary.weigher.total }},
           {{ daily_summary.shipment.total }},
-          {{ daily_summary.fields.total }},
           {{ daily_summary.other_income.total }},
+          {{ daily_summary.fields.total }},
         ],
         backgroundColor: [
           'rgba(59, 130, 246, 0.6)',
@@ -360,14 +362,14 @@
         'Операцій': {{ daily_summary.shipment.count }}
       },
       {
-        'Тип': 'Надходження',
-        'Кількість (т)': {{ daily_summary.fields.total }},
-        'Операцій': {{ daily_summary.fields.count }}
-      },
-      {
         'Тип': 'Інші надходження',
         'Кількість (т)': {{ daily_summary.other_income.total }},
         'Операцій': {{ daily_summary.other_income.count }}
+      },
+      {
+        'Тип': 'Надходження з полів',
+        'Кількість (т)': {{ daily_summary.fields.total }},
+        'Операцій': {{ daily_summary.fields.count }}
       }
     ];
 

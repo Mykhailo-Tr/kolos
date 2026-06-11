@@ -421,8 +421,11 @@ class ReportService:
         if filters:
             if filters.get('culture_id'):
                 queryset = queryset.filter(culture_id=filters['culture_id'])
+            # Accept both `place_to_id` (explicit) and `place_id` (generic "Місце")
             if filters.get('place_to_id'):
                 queryset = queryset.filter(place_to_id=filters['place_to_id'])
+            if filters.get('place_id'):
+                queryset = queryset.filter(place_to_id=filters['place_id'])
         
         data = []
         for journal in queryset:

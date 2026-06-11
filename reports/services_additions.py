@@ -242,8 +242,11 @@ def get_other_income_by_date(date, filters=None):
     if filters:
         if filters.get('culture_id'):
             queryset = queryset.filter(culture_id=filters['culture_id'])
+        # Support both explicit `place_to_id` and generic `place_id` (UI may send either)
         if filters.get('place_to_id'):
             queryset = queryset.filter(place_to_id=filters['place_to_id'])
+        if filters.get('place_id'):
+            queryset = queryset.filter(place_to_id=filters['place_id'])
     
     data = []
     for journal in queryset:

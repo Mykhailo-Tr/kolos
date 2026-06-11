@@ -4,7 +4,7 @@ from django.views.generic import TemplateView
 from datetime import datetime
 
 date_now = datetime.today()
-pay_day = datetime(2026, 1, 30)
+pay_day = datetime(2026, 6, 30)
 
 is_payday = False
 

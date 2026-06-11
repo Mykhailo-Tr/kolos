@@ -2,7 +2,7 @@ import json
 from django.utils import timezone
 from .models import ActivityLog
 from directory.models import Driver, Car, Trailer, Culture, Place, Field
-from logistics.models import WeigherJournal, ShipmentJournal, FieldsIncome
+from logistics.models import WeigherJournal, ShipmentJournal, FieldsIncome, OtherIncome
 from waste.models.recycling import Recycling
 from waste.models.utilization import Utilization
 from balances.models import Balance, BalanceSnapshot
@@ -44,6 +44,8 @@ class ActivityLogMiddleware:
                     pre_info = ShipmentJournal.objects.filter(id=request.path.strip('/').split('/')[2]).first()
                 elif app_url == 'fields_income':
                     pre_info = FieldsIncome.objects.filter(id=request.path.strip('/').split('/')[2]).first()
+                elif app_url == 'other_income':
+                    pre_info = OtherIncome.objects.filter(id=request.path.strip('/').split('/')[2]).first()
                 elif app_url == 'recycling':
                     pre_info = Recycling.objects.filter(id=request.path.strip('/').split('/')[2]).first()
                 elif app_url == 'utilization':

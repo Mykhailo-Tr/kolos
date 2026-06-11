@@ -236,6 +236,13 @@
               <p class="report-desc">Ввезення та вивезення</p>
             </a>
 
+            {% comment %} звіт за інші надходження other income {% endcomment %}
+            <a href="{% url 'report_other_income' %}" class="report-card">
+              <div class="report-icon">📥</div>
+              <h3 class="report-title">Інші надходження</h3>
+              <p class="report-desc">Надходження з інших складів</p>
+            </a>
+
             <a href="{% url 'report_fields' %}" class="report-card">
               <div class="report-icon">🌱</div>
               <h3 class="report-title">Поля</h3>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static report_tags %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'reports/css/report.css' %}">
@@ -83,8 +83,11 @@
                     <button class="chart-btn" data-chart="pie" title="Кругова діаграма">🥧</button>
                 </div>
 
-                <button class="btn-export" onclick="exportToCSV()" id="exportBtn">
+                <button class="btn-export" onclick="exportToCSV()" id="exportCsvBtn">
                     💾 Експорт в CSV
+                </button>
+                <button class="btn-export" onclick="exportToExcel()" id="exportExcelBtn">
+                    📄 Експорт в Excel
                 </button>
             </div>
 
@@ -133,46 +136,31 @@
                             <table class="report-table">
                                 <thead>
                                     <tr>
-                                        {% for key in report_data.data.0.keys %}
-                                            <th>
-                                                {% if key == 'place' %}Місце
-                                                {% elif key == 'culture' %}Культура
-                                                {% elif key == 'type' %}Тип
-                                                {% elif key == 'quantity' %}Кількість (т)
-                                                {% elif key == 'date' %}Дата
-                                                {% elif key == 'document' %}Документ
-                                                {% elif key == 'from_place' %}Звідки
-                                                {% elif key == 'to_place' %}Куди
-                                                {% elif key == 'weight_net' %}Вага нетто (т)
-                                                {% elif key == 'driver' %}Водій
-                                                {% elif key == 'car' %}Автомобіль
-                                                {% elif key == 'action_type' %}Тип операції
-                                                {% elif key == 'place_from' %}Місце відправлення
-                                                {% elif key == 'place_to' %}Місце призначення
-                                                {% elif key == 'field' %}Поле
-                                                {% else %}{{ key }}{% endif %}
-                                            </th>
+                                        {% for column in report_data.column_headers %}
+                                            <th>{{ column.label }}</th>
                                         {% endfor %}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for row in report_data.data %}
                                     <tr>
-                                        {% for key, value in row.items %}
-                                            <td>
-                                                {% if value == None or value == "" or value == "—" %}
-                                                    —
-                                                {% elif value|floatformat == "0" %}
-                                                    {{ value|floatformat:"0" }}
-                                                {% elif key == 'date' %}
-                                                    {{ value }}
-                                                {% elif key == 'quantity' or key == 'weight_net' %}
-                                                    {{ value|floatformat:"3" }}
-                                                {% else %}
-                                                    {{ value }}
-                                                {% endif %}
-                                                {% if key == 'quantity' or key == 'weight_net' %} т{% endif %}
-                                            </td>
+                                        {% for column in report_data.column_headers %}
+                                            {% with value=row|get_item:column.key %}
+                                                <td>
+                                                    {% if value == None or value == "" or value == "—" %}
+                                                        —
+                                                    {% elif value|floatformat == "0" %}
+                                                        {{ value|floatformat:"0" }}
+                                                    {% elif column.key == 'date' %}
+                                                        {{ value }}
+                                                    {% elif column.key == 'quantity' or column.key == 'weight_net' %}
+                                                        {{ value|floatformat:"3" }}
+                                                    {% else %}
+                                                        {{ value }}
+                                                    {% endif %}
+                                                    {% if column.key == 'quantity' or column.key == 'weight_net' %} т{% endif %}
+                                                </td>
+                                            {% endwith %}
                                         {% endfor %}
                                     </tr>
                                     {% endfor %}
@@ -213,6 +201,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{% load report_tags %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // Безпечне отримання даних з Django
@@ -233,6 +222,43 @@
     console.log('Report data loaded:', reportData);
 
     let currentChart = null;
+
+    const columnLabelMap = {
+        'place': 'Місце',
+        'culture': 'Культура',
+        'type': 'Тип',
+        'quantity': 'Кількість (т)',
+        'date': 'Дата',
+        'time': 'Час',
+        'document': 'Документ',
+        'from_place': 'Звідки',
+        'to_place': 'Куди',
+        'weight_net': 'Вага нетто (т)',
+        'driver': 'Водій',
+        'car': 'Автомобіль',
+        'action_type': 'Тип операції',
+        'place_from': 'Місце відправлення',
+        'place_to': 'Місце призначення',
+        'field': 'Поле',
+        'seller': 'Продавець',
+    };
+
+    function getColumnLabel(key) {
+        return columnLabelMap[key] || key;
+    }
+
+    function formatValue(key, value) {
+        if (value === null || value === undefined || value === '' || value === '—') {
+            return '—';
+        }
+        if (key === 'date') {
+            return value;
+        }
+        if (key === 'quantity' || key === 'weight_net') {
+            return parseFloat(value).toFixed(3);
+        }
+        return value;
+    }
 
     // Перемикання видів
     document.querySelectorAll('.chart-btn').forEach(btn => {
@@ -452,34 +478,45 @@
         return labels[field] || field;
     }
 
-    function exportToCSV() {
+    function submitExport(exportFormat) {
         if (!reportData || !reportData.records || reportData.records.length === 0) {
             alert('Немає даних для експорту');
             return;
         }
-        
+
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '{% url "export_report" %}';
         form.style.display = 'none';
-        
+
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         const records = reportData.records;
-        
+
         // Готуємо дані для експорту
         const exportData = JSON.stringify(records);
-        const columns = Object.keys(records[0] || {}).join(',');
-        
+        const columns = JSON.stringify(Object.keys(records[0] || {}));
+        const columnLabels = JSON.stringify(Object.keys(records[0] || {}).map(getColumnLabel));
+
         form.innerHTML = `
             <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
             <input type="hidden" name="data" value='${exportData}'>
-            <input type="hidden" name="columns" value="${columns}">
+            <input type="hidden" name="columns" value='${columns}'>
+            <input type="hidden" name="column_labels" value='${columnLabels}'>
+            <input type="hidden" name="export_format" value="${exportFormat}">
             <input type="hidden" name="report_name" value="{{ report_type }}">
         `;
-        
+
         document.body.appendChild(form);
         form.submit();
         document.body.removeChild(form);
+    }
+
+    function exportToCSV() {
+        submitExport('csv');
+    }
+
+    function exportToExcel() {
+        submitExport('excel');
     }
 
     // Автоматичне відображення графіка, якщо потрібно

@@ -146,6 +146,18 @@ class BaseReportView(LoginRequiredMixin, View):
             except Exception as e:
                 print(f"Error generating report: {e}")
                 form.add_error(None, f"Помилка при генерації звіту: {str(e)}")
+
+            if report_data and isinstance(report_data, dict) and report_data.get('data'):
+                keys = list(report_data['data'][0].keys())
+                labels = ReportService.get_report_column_labels(
+                    self.report_type,
+                    keys
+                )
+                report_data['column_labels'] = labels
+                report_data['column_headers'] = [
+                    {'key': key, 'label': labels.get(key, key)}
+                    for key in keys
+                ]
         
         context = {
             'page': 'reports',
@@ -208,15 +220,27 @@ class OtherIncomeReportView(BaseReportView):
 
 
 class ExportReportView(LoginRequiredMixin, View):
-    """Експорт звіту в CSV"""
+    """Експорт звіту в CSV або Excel"""
     
     def post(self, request):
         try:
             # Отримуємо дані зі запиту
             data_json = request.POST.get('data', '[]')
             data = json.loads(data_json)
-            columns = request.POST.get('columns', '').split(',')
+            columns_json = request.POST.get('columns', '[]')
+            column_labels_json = request.POST.get('column_labels', '[]')
+            export_format = request.POST.get('export_format', 'csv')
             report_name = request.POST.get('report_name', 'report')
+
+            try:
+                columns = json.loads(columns_json)
+            except json.JSONDecodeError:
+                columns = []
+
+            try:
+                column_labels = json.loads(column_labels_json)
+            except json.JSONDecodeError:
+                column_labels = None
             
             # Фільтруємо порожні колонки
             columns = [col for col in columns if col]
@@ -224,12 +248,26 @@ class ExportReportView(LoginRequiredMixin, View):
             if not data or not columns:
                 return JsonResponse({'error': 'Немає даних для експорту'}, status=400)
             
-            # Генеруємо CSV
-            csv_content = ReportService.export_to_csv(data, columns)
+            if export_format == 'excel':
+                file_content = ReportService.export_to_excel(
+                    data,
+                    columns,
+                    sheet_name=report_name,
+                    column_labels=column_labels
+                )
+                content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                extension = 'xlsx'
+            else:
+                file_content = ReportService.export_to_csv(
+                    data,
+                    columns,
+                    column_labels=column_labels
+                )
+                content_type = 'text/csv; charset=utf-8-sig'
+                extension = 'csv'
             
-            # Повертаємо файл
-            response = HttpResponse(csv_content, content_type='text/csv; charset=utf-8-sig')
-            response['Content-Disposition'] = f'attachment; filename="{report_name}_{datetime.now():%Y%m%d_%H%M%S}.csv"'
+            response = HttpResponse(file_content, content_type=content_type)
+            response['Content-Disposition'] = f'attachment; filename="{report_name}_{datetime.now():%Y%m%d_%H%M%S}.{extension}"'
             
             return response
         except json.JSONDecodeError as e:

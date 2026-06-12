@@ -5,7 +5,7 @@ from logistics.models import WeigherJournal, ShipmentJournal, FieldsIncome, Othe
 from waste.models import Utilization, Recycling
 from directory.models import Culture, Place
 import csv
-from io import StringIO
+from io import StringIO, BytesIO
 
 
 class ReportService:
@@ -479,17 +479,143 @@ class ReportService:
         
         
     @staticmethod
-    def export_to_csv(data, columns):
+    def _get_field_verbose_name(model, field_name, fallback):
+        try:
+            return str(model._meta.get_field(field_name).verbose_name)
+        except Exception:
+            return fallback
+
+    @staticmethod
+    def _resolve_column_label(report_type, column):
+        # Загальні мітки, які не залежать від моделі
+        generic_labels = {
+            'date': 'Дата',
+            'time': 'Час',
+            'document': 'Документ',
+            'weight_net': 'Вага нетто (т)',
+            'quantity': 'Кількість (т)',
+            'type': 'Тип',
+            'from_place': 'Звідки',
+            'to_place': 'Куди',
+            'field': 'Поле',
+            'seller': 'Продавець',
+            'action_type': 'Тип операції',
+            'place_from': 'Місце відправлення',
+            'place_to': 'Місце призначення',
+        }
+        if column in generic_labels:
+            return generic_labels[column]
+
+        if report_type in ['balance', 'waste']:
+            if column == 'place':
+                return ReportService._get_field_verbose_name(Balance, 'place', 'Місце')
+            if column == 'culture':
+                return ReportService._get_field_verbose_name(Balance, 'culture', 'Культура')
+            if column == 'quantity':
+                return ReportService._get_field_verbose_name(Balance, 'quantity', 'Кількість (т)')
+            if column == 'type':
+                return ReportService._get_field_verbose_name(Balance, 'balance_type', 'Тип')
+
+        if report_type == 'weigher':
+            if column == 'from_place':
+                return ReportService._get_field_verbose_name(WeigherJournal, 'from_place', 'Звідки')
+            if column == 'to_place':
+                return ReportService._get_field_verbose_name(WeigherJournal, 'to_place', 'Куди')
+            if column == 'culture':
+                return ReportService._get_field_verbose_name(WeigherJournal, 'culture', 'Культура')
+            if column == 'weight_net':
+                return ReportService._get_field_verbose_name(WeigherJournal, 'weight_net', 'Вага нетто (т)')
+            if column == 'driver':
+                return ReportService._get_field_verbose_name(WeigherJournal, 'driver', 'Водій')
+            if column == 'car':
+                return ReportService._get_field_verbose_name(WeigherJournal, 'car', 'Автомобіль')
+            if column == 'document':
+                return ReportService._get_field_verbose_name(WeigherJournal, 'document_number', 'Документ')
+
+        if report_type == 'shipment':
+            if column == 'place_from':
+                return ReportService._get_field_verbose_name(ShipmentJournal, 'place_from', 'Місце відправлення')
+            if column == 'place_to':
+                return ReportService._get_field_verbose_name(ShipmentJournal, 'place_to', 'Місце призначення')
+            if column == 'culture':
+                return ReportService._get_field_verbose_name(ShipmentJournal, 'culture', 'Культура')
+            if column == 'weight_net':
+                return ReportService._get_field_verbose_name(ShipmentJournal, 'weight_net', 'Вага нетто (т)')
+            if column == 'action_type':
+                return ReportService._get_field_verbose_name(ShipmentJournal, 'action_type', 'Тип операції')
+            if column == 'document':
+                return ReportService._get_field_verbose_name(ShipmentJournal, 'document_number', 'Документ')
+
+        if report_type == 'fields':
+            if column == 'field':
+                return ReportService._get_field_verbose_name(FieldsIncome, 'field', 'Поле')
+            if column == 'place_to':
+                return ReportService._get_field_verbose_name(FieldsIncome, 'place_to', 'Місце прийому')
+            if column == 'culture':
+                return ReportService._get_field_verbose_name(FieldsIncome, 'culture', 'Культура')
+            if column == 'weight_net':
+                return ReportService._get_field_verbose_name(FieldsIncome, 'weight_net', 'Вага нетто (т)')
+            if column == 'document':
+                return ReportService._get_field_verbose_name(FieldsIncome, 'document_number', 'Документ')
+
+        if report_type == 'other_income':
+            if column == 'seller':
+                return ReportService._get_field_verbose_name(OtherIncome, 'seller', 'Продавець')
+            if column == 'place_to':
+                return ReportService._get_field_verbose_name(OtherIncome, 'place_to', 'Місце прийому')
+            if column == 'culture':
+                return ReportService._get_field_verbose_name(OtherIncome, 'culture', 'Культура')
+            if column == 'weight_net':
+                return ReportService._get_field_verbose_name(OtherIncome, 'weight_net', 'Вага нетто (т)')
+            if column == 'document':
+                return ReportService._get_field_verbose_name(OtherIncome, 'document_number', 'Документ')
+
+        return column
+
+    @staticmethod
+    def get_report_column_labels(report_type, columns):
+        return {col: ReportService._resolve_column_label(report_type, col) for col in columns}
+
+    @staticmethod
+    def export_to_csv(data, columns, column_labels=None):
         """Експорт даних в CSV"""
         output = StringIO()
-        writer = csv.DictWriter(output, fieldnames=columns)
-        writer.writeheader()
-        
+        writer = csv.writer(output)
+        writer.writerow(column_labels if column_labels else columns)
+
         for row in data:
-            # Фільтруємо тільки потрібні колонки
-            filtered_row = {k: v for k, v in row.items() if k in columns}
-            writer.writerow(filtered_row)
-        
+            writer.writerow([row.get(col, '') for col in columns])
+
+        return output.getvalue()
+
+    @staticmethod
+    def export_to_excel(data, columns, sheet_name='Report', column_labels=None):
+        """Експорт даних в Excel (XLSX) — повертає байти файлу"""
+        try:
+            from openpyxl import Workbook
+            from openpyxl.utils import get_column_letter
+        except Exception as e:
+            raise RuntimeError('openpyxl is required for Excel export') from e
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = sheet_name[:31]
+
+        header = list(column_labels) if column_labels else list(columns)
+        ws.append(header)
+
+        for row in data:
+            ws.append([row.get(col, '') for col in columns])
+
+        for idx, col in enumerate(columns, 1):
+            max_len = max(
+                [len(str(row.get(col, ''))) for row in data] + [len(str(header[idx-1]))]
+            ) if data else len(str(header[idx-1]))
+            ws.column_dimensions[get_column_letter(idx)].width = min(50, max_len + 2)
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
         return output.getvalue()
     
     @staticmethod

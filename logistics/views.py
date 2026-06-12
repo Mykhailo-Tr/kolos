@@ -89,11 +89,11 @@ class BaseJournalUpdateView(BaseJournalViewMixin, UpdateView):
 # --- Конкретні реалізації: Weigher Journal ---
 class WeigherJournalListView(BaseJournalListView):
     model = WeigherJournal
-    # template_name видалено для успадкування "logistics/journal/list.html"
 
     journal_valid_orders = [
         "to_place__name", "-to_place__name",
         "from_place__name", "-from_place__name",
+        "to_balance_type", "-to_balance_type",
     ]
 
     journal_select_related = ["to_place", "from_place"]

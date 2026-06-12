@@ -53,7 +53,7 @@ class BaseJournal(models.Model):
 
 class WeigherJournal(BaseJournal):
     """ Внутрішні переміщення """
-    
+
     from_place = models.ForeignKey(
         Place,
         on_delete=models.SET_NULL,
@@ -68,8 +68,7 @@ class WeigherJournal(BaseJournal):
         verbose_name="До місця",
         null=True
     )
-    
-    # НОВЕ ПОЛЕ: у якому вигляді товар приходить на to_place
+
     to_balance_type = models.CharField(
         max_length=10,
         choices=BalanceType.choices,
@@ -77,22 +76,35 @@ class WeigherJournal(BaseJournal):
         verbose_name="Приймається як",
         help_text=(
             "Визначає, як зараховується кількість на місці призначення: "
-            "як зерно чи як відходи. На місці відправлення завжди списується зерно."
+            "як зерно чи як відходи. З місця відправлення завжди списується "
+            "повна вага, що виїхала (брутто - тара), незалежно від втрат у дорозі."
         ),
     )
-    
+
     class Meta:
         verbose_name = "Журнал внутрішніх переміщень"
         verbose_name_plural = "Журнали внутрішніх переміщень"
         ordering = ['-date_time']
-        
+
     def __str__(self):
         return f"Внутрішнє переміщення {self.document_number} ({self.culture.name}): {self.weight_net} тонн"
-    
+
+    @property
+    def departed_weight(self):
+        """
+        Повна вага, що фізично виїхала з from_place (брутто - тара),
+        БЕЗ урахування втрат у дорозі. Саме цю вагу списуємо з джерела —
+        бо склад фізично "втратив" всю завантажену кількість, незалежно
+        від того, скільки з неї доїхало.
+        """
+        gross = self.weight_gross or 0
+        tare = self.weight_tare or 0
+        return gross - tare
+
     # ------------------------------------------------------------------
     # Зберігаємо "знімок" значень на момент завантаження з БД.
-    # Це потрібно, щоб revert_balance() міг коректно відкотити старий
-    # запис, навіть якщо форма змінила culture / place / to_balance_type.
+    # Потрібен, щоб revert_balance() міг коректно відкотити старий запис,
+    # навіть якщо форма змінила culture / place / to_balance_type / вагу.
     # ------------------------------------------------------------------
     def _get_operation_values(self):
         values = super()._get_operation_values()
@@ -101,9 +113,10 @@ class WeigherJournal(BaseJournal):
             'to_place_id': self.to_place_id,
             'culture_id': self.culture_id,
             'to_balance_type': self.to_balance_type,
+            'departed_weight': self.departed_weight,
         })
         return values
-    
+
     def revert_balance(self):
         """Відкочує баланси за СТАРИМИ (на момент завантаження) значеннями."""
         original_weight_net = self.get_original_value('weight_net')
@@ -114,21 +127,25 @@ class WeigherJournal(BaseJournal):
         original_to_place_id = self.get_original_value('to_place_id')
         original_culture_id = self.get_original_value('culture_id')
         original_to_balance_type = self.get_original_value('to_balance_type', BalanceType.STOCK)
+        # Фолбек для старих записів, у яких ще немає 'departed_weight' у знімку
+        original_departed = self.get_original_value('departed_weight', original_weight_net)
 
         original_from_place = Place.objects.filter(pk=original_from_place_id).first() if original_from_place_id else None
         original_to_place = Place.objects.filter(pk=original_to_place_id).first() if original_to_place_id else None
         original_culture = Culture.objects.filter(pk=original_culture_id).first() if original_culture_id else None
 
-        # На відправлення завжди повертаємо ЗЕРНО (stock) — без змін
+        # На відправлення повертаємо ПОВНУ вагу, що виїхала (gross - tare),
+        # бо саме її було списано в update_balance() — а не "нетто".
         if original_from_place and original_culture:
             BalanceService.adjust_balance(
                 place=original_from_place,
                 culture=original_culture,
                 balance_type=BalanceType.STOCK,
-                delta=original_weight_net
+                delta=original_departed
             )
 
-        # На прийманні відкочуємо саме той тип балансу, який був НАСПРАВДІ нарахований
+        # На прийманні відкочуємо саме той тип балансу і ту "нетто"-суму
+        # (gross - tare - loss), яку було нараховано.
         if original_to_place and original_culture:
             try:
                 BalanceService.adjust_balance(
@@ -144,26 +161,28 @@ class WeigherJournal(BaseJournal):
                     balance_type=original_to_balance_type,
                     quantity=0
                 )
-                
+
     def update_balance(self):
         """Нараховує баланси за НОВИМИ (поточними) значеннями."""
         if self.from_place:
-            # З місця відправлення завжди списується зерно
+            # З місця відправлення списується ПОВНА вага, що виїхала
+            # (gross - tare), незалежно від втрат у дорозі.
             BalanceService.adjust_balance(
                 place=self.from_place,
                 culture=self.culture,
                 balance_type=BalanceType.STOCK,
-                delta=-self.weight_net
+                delta=-self.departed_weight
             )
         if self.to_place:
-            # На місце призначення приходить зерно АБО відходи — залежно від перемикача
+            # На місце призначення приходить "нетто" (gross - tare - loss)
+            # у вигляді зерна або відходів — залежно від перемикача.
             BalanceService.adjust_balance(
                 place=self.to_place,
                 culture=self.culture,
                 balance_type=self.to_balance_type,
                 delta=self.weight_net
             )
-                
+
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         if not is_new:
@@ -174,9 +193,9 @@ class WeigherJournal(BaseJournal):
         self.update_balance()
 
         # Оновлюємо "знімок" — щоб подальші save() в межах того ж інстансу
-        # (наприклад, повторний save) відкочували вже актуальні значення.
+        # відкочували вже актуальні значення.
         self._original_values = self._get_operation_values()
-            
+
     def delete(self, *args, **kwargs):
         self.revert_balance()
         super().delete(*args, **kwargs)

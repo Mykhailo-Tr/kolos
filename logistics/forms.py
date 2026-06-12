@@ -236,6 +236,7 @@ class WeigherJournalForm(BaseJournalForm):
         cleaned_data = super().clean()
         from_place = cleaned_data.get("from_place")
         to_place = cleaned_data.get("to_place")
+        culture = cleaned_data.get("culture")
 
         if not from_place or not to_place:
             if not from_place:
@@ -246,27 +247,49 @@ class WeigherJournalForm(BaseJournalForm):
         if from_place and to_place and from_place == to_place:
             raise forms.ValidationError("Місця 'з' і 'до' не можуть бути однаковими.")
 
-        weight_net = (cleaned_data.get("weight_gross") or 0) - (cleaned_data.get("weight_tare") or 0) - (cleaned_data.get("weight_loss") or 0)
+        # Повна вага, що ФІЗИЧНО виїжджає з from_place (gross - tare).
+        # Саме цю суму списує WeigherJournal.update_balance(), а не "нетто".
+        gross = cleaned_data.get("weight_gross") or 0
+        tare = cleaned_data.get("weight_tare") or 0
+        departed = gross - tare
 
-        # Перевірка балансу — на відправленні завжди списується ЗЕРНО (stock),
-        # незалежно від того, що обрано для приймання.
-        if from_place and cleaned_data.get("culture") and weight_net is not None and weight_net > 0:
+        if from_place and culture and departed > 0:
+            # Якщо це РЕДАГУВАННЯ і from_place/culture НЕ змінились — під час
+            # save() спочатку відкотиться СТАРЕ списання (departed_weight
+            # старого запису), тож цю суму потрібно врахувати як вже "доступну",
+            # навіть якщо поточний баланс її ще не відображає.
+            already_reserved = 0
+            if (
+                self.instance.pk
+                and self.instance.from_place_id == from_place.id
+                and self.instance.culture_id == culture.id
+            ):
+                already_reserved = self.instance.departed_weight
+
+            available = None
             try:
                 balance = Balance.objects.get(
                     place=from_place,
-                    culture=cleaned_data.get("culture"),
+                    culture=culture,
                     balance_type='stock'
                 )
-                if balance.quantity < weight_net:
-                    self.add_error('weight_gross',
-                        ValidationError(
-                        f"Недостатньо залишку в місці {from_place.name} для культури {cleaned_data.get('culture').name}. Наявність: {balance.quantity:.3f} т."
-                    ))
+                available = balance.quantity + already_reserved
             except Balance.DoesNotExist:
-                self.add_error('from_place',
-                               ValidationError(
-                                   f"Відсутній залишок (Balance) в місці {from_place.name} для культури {cleaned_data.get('culture').name}."
-                               ))
+                if already_reserved > 0:
+                    available = already_reserved
+                else:
+                    self.add_error('from_place',
+                                   ValidationError(
+                                       f"Відсутній залишок (Balance) в місці {from_place.name} для культури {culture.name}."
+                                   ))
+
+            if available is not None and available < departed:
+                self.add_error('weight_gross',
+                    ValidationError(
+                    f"Недостатньо залишку в місці {from_place.name} для культури {culture.name}. "
+                    f"Потрібно списати {departed:.3f} т (брутто - тара), "
+                    f"доступно: {available:.3f} т."
+                ))
 
         return cleaned_data
     

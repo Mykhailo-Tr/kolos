@@ -279,9 +279,12 @@
 
   <!-- Експорт -->
   <div class="export-panel">
-    <button class="btn-export" onclick="exportDaily()">
+    {% comment %} <button type="button" class="btn-export" onclick="exportDaily('csv')">
       💾 Експортувати денний звіт
-    </button>
+    </button> {% endcomment %}
+    {% comment %} <button type="button" class="btn-export" onclick="exportDaily('excel')">
+      📄 Експортувати в Excel
+    </button> {% endcomment %}
   </div>
 </div>
 
@@ -349,7 +352,7 @@
     }
   });
 
-  function exportDaily() {
+  function exportDaily(format = 'csv') {
     const data = [
       {
         'Тип': 'Переміщення',
@@ -381,7 +384,9 @@
     form.innerHTML = `
       <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
       <input type="hidden" name="data" value='${JSON.stringify(data)}'>
-      <input type="hidden" name="columns" value="Тип,Кількість (т),Операцій">
+      <input type="hidden" name="columns" value='${JSON.stringify(["Тип","Кількість (т)","Операцій"])}'>
+      <input type="hidden" name="column_labels" value='${JSON.stringify(["Тип","Кількість (т)","Операцій"])}'>
+      <input type="hidden" name="export_format" value="${format}">
       <input type="hidden" name="report_name" value="daily_report_{{ selected_date|date:'Y-m-d' }}">
     `;
     

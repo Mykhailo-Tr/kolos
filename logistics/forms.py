@@ -201,14 +201,26 @@ class BaseJournalForm(ForeignKeyQuerysetMixin, forms.ModelForm):
          
 class WeigherJournalForm(BaseJournalForm):
     """ Форма для внутрішніх переміщень (WeigherJournal). """
-    
+
     class Meta(BaseJournalForm.Meta):
         model = WeigherJournal
+
         base_fields = BaseJournalForm.Meta.fields.copy()
+
+        # Додаємо перемикач "зерно/відходи" одразу після культури
+        culture_index = base_fields.index("culture")
+        base_fields.insert(culture_index + 1, "to_balance_type")
+
+        # from_place / to_place — як і раніше, перед note
         base_fields[-1:-1] = ["from_place", "to_place"]
+
         fields = base_fields
+
         widgets = {
             **BaseJournalForm.Meta.widgets,
+            "to_balance_type": forms.RadioSelect(
+                attrs={'class': 'balance-type-toggle-input'}
+            ),
             "from_place": forms.Select(attrs={
                 "class": "form-select",
                 "placeholder": "Оберіть місце відправлення"
@@ -226,18 +238,18 @@ class WeigherJournalForm(BaseJournalForm):
         to_place = cleaned_data.get("to_place")
 
         if not from_place or not to_place:
-            # Додаємо non_field_error, якщо місця не вказані
             if not from_place:
                 self.add_error('from_place', ValidationError("Необхідно вказати місце відправлення."))
             if not to_place:
                 self.add_error('to_place', ValidationError("Необхідно вказати місце призначення."))
-        
+
         if from_place and to_place and from_place == to_place:
             raise forms.ValidationError("Місця 'з' і 'до' не можуть бути однаковими.")
-        
-        # Валідація балансу
+
         weight_net = (cleaned_data.get("weight_gross") or 0) - (cleaned_data.get("weight_tare") or 0) - (cleaned_data.get("weight_loss") or 0)
 
+        # Перевірка балансу — на відправленні завжди списується ЗЕРНО (stock),
+        # незалежно від того, що обрано для приймання.
         if from_place and cleaned_data.get("culture") and weight_net is not None and weight_net > 0:
             try:
                 balance = Balance.objects.get(
@@ -246,14 +258,12 @@ class WeigherJournalForm(BaseJournalForm):
                     balance_type='stock'
                 )
                 if balance.quantity < weight_net:
-                    self.add_error('weight_gross', # Або 'weight_net', але його немає у формі. Чіпляємося до gross.
+                    self.add_error('weight_gross',
                         ValidationError(
                         f"Недостатньо залишку в місці {from_place.name} для культури {cleaned_data.get('culture').name}. Наявність: {balance.quantity:.3f} т."
                     ))
             except Balance.DoesNotExist:
-                # Це може бути валідне надходження, але для WeigherJournal (переміщення)
-                # завжди потрібен баланс.
-                self.add_error('from_place', 
+                self.add_error('from_place',
                                ValidationError(
                                    f"Відсутній залишок (Balance) в місці {from_place.name} для культури {cleaned_data.get('culture').name}."
                                ))

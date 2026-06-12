@@ -59,6 +59,8 @@
                 </div>
             </div>
             {% endwith %}
+
+
         
         {% elif field.name == 'weight_tare' %}
             {% with unit_field=form.tare_unit %}
@@ -135,7 +137,31 @@
                 <div class="form-text">Розраховується автоматично в тоннах</div>
               </div>
             </div>
+        {% elif field.name == 'to_balance_type' %}
+        <div class="col-md-6">
+            <div class="mb-3">
+            <label class="form-label fw-semibold">
+                {{ field.label }}
+                {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+            </label>
 
+            <div class="balance-type-toggle">
+                {% for radio in field %}
+                <label class="balance-type-option">
+                    {{ radio.tag }}
+                    <span>{{ radio.choice_label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% for error in field.errors %}
+                <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+            </div>
+        </div>
         {% elif field.name != 'gross_unit' and field.name != 'tare_unit' and field.name != 'loss_unit' and field.name != 'action_type' and field.name != 'note' %}
           <div class="col-md-6">
             <div class="mb-3">

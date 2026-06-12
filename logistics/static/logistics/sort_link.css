@@ -14,3 +14,36 @@
     font-size: 14px;
     margin-left: 3px;
 }
+/* Перемикач "Зерно / Відходи" */
+.balance-type-toggle {
+    display: inline-flex;
+    background-color: #e2e8f0;
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+}
+.balance-type-option {
+    position: relative;
+    padding: 7px 18px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.balance-type-option input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.balance-type-option:has(input:checked) {
+    background: #ffffff;
+    color: #1e293b;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.balance-type-option:hover {
+    color: #0f172a;
+}

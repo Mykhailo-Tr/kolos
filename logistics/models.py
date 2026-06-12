@@ -69,6 +69,18 @@ class WeigherJournal(BaseJournal):
         null=True
     )
     
+    # НОВЕ ПОЛЕ: у якому вигляді товар приходить на to_place
+    to_balance_type = models.CharField(
+        max_length=10,
+        choices=BalanceType.choices,
+        default=BalanceType.STOCK,
+        verbose_name="Приймається як",
+        help_text=(
+            "Визначає, як зараховується кількість на місці призначення: "
+            "як зерно чи як відходи. На місці відправлення завжди списується зерно."
+        ),
+    )
+    
     class Meta:
         verbose_name = "Журнал внутрішніх переміщень"
         verbose_name_plural = "Журнали внутрішніх переміщень"
@@ -76,35 +88,67 @@ class WeigherJournal(BaseJournal):
         
     def __str__(self):
         return f"Внутрішнє переміщення {self.document_number} ({self.culture.name}): {self.weight_net} тонн"
-
+    
+    # ------------------------------------------------------------------
+    # Зберігаємо "знімок" значень на момент завантаження з БД.
+    # Це потрібно, щоб revert_balance() міг коректно відкотити старий
+    # запис, навіть якщо форма змінила culture / place / to_balance_type.
+    # ------------------------------------------------------------------
+    def _get_operation_values(self):
+        values = super()._get_operation_values()
+        values.update({
+            'from_place_id': self.from_place_id,
+            'to_place_id': self.to_place_id,
+            'culture_id': self.culture_id,
+            'to_balance_type': self.to_balance_type,
+        })
+        return values
+    
     def revert_balance(self):
+        """Відкочує баланси за СТАРИМИ (на момент завантаження) значеннями."""
         original_weight_net = self.get_original_value('weight_net')
-        if original_weight_net is not None:
-            if self.from_place:
+        if original_weight_net is None:
+            return
+
+        original_from_place_id = self.get_original_value('from_place_id')
+        original_to_place_id = self.get_original_value('to_place_id')
+        original_culture_id = self.get_original_value('culture_id')
+        original_to_balance_type = self.get_original_value('to_balance_type', BalanceType.STOCK)
+
+        original_from_place = Place.objects.filter(pk=original_from_place_id).first() if original_from_place_id else None
+        original_to_place = Place.objects.filter(pk=original_to_place_id).first() if original_to_place_id else None
+        original_culture = Culture.objects.filter(pk=original_culture_id).first() if original_culture_id else None
+
+        # На відправлення завжди повертаємо ЗЕРНО (stock) — без змін
+        if original_from_place and original_culture:
+            BalanceService.adjust_balance(
+                place=original_from_place,
+                culture=original_culture,
+                balance_type=BalanceType.STOCK,
+                delta=original_weight_net
+            )
+
+        # На прийманні відкочуємо саме той тип балансу, який був НАСПРАВДІ нарахований
+        if original_to_place and original_culture:
+            try:
                 BalanceService.adjust_balance(
-                    place=self.from_place,
-                    culture=self.culture,
-                    balance_type=BalanceType.STOCK,
-                    delta=original_weight_net
+                    place=original_to_place,
+                    culture=original_culture,
+                    balance_type=original_to_balance_type,
+                    delta=-original_weight_net
                 )
-            if self.to_place:
-                try:
-                    BalanceService.adjust_balance(
-                        place=self.to_place,
-                        culture=self.culture,
-                        balance_type=BalanceType.STOCK,
-                        delta=-original_weight_net
-                    )
-                except ValueError:
-                    BalanceService.set_balance(
-                        place=self.to_place,
-                        culture=self.culture,
-                        balance_type=BalanceType.STOCK,
-                        quantity=0
-                    )
+            except ValueError:
+                BalanceService.set_balance(
+                    place=original_to_place,
+                    culture=original_culture,
+                    balance_type=original_to_balance_type,
+                    quantity=0
+                )
                 
     def update_balance(self):
+        """Нараховує баланси за НОВИМИ (поточними) значеннями."""
         if self.from_place:
+            # З місця відправлення завжди списується зерно
             BalanceService.adjust_balance(
                 place=self.from_place,
                 culture=self.culture,
@@ -112,10 +156,11 @@ class WeigherJournal(BaseJournal):
                 delta=-self.weight_net
             )
         if self.to_place:
+            # На місце призначення приходить зерно АБО відходи — залежно від перемикача
             BalanceService.adjust_balance(
                 place=self.to_place,
                 culture=self.culture,
-                balance_type=BalanceType.STOCK,
+                balance_type=self.to_balance_type,
                 delta=self.weight_net
             )
                 
@@ -123,10 +168,14 @@ class WeigherJournal(BaseJournal):
         is_new = self._state.adding
         if not is_new:
             self.revert_balance()
-            
+
         super().save(*args, **kwargs)
-        
+
         self.update_balance()
+
+        # Оновлюємо "знімок" — щоб подальші save() в межах того ж інстансу
+        # (наприклад, повторний save) відкочували вже актуальні значення.
+        self._original_values = self._get_operation_values()
             
     def delete(self, *args, **kwargs):
         self.revert_balance()

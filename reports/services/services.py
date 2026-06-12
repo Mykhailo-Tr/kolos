@@ -607,6 +607,11 @@ class ReportService:
         for row in data:
             ws.append([row.get(col, '') for col in columns])
 
+        # Enable Excel filters and freeze the header row
+        if data:
+            ws.auto_filter.ref = ws.dimensions
+        ws.freeze_panes = ws['A2']
+
         for idx, col in enumerate(columns, 1):
             max_len = max(
                 [len(str(row.get(col, ''))) for row in data] + [len(str(header[idx-1]))]

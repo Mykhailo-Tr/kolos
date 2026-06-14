@@ -19,7 +19,12 @@ THEME = {
     "border": "#d8dee9",
     "primary": "#1f6feb",
     "primary_hover": "#1557c0",
+    "secondary": "#344054",
+    "secondary_hover": "#1d2939",
     "success": "#1a7f37",
+    "success_hover": "#116329",
+    "disabled_bg": "#e5e7eb",
+    "disabled_fg": "#98a2b3",
     "warning": "#9a6700",
     "danger": "#cf222e",
     "text": "#24292f",
@@ -63,19 +68,33 @@ class UpdaterApp(tk.Tk):
         style = ttk.Style(self)
         style.theme_use("clam")
         style.configure("TFrame", background=THEME["bg"])
-        style.configure("Card.TFrame", background=THEME["panel"], relief="flat")
+        style.configure("Card.TFrame", background=THEME["panel"], relief="solid", borderwidth=1)
         style.configure("TLabel", background=THEME["bg"], foreground=THEME["text"], font=("Segoe UI", 10))
         style.configure("Muted.TLabel", foreground=THEME["muted"])
         style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"), foreground=THEME["text"])
         style.configure("Status.TLabel", font=("Segoe UI", 11, "bold"))
         style.configure("TButton", font=("Segoe UI", 10), padding=(14, 8))
-        style.configure("Primary.TButton", font=("Segoe UI", 10, "bold"))
-        style.configure("Horizontal.TProgressbar", troughcolor="#eaeef2", background=THEME["primary"])
-        style.configure("Treeview", rowheight=28, font=("Segoe UI", 9), background=THEME["panel"])
+        style.configure("Tool.TButton", font=("Segoe UI", 9), padding=(10, 7))
+        style.configure(
+            "Horizontal.TProgressbar",
+            troughcolor="#e5e7eb",
+            background=THEME["primary"],
+            bordercolor="#e5e7eb",
+            lightcolor=THEME["primary"],
+            darkcolor=THEME["primary"],
+        )
+        style.configure(
+            "Treeview",
+            rowheight=30,
+            font=("Segoe UI", 9),
+            background=THEME["panel"],
+            fieldbackground=THEME["panel"],
+            bordercolor=THEME["border"],
+        )
         style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"))
 
     def _build_ui(self) -> None:
-        root = ttk.Frame(self, padding=18)
+        root = ttk.Frame(self, padding=22)
         root.pack(fill="both", expand=True)
         root.columnconfigure(0, weight=1)
         root.rowconfigure(4, weight=1)
@@ -91,7 +110,17 @@ class UpdaterApp(tk.Tk):
             style="Muted.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(3, 0))
 
-        self.status_label = ttk.Label(header, text="○ Готово", style="Status.TLabel")
+        self.status_label = tk.Label(
+            header,
+            text="○ Готово",
+            font=("Segoe UI", 11, "bold"),
+            bg=THEME["panel"],
+            fg=THEME["muted"],
+            padx=14,
+            pady=8,
+            bd=1,
+            relief="solid",
+        )
         self.status_label.grid(row=0, column=1, rowspan=2, sticky="e")
 
         versions = self._card(root, row=1)
@@ -107,24 +136,40 @@ class UpdaterApp(tk.Tk):
         self._backup_dir_field(versions, 1, 2)
 
         actions = ttk.Frame(root)
-        actions.grid(row=2, column=0, sticky="ew", pady=14)
+        actions.grid(row=2, column=0, sticky="ew", pady=16)
         actions.columnconfigure(0, weight=1)
 
         left_actions = ttk.Frame(actions)
         left_actions.grid(row=0, column=0, sticky="w")
-        self.check_button = ttk.Button(left_actions, text="↻ Перевірити оновлення", command=self.check_updates)
+        self.check_button = self._action_button(
+            left_actions,
+            text="↻ Перевірити оновлення",
+            command=self.check_updates,
+            variant="primary",
+        )
         self.check_button.pack(side="left", padx=(0, 8))
-        self.update_button = ttk.Button(left_actions, text="⬇ Оновити", command=self.install_update, state="disabled")
+        self.update_button = self._action_button(
+            left_actions,
+            text="⬇ Оновлення недоступне",
+            command=self.install_update,
+            variant="success",
+            enabled=False,
+        )
         self.update_button.pack(side="left", padx=(0, 8))
-        ttk.Button(left_actions, text="📁 Відкрити backups", command=self.open_backups_folder).pack(side="left")
+        ttk.Button(
+            left_actions,
+            text="📁 Відкрити backups",
+            command=self.open_backups_folder,
+            style="Tool.TButton",
+        ).pack(side="left")
 
         right_actions = ttk.Frame(actions)
         right_actions.grid(row=0, column=1, sticky="e")
-        ttk.Button(right_actions, text="Закрити", command=self.destroy).pack(side="right")
+        ttk.Button(right_actions, text="Закрити", command=self.destroy, style="Tool.TButton").pack(side="right")
 
         self.progress_var = tk.IntVar(value=0)
         self.progress = ttk.Progressbar(root, variable=self.progress_var, maximum=100)
-        self.progress.grid(row=3, column=0, sticky="ew", pady=(0, 14))
+        self.progress.grid(row=3, column=0, sticky="ew", pady=(0, 16))
 
         body = ttk.Frame(root)
         body.grid(row=4, column=0, sticky="nsew")
@@ -171,6 +216,70 @@ class UpdaterApp(tk.Tk):
         frame = ttk.Frame(parent, style="Card.TFrame", padding=padding)
         frame.grid(row=row, column=column, sticky="nsew", padx=(0, 10 if column == 0 else 0))
         return frame
+
+    def _action_button(
+        self,
+        parent: tk.Widget,
+        text: str,
+        command: Callable[[], None],
+        variant: str,
+        enabled: bool = True,
+    ) -> tk.Button:
+        colors = self._button_colors(variant)
+        button = tk.Button(
+            parent,
+            text=text,
+            command=command,
+            font=("Segoe UI", 10, "bold"),
+            padx=18,
+            pady=10,
+            bd=0,
+            relief="flat",
+            cursor="hand2",
+            bg=colors["bg"],
+            fg="#ffffff",
+            activebackground=colors["hover"],
+            activeforeground="#ffffff",
+            disabledforeground=THEME["disabled_fg"],
+            highlightthickness=0,
+        )
+        button.configure(takefocus=True)
+        button.bind("<Enter>", lambda _event: self._button_hover(button, variant, True))
+        button.bind("<Leave>", lambda _event: self._button_hover(button, variant, False))
+        self._set_button_enabled(button, enabled, variant)
+        return button
+
+    def _button_colors(self, variant: str) -> dict[str, str]:
+        if variant == "success":
+            return {"bg": THEME["success"], "hover": THEME["success_hover"]}
+        if variant == "primary":
+            return {"bg": THEME["primary"], "hover": THEME["primary_hover"]}
+        return {"bg": THEME["secondary"], "hover": THEME["secondary_hover"]}
+
+    def _button_hover(self, button: tk.Button, variant: str, is_hovered: bool) -> None:
+        if str(button.cget("state")) == "disabled":
+            return
+        colors = self._button_colors(variant)
+        button.configure(bg=colors["hover"] if is_hovered else colors["bg"])
+
+    def _set_button_enabled(self, button: tk.Button, enabled: bool, variant: str) -> None:
+        colors = self._button_colors(variant)
+        if enabled:
+            button.configure(
+                state="normal",
+                bg=colors["bg"],
+                fg="#ffffff",
+                activebackground=colors["hover"],
+                cursor="hand2",
+            )
+        else:
+            button.configure(
+                state="disabled",
+                bg=THEME["disabled_bg"],
+                fg=THEME["disabled_fg"],
+                activebackground=THEME["disabled_bg"],
+                cursor="arrow",
+            )
 
     def _field(self, parent: ttk.Frame, label: str, variable: tk.StringVar, row: int, column: int) -> None:
         ttk.Label(parent, text=label, background=THEME["panel"], style="Muted.TLabel").grid(
@@ -350,18 +459,18 @@ class UpdaterApp(tk.Tk):
         self._populate_commits(info)
         self._set_buttons_busy(False)
         if info.has_updates:
-            self.update_button.configure(state="normal")
+            self._set_update_button_available(True)
             self._set_status("✓ Оновлення доступне", "success")
             self._log(f"Доступне оновлення: {info.commit_count} нових комітів.")
             self.show_update_dialog()
         else:
-            self.update_button.configure(state="disabled")
+            self._set_update_button_available(False)
             self._set_status("✓ Ви використовуєте останню версію", "success")
             self._log("Нових оновлень не знайдено.")
 
     def _on_installed(self, backup: Any) -> None:
         self._set_buttons_busy(False)
-        self.update_button.configure(state="disabled")
+        self._set_update_button_available(False)
         self._set_status("✓ Оновлення завершено", "success")
         self._log(f"Оновлення завершено. Backup збережено: {backup.backup_path}")
         messagebox.showinfo(
@@ -403,15 +512,32 @@ class UpdaterApp(tk.Tk):
         return bool(self.worker and self.worker.is_alive())
 
     def _set_buttons_busy(self, busy: bool) -> None:
-        state = "disabled" if busy else "normal"
-        self.check_button.configure(state=state)
+        self._set_button_enabled(self.check_button, not busy, "primary")
         if busy:
-            self.update_button.configure(state="disabled")
+            self.update_button.configure(text="⏳ Зачекайте...")
+            self._set_button_enabled(self.update_button, False, "success")
         elif self.update_info and self.update_info.has_updates:
-            self.update_button.configure(state="normal")
+            self._set_update_button_available(True)
+        else:
+            self._set_update_button_available(False)
+
+    def _set_update_button_available(self, available: bool) -> None:
+        if available:
+            self.update_button.configure(text="⬇ Оновити зараз")
+            self._set_button_enabled(self.update_button, True, "success")
+        else:
+            self.update_button.configure(text="⬇ Оновлення недоступне")
+            self._set_button_enabled(self.update_button, False, "success")
 
     def _set_status(self, text: str, color_key: str) -> None:
-        self.status_label.configure(text=text, foreground=THEME.get(color_key, THEME["text"]))
+        status_colors = {
+            "primary": ("#eff6ff", THEME["primary"]),
+            "success": ("#f0fdf4", THEME["success"]),
+            "warning": ("#fffbeb", THEME["warning"]),
+            "danger": ("#fef2f2", THEME["danger"]),
+        }
+        bg_color, fg_color = status_colors.get(color_key, (THEME["panel"], THEME["text"]))
+        self.status_label.configure(text=text, bg=bg_color, fg=fg_color)
 
     def _thread_log(self, message: str) -> None:
         self.events.put(("log", message))

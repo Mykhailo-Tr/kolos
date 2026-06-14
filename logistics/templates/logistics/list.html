@@ -169,19 +169,19 @@
                             <td>
                                 {% if journal.place_to %}{{ journal.place_to }}{% else %}{{ journal.place_to_text }}{% endif %}
                             </td>
-
-                            {% elif url_name == 'weigherjournal' %}
-                                <td>{{ journal.from_place }}</td>
-                                <td>{{ journal.to_place }}</td>
-                                <td class="text-center">
-                                    {% if journal.to_balance_type == 'waste' %}
-                                        <span class="balance-type-badge balance-type-badge-waste">Відходи</span>
-                                    {% else %}
-                                        <span class="balance-type-badge balance-type-badge-stock">Зерно</span>
-                                    {% endif %}
-                                </td>
-                            {% endif %}
-
+                            
+                            
+                                                        {% elif url_name == 'weigherjournal' %}
+                                                            <td>{{ journal.from_place }}</td>
+                                                            <td>{{ journal.to_place }}</td>
+                                                            <td class="text-center">
+                                                                {% if journal.to_balance_type == 'waste' %}
+                                                                    <span class="balance-type-badge balance-type-badge-waste">Відходи</span>
+                                                                {% else %}
+                                                                    <span class="balance-type-badge balance-type-badge-stock">Зерно</span>
+                                                                {% endif %}
+                                                            </td>
+                                                        {% endif %}
                         {# --- ВАГОВІ ДАНІ (Спільні) --- #}
                         <td class="text-end">
                             <span class="weight-value" data-t="{{ journal.weight_gross|default:0 }}">

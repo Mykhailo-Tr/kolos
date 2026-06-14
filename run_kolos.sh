@@ -4,7 +4,7 @@
 # Kolos Django Local Launcher
 # ====================================
 
-# TEST UPDATES
+
 
 set -e
 

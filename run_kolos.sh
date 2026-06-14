@@ -4,7 +4,6 @@
 # Kolos Django Local Launcher
 # ====================================
 
-# dsfsdfsdf
 
 set -e
 

@@ -1,0 +1,10 @@
+{
+  "repo_dir": ".",
+  "remote_name": "origin",
+  "branch_name": "main",
+  "remote_url": "https://github.com/Mykhailo-Tr/kolos.git",
+  "backups_dir": "backups",
+  "use_daily_backup_folders": true,
+  "requirements_file": "requirements.txt",
+  "auto_check_on_start": true
+}

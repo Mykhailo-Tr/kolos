@@ -28,11 +28,26 @@ class GitService:
         )
 
     def fetch(self, log: LogCallback | None = None) -> None:
+        self._ensure_remote_url(log)
         self._run_git(("fetch", self.config.remote_name), log=log)
 
     def reset_to_remote(self, log: LogCallback | None = None) -> None:
+        self._ensure_remote_url(log)
         self._run_git(("fetch", self.config.remote_name), log=log)
         self._run_git(("reset", "--hard", self.config.remote_branch), log=log)
+
+    def _ensure_remote_url(self, log: LogCallback | None = None) -> None:
+        if not self.config.remote_url:
+            return
+
+        try:
+            current_url = self._run_git(("remote", "get-url", self.config.remote_name))
+        except GitError:
+            self._run_git(("remote", "add", self.config.remote_name, self.config.remote_url), log=log)
+            return
+
+        if current_url.strip() != self.config.remote_url:
+            self._run_git(("remote", "set-url", self.config.remote_name, self.config.remote_url), log=log)
 
     def get_commit(self, revision: str) -> str:
         result = self._run_git(("rev-parse", revision))

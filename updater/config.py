@@ -17,6 +17,7 @@ class UpdaterConfig:
     repo_dir: Path = ROOT_DIR
     remote_name: str = "origin"
     branch_name: str = "main"
+    remote_url: str = ""
     manage_py: Path = ROOT_DIR / "manage.py"
     database_path: Path = ROOT_DIR / "db.sqlite3"
     backups_dir: Path = ROOT_DIR / "backups"

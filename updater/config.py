@@ -96,5 +96,5 @@ def save_config(config: UpdaterConfig) -> None:
 
 
 def get_python_executable() -> str:
-    return _default_python()
+    return sys.executable
 
